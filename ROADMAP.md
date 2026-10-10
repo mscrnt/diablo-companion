@@ -1,33 +1,120 @@
 # Roadmap
 
-Everything reads the screen (capture + Windows OCR + local vision LLM). Nothing reads
-game memory, injects into the game, or sends input — keep it that way.
+**Goal:** the one-stop Diablo IV companion. Every system in the game (loot, builds, character, activities, world, seasons) covered in one app, more accurately than any single-purpose tool, and without ever risking the player's account.
 
-## Done
-- Event timers (local schedule + helltides.com live names/zones), alerts, Discord, overlay
-- Build import (Mobalytics GraphQL / FlareSolverr), static game data, datamined strings
-- Loot judge: auto (no hotkey) + hotkey + controller chord, plain-language actions
-  (wear / keep yours / scrap / sell / stash / take the power / cube it) with a to-do list
-  (Occultist enchant & imprint, Blacksmith temper & masterwork, sockets, cube → mythic)
-- Remembers what you're wearing (hover your gear once) for keep-or-swap comparisons
-- Guided overlay: setup, black-bar docking, inventory layout learning, gear scan, stats check
-- Farm planner with S15 drop sources and boss route; AI coach; runs & splits; screen watchers
-- **Skill bar check** — matches the 6 HUD icons against the build's skill icons (passive, every 60 s)
+## Ground rules: ban-safe only
 
-## Next: knowing your skills & paragon
+Everything on this roadmap uses one of these sources:
 
-| Feature | How we'd read it | Effort | Confidence |
+| Allowed | Examples |
+|---|---|
+| **Screen capture + OCR / local vision model** | tooltips, HUD, quest tracker, menus |
+| **Game files on disk, read-only** | CASC data from the local install: affixes, drop tables, map markers, schedules, recipes |
+| **Public web data** | Mobalytics, Maxroll, d4builds, helltides.com, Blizzard news |
+| **The game's own features** | importing a loot filter code the app generates |
+| **Read-only controller input** | XInput chords for our own hotkeys |
+
+**Never:** reading or writing game memory, loading or injecting DLLs into the game (this includes d4lf's screen-reader/TTS DLL), modifying game files, sending input to the game (macros, auto-clicking, auto-salvage), capturing network traffic, or handling Battle.net credentials.
+
+**Legend:** effort **S** (days) · **M** (a week or two) · **L** (bigger). Sources: 🖥 screen · 📦 game files · 🌐 web · 🎮 in-game feature.
+
+---
+
+## Done (0.1.x)
+- **Loot judge**: automatic on hover, with plain-language verdicts and upkeep steps (temper, masterwork, Occultist, sockets, cube). Compares against equipped and Alt-compare items, remembers what you wear, and stays quiet while you fight. Gems, runes, charms and seals are handled too.
+- **Builds**: Mobalytics import (featured and profile builds), several bookmarked builds, author-update badges, cross-build "stash it for your other build".
+- **Activities**: auto-tracked Pit (tier, Guardian split, deaths) and Nightmare Dungeons, Infernal Hordes offer and spoils picks, Tree of Whispers caches, Helltide cinder plans, boss drop tips, War Plans planner.
+- **Character**: guided mapping of stats, skills and paragon glyphs (pause and resume with F7 / View+Y). Skill bar check.
+- **Timers and overlay**: world boss / Helltide / Legion schedule with live names, alerts, Discord. Overlay docks into the black pillarbox bars, plus a status corner and a guided overlay.
+- **Platform**: signed standalone installer, CI, tested release pipeline, update check, portrait layout.
+
+---
+
+## Now: accuracy and the biggest wins
+
+| Feature | How | Source | Effort |
 |---|---|---|---|
-| Skill ranks & enhancements | Guided: "hover each skill on your bar" → tooltip OCR reads `Rank X/Y` and the enhancement names; compare with the build's point order | S | High (plain tooltip text) |
-| Skill tree allocation | Guided: open the skill tree; vision model compares node highlights to the build's chosen nodes, asks you to scroll/pan for the rest | M | Medium |
-| Paragon glyphs & levels | Guided: open Paragon, "hover each glyph socket" → tooltip OCR reads glyph name + level; flag missing/under-levelled glyphs (and plan Pit runs to level them) | S | High |
-| Paragon boards & order | Guided: zoom out on the paragon screen; vision model names the attached boards + rotation vs the build's `Starter → Cult Leader → Flesh-eater → Scent of Death → Wither` | M | Medium |
-| Paragon node-by-node diff | Template-match the board grid at a fixed zoom against Mobalytics node coordinates; highlight nodes to (re)spend on the overlay | L | Experimental |
-| Paragon points available | OCR the "points available" counter; nudge when unspent | S | High |
+| **Loot filter generator** | Turn the active build into the game's native loot-filter import code (25 rules): keep the build's uniques, aspects, wanted affixes, greater affixes and item power thresholds; hide the rest. Profiles for leveling, Torment farming and greater-affix hunting. Format worked out from codes the player exports in game; item categories from `LootFilterItemTypeGroup`. | 🎮📦 | M |
+| **Snap OCR to the game's own text** | Match every OCR'd line against the datamined affix, aspect, unique and item-type strings (fuzzy plus number-aware), so "Arit10r" becomes "Armor" and garbled item names get corrected. Removes most misreads at the source. | 📦 | S |
+| **Fix Character page reading** | Skill ranks read as "31/15" (base vs gear bonus) and stats get mixed up ("Toughness 1,241,124", "Kyldirril"). Parse the character sheet against the datamined stat names, and split base and bonus ranks. | 🖥📦 | S |
+| **Roll quality on every affix** | Show "87% of max" next to each affix and greater affix using datamined affix ranges by item power, so "is this a good roll?" gets an exact answer. | 📦🖥 | M |
+| **Re-check questionable verdicts** | Audit rules such as "wear this ring" when the swap would lose a unique power. Add these cases as test fixtures. | 🖥 | S |
 
-## Later
-- Stash / materials scan (guided tab-by-tab) → masterwork & temper cost planner
-- Helltide chest & event locations on a minimap overlay (needs a data source)
-- Train a small local screen classifier from auto-labelled frames (inventory, map, loading, death…) for faster scene detection
-- Support Maxroll / d4builds imports (Playwright/Patchright scraping)
-- Packaged installer + auto-update
+## Next: be the best at each system
+
+### Loot and crafting
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| Masterwork planner | Crit chances per rank, material cost to +12, "reroll or keep" advice for the build's target affix | 📦 `MasterworkData`, `MasterworkRankData` | M |
+| Tempering odds | Which manual can roll the build's temper, the odds per attempt, and tempers left on the item | 📦 `TemperingData`, recipes | M |
+| Occultist cost and odds | Enchant cost scaling and the chance of the wanted affix in the reroll pool | 📦 `EnchantCostScalarDelta`, affix pools | S |
+| Codex of Power tracker | Read the Codex screen; know which aspects (and what roll) you own; skip "extract" advice for aspects you already have at max | 🖥📦 | M |
+| Stash scanner | Guided tab-by-tab scan: dupes, upgrades for other builds, salvage list, material totals | 🖥 | M |
+| Cube and recipe helper | Every Horadric Cube and crafting recipe with ingredients and what you can make right now | 📦 `RecipeDefinition`, `Crafter` | M |
+| Gem and rune planner | Which gems and runes the build socketed, what to craft, rune combos | 📦 | S |
+| Real drop sources | Replace the hand-written research file with drop tables mined from the game: which boss, chest or activity can drop each unique, aspect, rune and material | 📦 `TreasureClass`, `SpawnPool` | L |
+
+### Builds
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| Maxroll and d4builds import | Public planner data plus page scraping (Playwright / Patchright when needed) | 🌐 | M |
+| Build diff and patch impact | After each game patch, diff the datamined affixes, aspects and uniques and show "what changed for your build" | 📦 | M |
+| Skill tree reading | Guided: open the tree; vision model checks chosen nodes against the build | 🖥 | M |
+| Paragon board and node diff | Board order and rotation, then node-by-node against Mobalytics coordinates, highlighted on the overlay | 🖥📦 | L |
+| Stat breakpoints | Check key thresholds the guide calls for (attack speed, crit, resistances, armor cap) from the mapped stats | 🖥 | S |
+| Mercenaries | Read the active mercenary and reinforcement against the build's picks | 🖥 | S |
+
+### Activities
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| Glyph levelling planner | Pit tier vs glyph upgrade chance, and "runs to reach level N" per glyph | 📦 `GlyphChanceUpgradeEntry`, `ParagonGlyphExperience` | S |
+| Nightmare sigil advisor | Read a sigil's affixes; flag dangerous ones for the build; suggest which to run | 📦 `DungeonAffixDefinition` | S |
+| World bosses and Uber bosses | Boss mode for every boss: mechanics notes, summon materials, wanted drops | 📦🌐 | S |
+| Lair boss materials | Track summon materials and how many kills you can afford | 🖥📦 | S |
+| Undercity, Legion, strongholds | Run tracking like the Pit; stronghold, cellar and altar completion | 🖥📦 | M |
+| Seasonal mechanic module | One module per season (datamined each patch) so the app is ready on day one | 📦 | M per season |
+| Bounties and dailies | Read the active bounty or Grim Favor list and plan the shortest route | 🖥📦 `BountyData` | M |
+
+### World and map
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| Interactive map page | Zones, waypoints, dungeons, cellars, Altars of Lilith, strongholds, Helltide chest spawns | 📦 `MarkerSet`, `POI`, `Zone`, `Territory` | L |
+| Overlay pins | Show nearby points of interest in the black bars | 📦🖥 | M |
+| Helltide route | Chest and event route for the current Helltide zone | 📦🌐 | M |
+| Collection progress | Altars, waypoints, cellars and dungeons found per region | 🖥📦 | M |
+
+### Progression and seasons
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| Season Journey tracker | Chapters and objectives with what's left and the fastest way to finish | 📦🖥 `SeasonDefinition` | M |
+| Renown / reputation | Per-region progress and rewards | 📦🖥 `ReputationDefinition` | S |
+| Achievements and titles | Datamined list with tracking | 📦 `AchievementDefinition`, `PlayerTitle` | M |
+| Season and patch countdowns | Season end, patch day, maintenance from Blizzard news | 🌐📦 `Season` | S |
+| Event schedule from game data | Validate and extend the timers with the datamined `Schedule` and `Activity` data | 📦 | S |
+
+### Knowledge
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| Search everything | One search box over items, aspects, affixes, monsters, zones, recipes and activities | 📦 | M |
+| Coach with game knowledge | Retrieval over the datamined data and the build, so the AI Coach answers from facts | 📦 | M |
+| Patch notes digest | Fetch patch notes and summarise them for your build with the local LLM | 🌐 | S |
+
+## Later: platform and polish
+- **Multi-language**: the game ships every locale's strings, so the OCR and verdicts can work in other game languages. 📦
+- **Fast scene classifier**: a small local model trained on auto-labelled frames (inventory, map, loading, death) to make detection faster and cheaper. 🖥
+- **In-app auto-update**: Tauri updater with signed update packages; one click to update.
+- **Microsoft Store (MSIX)**: free distribution and automatic updates.
+- **Profiles per character**: switch builds, progress and stats per character.
+- **Settings backup and export**: move to a new PC or share a setup.
+- **Discord Rich Presence**: show the current activity (from our own app, no game hook).
+- **Streamer mode**: OBS-friendly overlay scenes; verdict and run widgets as browser sources.
+- **Controller-first app UI**: navigate the dashboard entirely from the pad.
+
+## Explicitly not doing
+| Idea | Why not |
+|---|---|
+| d4lf-style TTS / screen-reader DLL | Puts third-party code inside the game process. Exact text, but a ban risk. |
+| Reading game memory | Anti-cheat territory, ban risk. |
+| Auto-salvage, auto-pickup, macros | Sends input to the game. |
+| Packet capture | Against the terms of service. |
+| Logging in to Battle.net or D4 Armory with your account | Credentials stay out of the app. |
