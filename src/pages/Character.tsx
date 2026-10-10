@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChartColumn, Diamond, ScrollText, Sparkles } from "lucide-react";
 import { Card, Empty, PageHead, timeAgo } from "../components/ui";
 import { mapCharacter, mapGlyphs, mapSkills, mapStats, useCharacter } from "../lib/charmap";
 import { cancelGuide, useGuide } from "../lib/guide";
@@ -25,7 +26,7 @@ export default function Character() {
           </button>
         ) : (
           <button className="btn primary" disabled={g.active} onClick={() => mapCharacter()}>
-            ✦ Map my character
+            <Sparkles size={15} strokeWidth={1.75} aria-hidden /> Map my character
           </button>
         )}
       </PageHead>
@@ -69,7 +70,7 @@ export default function Character() {
               </table>
             </div>
           ) : (
-            <Empty icon="📜">Import a build first.</Empty>
+            <Empty icon={ScrollText}>Import a build first.</Empty>
           )}
           <div className="small dim">
             Build = points the guide puts into that skill. Yours = points you spent, then ranks from gear (+N).
@@ -108,7 +109,7 @@ export default function Character() {
               </table>
             </div>
           ) : (
-            <Empty icon="🔷">No paragon plan in this build.</Empty>
+            <Empty icon={Diamond}>No paragon plan in this build.</Empty>
           )}
           <div className="small dim">Level glyphs up in the Pit.</div>
         </Card>
@@ -130,7 +131,7 @@ export default function Character() {
               </div>
             </>
           ) : (
-            <Empty icon="📊">Not read yet.</Empty>
+            <Empty icon={ChartColumn}>Not read yet.</Empty>
           )}
         </Card>
       </div>

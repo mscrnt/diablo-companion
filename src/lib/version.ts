@@ -33,7 +33,7 @@ export function compareVersions(a: string, b: string): number {
 export async function checkForUpdate(): Promise<UpdateInfo | null> {
   const r = await httpJson<{ tag_name: string; html_url: string; published_at: string; draft: boolean; prerelease: boolean }>(
     "https://api.github.com/repos/mscrnt/diablo-companion/releases/latest",
-    { headers: { Accept: "application/vnd.github+json", "User-Agent": `d4-companion/${APP_VERSION}` }, timeoutMs: 15000 },
+    { headers: { Accept: "application/vnd.github+json", "User-Agent": `sanctuary-toolkit/${APP_VERSION}` }, timeoutMs: 15000 },
   );
   if (r.draft || r.prerelease) return null;
   const version = r.tag_name.replace(/^v/, "");

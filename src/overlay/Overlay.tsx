@@ -8,6 +8,7 @@ import type { HordesState } from "../lib/hordesRunner";
 import type { AdvisorState } from "../lib/activity";
 import type { HelltideInfo } from "../lib/helltide";
 import type { BossInfo } from "../lib/boss";
+import { CircleCheck, Eye, Flame, Skull, Star, TreeDeciduous, type LucideIcon } from "lucide-react";
 import { VERDICT_STYLE } from "../lib/judge";
 import { EVENT_META, fmtCountdown, isActive } from "../lib/timers";
 import type { JudgeResult } from "../lib/types";
@@ -18,6 +19,11 @@ interface TooltipEvt {
   state: "reading" | "judging" | "done";
   prelim?: Prelim;
   verdict?: JudgeResult;
+}
+
+/** Lucide icon for the overlay: inline with the text, thicker stroke and a shadow so it reads over the game. */
+function Ico({ icon: I, size = 14, style }: { icon: LucideIcon; size?: number; style?: CSSProperties }) {
+  return <I className="i" size={size} strokeWidth={2} aria-hidden style={style} />;
 }
 
 const fmt = (ms: number) => {
@@ -106,17 +112,17 @@ export default function Overlay() {
         <div className="ov-panel small muted">
           {helltide?.active && helltide.best && (
         <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #3a2c22" }}>
-          <div className="ov-title">🔥 Helltide · {helltide.cinders ?? "?"} cinders</div>
+          <div className="ov-title"><Ico icon={Flame} size={13} /> Helltide · {helltide.cinders ?? "?"} cinders</div>
           <div style={{ fontWeight: 800, color: helltide.cinders != null && helltide.cinders >= helltide.best.cost ? "var(--green)" : "var(--gold)", fontSize: 15 }}>
-            {helltide.cinders != null && helltide.cinders >= helltide.best.cost ? "✅ Open: " : "Next: "}
+            {helltide.cinders != null && helltide.cinders >= helltide.best.cost ? <><Ico icon={CircleCheck} size={15} /> Open: </> : "Next: "}
             {helltide.best.name.replace("Tortured Gift of ", "")} ({helltide.best.cost})
           </div>
         </div>
       )}
       {advisor && advisor.items[0] && (
         <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #3a2c22" }}>
-          <div className="ov-title">🌳 {advisor.title}</div>
-          <div style={{ fontWeight: 800, color: "var(--green)", fontSize: 16 }}>✅ Take: {advisor.items[0].name}</div>
+          <div className="ov-title"><Ico icon={TreeDeciduous} size={13} /> {advisor.title}</div>
+          <div style={{ fontWeight: 800, color: "var(--green)", fontSize: 16 }}><Ico icon={CircleCheck} size={16} /> Take: {advisor.items[0].name}</div>
           <div className="small">{advisor.items[0].why}</div>
         </div>
       )}
@@ -215,9 +221,12 @@ function TimersPanel({ st, now, big }: { st: OverlayState; now: number; big: boo
         const list = st.events.filter((x) => x.kind === k && (x.end ?? x.start) > now).slice(0, big && k !== "legion" ? 2 : 1);
         return list.map((e, i) => {
           const active = isActive(e, now);
+          const EvIcon = EVENT_META[k].icon;
           return (
             <div key={k + e.start} className="ov-ev" style={{ opacity: i ? 0.6 : 1, fontSize: big && !i ? 15 : undefined }}>
-              <span style={{ color: EVENT_META[k].color, width: 18, textAlign: "center" }}>{EVENT_META[k].icon}</span>
+              <span style={{ color: EVENT_META[k].color, width: 18, display: "flex", justifyContent: "center", flex: "none" }}>
+                <Ico icon={EvIcon} size={big && !i ? 17 : 15} />
+              </span>
               <span style={{ minWidth: 0 }}>
                 <b>{e.name}</b>
                 {e.zone && <div className="small muted">{e.zone}</div>}
@@ -251,7 +260,7 @@ function RunPanel({ st, now, big }: { st: OverlayState; now: number; big: boolea
           </span>
         )}
         {st.avg != null && <> · avg {fmt(st.avg)}</>}
-        {st.run?.deaths ? <span style={{ color: "var(--blood2)" }}> ☠{st.run.deaths}</span> : null}
+        {st.run?.deaths ? <span style={{ color: "var(--blood2)" }}> <Ico icon={Skull} size={12} />{st.run.deaths}</span> : null}
       </div>
       {st.run?.splits.slice(big ? -8 : -4).map((s, i) => (
         <div key={i} className="small" style={{ display: "flex" }}>
@@ -320,7 +329,7 @@ function VerdictPanel({ v, detailed, judging }: { v: JudgeResult; detailed: bool
   return (
     <div className={"ov-panel ov-verdict " + (v.verdict === "WEAR" || v.verdict === "CUBE" ? "bis" : "")} style={{ borderColor: s.color, maxWidth: detailed ? "none" : 440 }}>
       <div className="row" style={{ gap: 8, color: s.color }}>
-        <span style={{ fontSize: detailed ? 30 : 24 }}>{s.icon}</span>
+        <Ico icon={s.icon} size={detailed ? 30 : 24} />
         <div style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: detailed ? 28 : 22, letterSpacing: ".05em", textTransform: "uppercase" }}>{s.label}</div>
         {judging && <span className="loader right" />}
       </div>
@@ -356,7 +365,7 @@ function VerdictPanel({ v, detailed, judging }: { v: JudgeResult; detailed: bool
           ))}
           {v.greaterOnTargets > 0 && (
             <div className="small" style={{ color: "var(--gold2)", marginTop: 2 }}>
-              ★ {v.greaterOnTargets} of them {v.greaterOnTargets === 1 ? "is a" : "are"} greater (extra-strong) roll{v.greaterOnTargets === 1 ? "" : "s"}
+              <Ico icon={Star} size={12} style={{ fill: "currentColor" }} /> {v.greaterOnTargets} of them {v.greaterOnTargets === 1 ? "is a" : "are"} greater (extra-strong) roll{v.greaterOnTargets === 1 ? "" : "s"}
             </div>
           )}
         </div>
@@ -394,7 +403,7 @@ function TooltipBadge({ t, style }: { t: TooltipEvt; style: CSSProperties }) {
       {v ? (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: s!.color }}>
-            <span style={{ fontSize: 26 }}>{s!.icon}</span>
+            <Ico icon={s!.icon} size={26} />
             <span style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: 22, letterSpacing: ".05em", textTransform: "uppercase" }}>{s!.label}</span>
           </div>
           {v.action && <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.35 }}>{v.action}</div>}
@@ -433,11 +442,11 @@ function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: To
     >
       {hordes?.active && (hordes.offers[0] || hordes.chests[0]) && (
         <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #3a2c22" }}>
-          <div className="ov-title">🔥 Infernal Hordes{hordes.aether != null ? ` · ${hordes.aether} Aether` : ""}</div>
+          <div className="ov-title"><Ico icon={Flame} size={13} /> Infernal Hordes{hordes.aether != null ? ` · ${hordes.aether} Aether` : ""}</div>
           {hordes.offers[0] ? (
-            <div style={{ fontWeight: 800, color: "var(--green)", fontSize: 16 }}>✅ Pick: {hordes.offers[0].title}</div>
+            <div style={{ fontWeight: 800, color: "var(--green)", fontSize: 16 }}><Ico icon={CircleCheck} size={16} /> Pick: {hordes.offers[0].title}</div>
           ) : (
-            <div style={{ fontWeight: 800, color: "var(--green)", fontSize: 16 }}>✅ Open: {hordes.chests[0].name}</div>
+            <div style={{ fontWeight: 800, color: "var(--green)", fontSize: 16 }}><Ico icon={CircleCheck} size={16} /> Open: {hordes.chests[0].name}</div>
           )}
         </div>
       )}
@@ -455,7 +464,7 @@ function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: To
       ) : recent ? (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: s!.color }}>
-            <span style={{ fontSize: 26 }}>{s!.icon}</span>
+            <Ico icon={s!.icon} size={26} />
             <span style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: 22, letterSpacing: ".05em", textTransform: "uppercase" }}>{s!.label}</span>
           </div>
           <div style={{ fontWeight: 700, marginTop: 2 }}>{recent.item.name}</div>
@@ -463,7 +472,7 @@ function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: To
         </>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 22 }}>👁</span>
+          <Ico icon={Eye} size={22} style={{ color: "var(--gold)" }} />
           <span className="muted">{autoJudge ? "Watching — hover any item" : "Hover an item and press the judge key"}</span>
         </div>
       )}
@@ -497,7 +506,7 @@ function HordesBadges({ h, toCss }: { h: HordesState; toCss: (b: { x: number; y:
             }}
           >
             <div style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: best ? 18 : 14, color: best ? "var(--green)" : "var(--muted)" }}>
-              {best ? "✅ PICK THIS" : `#${o.rank}`}
+              {best ? <><Ico icon={CircleCheck} size={18} /> PICK THIS</> : `#${o.rank}`}
             </div>
             {best && <div className="small">{o.why}</div>}
           </div>
@@ -520,7 +529,7 @@ function HordesBadges({ h, toCss }: { h: HordesState; toCss: (b: { x: number; y:
               pointerEvents: "none",
             }}
           >
-            <span style={{ fontWeight: 800, color: c.order === 1 ? "var(--green)" : "var(--muted)" }}>{c.order === 1 ? "✅ OPEN THIS FIRST" : c.order < 99 ? `#${c.order}` : "skip"}</span>
+            <span style={{ fontWeight: 800, color: c.order === 1 ? "var(--green)" : "var(--muted)" }}>{c.order === 1 ? <><Ico icon={CircleCheck} size={14} /> OPEN THIS FIRST</> : c.order < 99 ? `#${c.order}` : "skip"}</span>
           </div>
         );
       })}
@@ -532,13 +541,13 @@ function HordesPanel({ h }: { h: HordesState }) {
   return (
     <div className="ov-panel">
       <div className="ov-title">
-        🔥 Infernal Hordes{h.aether != null ? ` · ${h.aether} Aether` : ""}
+        <Ico icon={Flame} size={13} /> Infernal Hordes{h.aether != null ? ` · ${h.aether} Aether` : ""}
       </div>
       {h.offers.length > 0 ? (
         h.offers.map((o) => (
           <div key={o.key} style={{ marginBottom: 6 }}>
             <div style={{ fontWeight: 700, color: o.rank === 1 ? "var(--green)" : undefined }}>
-              {o.rank === 1 ? "✅ " : `${o.rank}. `}
+              {o.rank === 1 ? <><Ico icon={CircleCheck} size={14} /> </> : `${o.rank}. `}
               {o.title}
             </div>
             <div className="small" style={{ color: "var(--gold)" }}>
@@ -592,7 +601,7 @@ function AdvisorBadges({ a, toCss }: { a: AdvisorState; toCss: (b: { x: number; 
               pointerEvents: "none",
             }}
           >
-            <span style={{ fontWeight: 800, color: best ? "var(--green)" : "var(--muted)" }}>{best ? "✅ TAKE THIS" : `#${c.rank}`}</span>
+            <span style={{ fontWeight: 800, color: best ? "var(--green)" : "var(--muted)" }}>{best ? <><Ico icon={CircleCheck} size={14} /> TAKE THIS</> : `#${c.rank}`}</span>
             {best && <div className="small">{c.why}</div>}
           </div>
         );
@@ -605,7 +614,7 @@ function HelltidePanel({ h }: { h: HelltideInfo }) {
   const mins = h.secondsLeft != null ? `${Math.floor(h.secondsLeft / 60)}:${String(h.secondsLeft % 60).padStart(2, "0")}` : "?";
   return (
     <div className="ov-panel">
-      <div className="ov-title">🔥 Helltide · {mins} left</div>
+      <div className="ov-title"><Ico icon={Flame} size={13} /> Helltide · {mins} left</div>
       <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--display)" }}>{h.cinders ?? "?"} cinders</div>
       {h.plan.map((p, i) => (
         <div key={i} className="small" style={{ marginTop: 4 }}>
@@ -622,7 +631,7 @@ function HelltidePanel({ h }: { h: HelltideInfo }) {
 function BossPanel({ b }: { b: BossInfo }) {
   return (
     <div className="ov-panel" style={{ borderColor: "var(--blood2)" }}>
-      <div className="ov-title">☠ {b.name}</div>
+      <div className="ov-title"><Ico icon={Skull} size={13} /> {b.name}</div>
       {b.wanted.length ? (
         b.wanted.map((w) => (
           <div key={w.item} style={{ marginBottom: 4 }}>

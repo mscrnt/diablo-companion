@@ -1,13 +1,22 @@
+import type { CSSProperties } from "react";
 import { EVENT_META, fmtCountdown, isActive } from "../lib/timers";
 import type { GameEvent } from "../lib/types";
 import { useNow } from "./ui";
+
+/** The event kind's Lucide icon, inline with text; colour comes from the parent (or `style`). */
+export function EventIcon({ kind, size = 16, style }: { kind: GameEvent["kind"]; size?: number; style?: CSSProperties }) {
+  const Icon = EVENT_META[kind].icon;
+  return <Icon className="i" size={size} strokeWidth={1.75} style={style} aria-hidden />;
+}
 
 export function EventRow({ e, now }: { e: GameEvent; now: number }) {
   const meta = EVENT_META[e.kind];
   const active = isActive(e, now);
   return (
     <div className={"event " + (active ? "active" : "")} style={{ color: meta.color }}>
-      <span className="ico">{meta.icon}</span>
+      <span className="ico">
+        <EventIcon kind={e.kind} size={22} />
+      </span>
       <div style={{ color: "var(--text)", minWidth: 0 }}>
         <div style={{ fontWeight: 700 }}>
           {e.name}

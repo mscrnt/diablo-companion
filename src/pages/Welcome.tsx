@@ -47,7 +47,7 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
 
   return (
     <div style={{ maxWidth: 860, margin: "30px auto" }}>
-      <h1 style={{ fontFamily: "var(--display)", color: "var(--gold)" }}>Welcome to D4 Companion</h1>
+      <h1 style={{ fontFamily: "var(--display)", color: "var(--gold)" }}>Welcome to Sanctuary Toolkit</h1>
       <p className="muted">It reads your screen (no game memory, no input) and helps with loot, events, the Pit, Hordes, Helltides and more — tuned to the build you play.</p>
 
       <div className="card" style={{ marginTop: 16 }}>

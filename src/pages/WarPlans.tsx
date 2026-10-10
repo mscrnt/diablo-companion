@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { WandSparkles } from "lucide-react";
 import { Card, PageHead } from "../components/ui";
 import { useCharacter } from "../lib/charmap";
 import { useActiveVariant, useBuilds, useSettings, emptyProgress } from "../lib/store";
@@ -55,7 +56,7 @@ export default function WarPlans() {
     <>
       <PageHead title="War Plans" sub="7 activity trees × 7 points. Recommendations follow what you're farming right now; tick the nodes you've already unlocked.">
         <button className="btn primary" disabled={busy} onClick={askAi}>
-          {busy ? <span className="loader" /> : "🕯"} Plan my points (AI)
+          {busy ? <span className="loader" /> : <WandSparkles size={15} strokeWidth={1.75} aria-hidden />} Plan my points (AI)
         </button>
       </PageHead>
 

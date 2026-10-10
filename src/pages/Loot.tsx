@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Diamond, FlaskConical, FolderOpen, Package, Scale, Star } from "lucide-react";
 import { Badge, Card, Check, Empty, PageHead, timeAgo } from "../components/ui";
 import { runAction, useRuntime } from "../lib/engine";
 import { VERDICT_STYLE } from "../lib/judge";
@@ -44,21 +45,21 @@ export default function Loot() {
     <div onPaste={onPaste}>
       <PageHead title="Loot Judge" sub="Hover an item in game and press the hotkey (or controller chord). Your vision LLM reads the tooltip, then it's scored against your build.">
         <button className="btn" onClick={() => openJudgeLog().catch((e) => setErr(String(e)))} title="Every judgment: tooltip images, OCR text, AI labels and the decision">
-          🗂 Open log folder
+          <FolderOpen size={15} strokeWidth={1.75} aria-hidden /> Open log folder
         </button>
         {settings.testMode.enabled && (
           <button className="btn" onClick={() => openTestLog().catch((e) => setErr(String(e)))} title="Test mode recordings: every scan with its screen capture and display details (Setup & Guide → Test mode)">
-            🧪 Test-mode folder
+            <FlaskConical size={15} strokeWidth={1.75} aria-hidden /> Test-mode folder
           </button>
         )}
         <button className="btn primary" disabled={judging} onClick={() => runAction("judge")}>
-          {judging ? <span className="loader" /> : "⚖"} Judge now <span className="kbd">{settings.hotkeys.judge}</span>
+          {judging ? <span className="loader" /> : <Scale size={15} strokeWidth={1.75} aria-hidden />} Judge now <span className="kbd">{settings.hotkeys.judge}</span>
         </button>
       </PageHead>
 
       <div className="grid g2">
         <Card title="Latest verdict">
-          {shown ? <VerdictDetail r={shown} /> : <Empty icon="⚖">Nothing judged yet.</Empty>}
+          {shown ? <VerdictDetail r={shown} /> : <Empty icon={Scale}>Nothing judged yet.</Empty>}
         </Card>
         <Card title="Test & tune">
           <div className="col">
@@ -100,7 +101,7 @@ export default function Loot() {
 
       <Card title="History" right={history.length > 0 && <button className="btn ghost sm" onClick={() => confirm("Clear loot history?") && clear()}>Clear</button>} style={{ marginTop: 14 }}>
         {history.length === 0 ? (
-          <Empty icon="📦">Judged items show up here.</Empty>
+          <Empty icon={Package}>Judged items show up here.</Empty>
         ) : (
           <div className="table-wrap">
             <table className="table">
@@ -117,8 +118,8 @@ export default function Loot() {
                 {history.map((h) => (
                   <tr key={h.id} onClick={() => setSel(h)} style={{ cursor: "pointer" }}>
                     <td>
-                      <Badge color={(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).color}>
-                        {(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).icon} {(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).label}
+                      <Badge color={(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).color} icon={(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).icon}>
+                        {(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).label}
                       </Badge>
                     </td>
                     <td>
@@ -130,7 +131,7 @@ export default function Loot() {
                     <td className="small">{h.slot ?? "—"}</td>
                     <td className="small">
                       {h.matched.length}/{h.matched.length + h.missing.length}
-                      {h.greaterOnTargets > 0 && <span style={{ color: "var(--gold2)" }}> · {h.greaterOnTargets}★</span>}
+                      {h.greaterOnTargets > 0 && <span style={{ color: "var(--gold2)" }}> · {h.greaterOnTargets}<Star className="i" size={11} strokeWidth={2} fill="currentColor" aria-label="greater" /></span>}
                     </td>
                     <td className="small dim nowrap">{timeAgo(h.at)}</td>
                   </tr>
@@ -151,7 +152,7 @@ export function VerdictDetail({ r }: { r: JudgeResult }) {
       <div className="col">
         <div className="verdict-card" style={{ borderColor: v.color, color: v.color }}>
           <div className="v">
-            {v.icon} {v.label}
+            <v.icon size={22} strokeWidth={1.75} aria-hidden /> {v.label}
           </div>
           <div style={{ color: "var(--text)", fontWeight: 700 }}>{r.item.name}</div>
           {r.action && <div style={{ color: "var(--text)", marginTop: 4 }}>{r.action}</div>}
@@ -182,7 +183,7 @@ export function VerdictDetail({ r }: { r: JudgeResult }) {
         <div className="col" style={{ gap: 2 }}>
           {r.item.affixes.map((a, i) => (
             <div key={i} className="affix">
-              <span className={a.greater ? "ga" : "dim"}>{a.greater ? "★" : "◆"}</span>
+              {a.greater ? <Star className="ga mark" size={11} strokeWidth={2} fill="currentColor" aria-label="greater" /> : <Diamond className="dim mark" size={9} strokeWidth={2} fill="currentColor" aria-hidden />}
               <span style={{ color: a.match ? "var(--green)" : undefined }}>{a.text}</span>
             </div>
           ))}

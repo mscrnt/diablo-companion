@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AppWindow, Camera, Castle, Eye, Flame, Hourglass, Map as MapIcon, Package, Scale, ScrollText, Settings, Sparkles, Swords, Timer, UserRound, type LucideIcon } from "lucide-react";
 import { startEngine, useRuntime } from "./lib/engine";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Welcome from "./pages/Welcome";
@@ -37,21 +38,21 @@ export type PageId =
   | "collection"
   | "settings";
 
-const NAV: { id: PageId; label: string; ico: string }[] = [
-  { id: "dashboard", label: "Sanctuary", ico: "🜏" },
-  { id: "guide", label: "Setup & Guide", ico: "✦" },
-  { id: "character", label: "Character", ico: "🧙" },
-  { id: "warplans", label: "War Plans", ico: "🗡" },
-  { id: "timers", label: "World Events", ico: "⏳" },
-  { id: "build", label: "Build", ico: "📜" },
-  { id: "farm", label: "Farm Planner", ico: "🗺" },
-  { id: "loot", label: "Loot Judge", ico: "⚖" },
-  { id: "runs", label: "Runs & Splits", ico: "⏱" },
-  { id: "coach", label: "AI Coach", ico: "🕯" },
-  { id: "watchers", label: "Screen Watchers", ico: "👁" },
-  { id: "overlay", label: "Overlay", ico: "🪟" },
-  { id: "collection", label: "Collection", ico: "📦" },
-  { id: "settings", label: "Settings", ico: "⚙" },
+const NAV: { id: PageId; label: string; ico: LucideIcon }[] = [
+  { id: "dashboard", label: "Sanctuary", ico: Castle },
+  { id: "guide", label: "Setup & Guide", ico: Sparkles },
+  { id: "character", label: "Character", ico: UserRound },
+  { id: "warplans", label: "War Plans", ico: Swords },
+  { id: "timers", label: "World Events", ico: Hourglass },
+  { id: "build", label: "Build", ico: ScrollText },
+  { id: "farm", label: "Farm Planner", ico: MapIcon },
+  { id: "loot", label: "Loot Judge", ico: Scale },
+  { id: "runs", label: "Runs & Splits", ico: Timer },
+  { id: "coach", label: "AI Coach", ico: Flame },
+  { id: "watchers", label: "Screen Watchers", ico: Eye },
+  { id: "overlay", label: "Overlay", ico: AppWindow },
+  { id: "collection", label: "Collection", ico: Package },
+  { id: "settings", label: "Settings", ico: Settings },
 ];
 
 export default function App() {
@@ -95,9 +96,9 @@ export default function App() {
     <div className="shell">
       <nav className="side">
         <div className="brand">
-          <span className="lbl">D4 Companion</span>
-          <span className="brand-short">D4</span>
-          <small>Sanctuary toolkit</small>
+          <img className="brand-logo" src="/logo.png" alt="" />
+          <span className="lbl">Sanctuary Toolkit</span>
+          <small>Diablo IV companion</small>
           <a className="ver" href={rt.update?.url ?? RELEASES_URL} target="_blank" rel="noreferrer" title={rt.update ? `v${rt.update.version} is available` : "Release notes"}>
             v{APP_VERSION}
             {rt.update && <span className="ver-new"> → v{rt.update.version}</span>}
@@ -106,9 +107,11 @@ export default function App() {
         <div style={{ height: 10 }} />
         {NAV.map((n) => (
           <button key={n.id} className={"nav " + (page === n.id ? "on" : "")} onClick={() => go(n.id)} title={n.label}>
-            <span className="ico">{n.ico}</span>
+            <n.ico className="ico" size={17} strokeWidth={1.75} aria-hidden />
             <span className="lbl">{n.label}</span>
-            {n.id === "coach" && pending && <span className="pill">📷</span>}
+            {n.id === "coach" && pending && <span className="pill" title="Screenshot waiting">
+                <Camera size={11} strokeWidth={2} aria-label="Screenshot waiting" />
+              </span>}
             {n.id === "loot" && lootCount > 0 && <span className="pill">{lootCount}</span>}
           </button>
         ))}

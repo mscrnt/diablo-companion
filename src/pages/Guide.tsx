@@ -1,3 +1,4 @@
+import { ChartColumn, FolderOpen, ShieldCheck, Sparkles } from "lucide-react";
 import { Card, Check, PageHead, timeAgo } from "../components/ui";
 import { useRuntime } from "../lib/engine";
 import { autoStatus, forgetRecent } from "../lib/autojudge";
@@ -23,19 +24,19 @@ export default function GuidePage() {
           <div className="col">
             <div className="row">
               <button className="btn primary" disabled={g.active} onClick={() => startSetup()}>
-                ✦ Full setup (recommended)
+                <Sparkles size={15} strokeWidth={1.75} aria-hidden /> Full setup (recommended)
               </button>
               <span className="small muted">screen → inventory layout → gear scan → stats</span>
             </div>
             <div className="row">
               <button className="btn" disabled={g.active} onClick={() => gearScan()}>
-                🛡 Gear scan only
+                <ShieldCheck size={15} strokeWidth={1.75} aria-hidden /> Gear scan only
               </button>
               <span className="small muted">hover each equipped item → fills your build progress</span>
             </div>
             <div className="row">
               <button className="btn" disabled={g.active} onClick={() => statsCheck()}>
-                📊 Stats check
+                <ChartColumn size={15} strokeWidth={1.75} aria-hidden /> Stats check
               </button>
               <span className="small muted">reads the character sheet (e.g. Minion Attack Speed ≥ 100%)</span>
             </div>
@@ -114,7 +115,7 @@ export default function GuidePage() {
             </label>
             <div className="row">
               <button className="btn sm" onClick={() => openTestLog().catch(() => {})}>
-                🗂 Open test-mode folder
+                <FolderOpen size={14} strokeWidth={1.75} aria-hidden /> Open test-mode folder
               </button>
               <span className="small muted">oldest recordings are removed first</span>
             </div>

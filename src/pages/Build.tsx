@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Anvil, Diamond, ScanEye, ScrollText, Sparkles, Star } from "lucide-react";
 import { Badge, Card, Empty, PageHead, timeAgo } from "../components/ui";
 import { importMobalytics } from "../lib/mobalytics";
 import { scanSkillBar, useSkillBar } from "../lib/skillbar";
@@ -117,7 +118,7 @@ export default function BuildPage() {
       </Card>
 
       {!variant ? (
-        <Empty icon="📜">Import a build to get started.</Empty>
+        <Empty icon={ScrollText}>Import a build to get started.</Empty>
       ) : (
         <>
           <div className="tabs" style={{ marginTop: 16 }}>
@@ -191,10 +192,10 @@ function GearGrid({ slots, compact }: { slots: GearSlot[]; compact?: boolean }) 
                           }
                           style={{ width: 12, height: 12, verticalAlign: "middle" }}
                         />{" "}
-                        <span className="ga">★</span>
+                        <Star className="ga mark" size={11} strokeWidth={2} fill="currentColor" aria-label="greater" />
                       </label>
                     ) : (
-                      <span className="dim">◆</span>
+                      <Diamond className="dim mark" size={9} strokeWidth={2} fill="currentColor" aria-hidden />
                     )}
                     <span>{a.name}</span>
                     {a.masterwork && <span className="mw">MASTERWORK</span>}
@@ -203,7 +204,7 @@ function GearGrid({ slots, compact }: { slots: GearSlot[]; compact?: boolean }) 
               })}
               {g.tempers.length > 0 && (
                 <div className="affix">
-                  <span style={{ color: "var(--orange)" }}>⚒</span>
+                  <Anvil className="mark" size={13} strokeWidth={1.75} style={{ color: "var(--orange)" }} aria-label="temper" />
                   <span>{g.tempers.map((t) => t.name).join(" · ")}</span>
                   <label className="right small muted" style={{ cursor: "pointer" }}>
                     <input type="checkbox" checked={p.tempered} onChange={(e) => setProgress(g.slot, { tempered: e.target.checked })} style={{ width: 12, height: 12 }} /> done
@@ -218,7 +219,7 @@ function GearGrid({ slots, compact }: { slots: GearSlot[]; compact?: boolean }) 
               )}
               {g.extras.map((e) => (
                 <div key={e.label} className="affix">
-                  <span style={{ color: "#8fd3c7" }}>✦</span>
+                  <Sparkles className="mark" size={12} strokeWidth={1.75} style={{ color: "#8fd3c7" }} aria-hidden />
                   <span>
                     <span className="dim">{e.label}:</span> {e.stats.map((s) => s.name).join(", ")}
                   </span>
@@ -261,7 +262,7 @@ function Skills() {
               setChecking(false);
             }}
           >
-            {checking ? <span className="loader" /> : "👁"} Check my bar
+            {checking ? <span className="loader" /> : <ScanEye size={15} strokeWidth={1.75} aria-hidden />} Check my bar
           </button>
         }
       >

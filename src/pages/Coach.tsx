@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Brain, Camera, X } from "lucide-react";
 import { Card, Check, PageHead } from "../components/ui";
 import { runAction, useRuntime } from "../lib/engine";
 import { farmContext } from "../lib/farm";
@@ -163,7 +164,7 @@ ${runs || "(none)"}`;
           ))}
           {thinking && (
             <div className="msg assistant small dim" style={{ maxHeight: 120, overflow: "auto" }}>
-              💭 {thinking.slice(-600)}
+              <Brain className="i" size={13} strokeWidth={1.75} aria-label="thinking" /> {thinking.slice(-600)}
             </div>
           )}
           <div ref={endRef} />
@@ -172,14 +173,14 @@ ${runs || "(none)"}`;
           <div className="row" style={{ marginTop: 10 }}>
             <img src={jpegUrl(pendingImage)} style={{ height: 60, borderRadius: 6, border: "1px solid var(--line)" }} />
             <span className="small muted">Screenshot attached</span>
-            <button className="btn ghost sm" onClick={() => setPendingImage(null)}>
-              ✕
+            <button className="btn ghost sm" onClick={() => setPendingImage(null)} title="Remove screenshot">
+              <X size={14} strokeWidth={2} aria-label="Remove" />
             </button>
           </div>
         )}
         <div className="row" style={{ marginTop: 12 }}>
           <button className="btn" onClick={snap} title={`Attach a screenshot (or press ${settings.hotkeys.coachSnap} in game)`}>
-            📷
+            <Camera size={16} strokeWidth={1.75} aria-label="Attach screenshot" />
           </button>
           <input
             type="text"

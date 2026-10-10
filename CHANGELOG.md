@@ -12,9 +12,11 @@ The release workflow publishes each version's section as its GitHub release note
 - **Test mode** (Setup & Guide, off by default): records every item scan with its screen capture, the tooltip boxes, the text read, the parse and the verdict, along with your game window size and mode, monitor DPI scale, overlay layout and black-bar detection. A new snapshot is saved whenever the window, mode or DPI changes. Recordings go to a test-mode folder next to the judge log (capped at 500 MB by default, oldest first) and open from the Loot page or the Test mode card.
 
 ### Changed
+- The app is now called **Sanctuary Toolkit**, with a new flaming-sword icon for the window, taskbar, tray and installer. Your settings and data carry over.
 - Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.
 - Licensed under the PolyForm Noncommercial License 1.0.0: free for personal and other noncommercial use.
 - The loot judge checks what it reads against the game's own text before judging. Misread words are corrected ("Arit10r" becomes "Armor", "Thoms" becomes "Thorns"), while the numbers are kept exactly as read. Anything it isn't sure about is left as it was.
+- Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
 - The Pit run timer now syncs to the in-game countdown. The pattern that reads it could never match before.

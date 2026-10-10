@@ -1,3 +1,4 @@
+import { Play, Scale, ScrollText, Square, Trophy } from "lucide-react";
 import type { PageId } from "../App";
 import { NextEvents } from "../components/EventList";
 import { Badge, Card, Empty, PageHead, Progress, fmtDur, timeAgo, useNow } from "../components/ui";
@@ -28,7 +29,7 @@ export default function Dashboard({ go }: { go: (p: PageId) => void }) {
     <>
       <PageHead title="Sanctuary" sub={build ? `${build.name} — ${variant?.name} · ${build.season}` : "Import a build to begin"}>
         <button className="btn primary" disabled={judging} onClick={() => runAction("judge")}>
-          {judging ? <span className="loader" /> : "⚖"} Judge item under cursor <span className="kbd">{hotkeys.judge}</span>
+          {judging ? <span className="loader" /> : <Scale size={15} strokeWidth={1.75} aria-hidden />} Judge item under cursor <span className="kbd">{hotkeys.judge}</span>
         </button>
       </PageHead>
 
@@ -62,7 +63,7 @@ export default function Dashboard({ go }: { go: (p: PageId) => void }) {
               </div>
             </div>
           ) : (
-            <Empty icon="📜">No build yet.</Empty>
+            <Empty icon={ScrollText}>No build yet.</Empty>
           )}
         </Card>
 
@@ -87,7 +88,7 @@ export default function Dashboard({ go }: { go: (p: PageId) => void }) {
           </div>
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn sm" onClick={() => runAction("runToggle")}>
-              {runs.active ? "■ Stop run" : "▶ Start run"} <span className="kbd">{hotkeys.runToggle}</span>
+              {runs.active ? <><Square size={12} strokeWidth={2} fill="currentColor" aria-hidden /> Stop run</> : <><Play size={12} strokeWidth={2} fill="currentColor" aria-hidden /> Start run</>} <span className="kbd">{hotkeys.runToggle}</span>
             </button>
             {runs.active && (
               <button className="btn sm" onClick={() => runAction("runSplit")}>
@@ -115,7 +116,7 @@ export default function Dashboard({ go }: { go: (p: PageId) => void }) {
               ))}
             </div>
           ) : (
-            <Empty icon="🏆">Everything perfected. Go push the Tower!</Empty>
+            <Empty icon={Trophy}>Everything perfected. Go push the Tower!</Empty>
           )}
         </Card>
 
@@ -124,8 +125,8 @@ export default function Dashboard({ go }: { go: (p: PageId) => void }) {
             <div className="col">
               {loot.slice(0, 5).map((l) => (
                 <div key={l.id} className="row">
-                  <Badge color={(VERDICT_STYLE[l.verdict] ?? VERDICT_STYLE.UNKNOWN).color}>
-                    {(VERDICT_STYLE[l.verdict] ?? VERDICT_STYLE.UNKNOWN).icon} {(VERDICT_STYLE[l.verdict] ?? VERDICT_STYLE.UNKNOWN).label}
+                  <Badge color={(VERDICT_STYLE[l.verdict] ?? VERDICT_STYLE.UNKNOWN).color} icon={(VERDICT_STYLE[l.verdict] ?? VERDICT_STYLE.UNKNOWN).icon}>
+                    {(VERDICT_STYLE[l.verdict] ?? VERDICT_STYLE.UNKNOWN).label}
                   </Badge>
                   <span className="grow" style={{ fontWeight: 600 }}>
                     {l.item.name}
@@ -135,7 +136,7 @@ export default function Dashboard({ go }: { go: (p: PageId) => void }) {
               ))}
             </div>
           ) : (
-            <Empty icon="⚖">
+            <Empty icon={Scale}>
               Hover an item in game and press <span className="kbd">{hotkeys.judge}</span>
             </Empty>
           )}

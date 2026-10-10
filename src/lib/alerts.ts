@@ -67,7 +67,7 @@ export async function discord(webhook: string, content: string) {
     await http(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "D4 Companion", content }),
+      body: JSON.stringify({ username: "Sanctuary Toolkit", content }),
       timeoutMs: 10000,
     });
   } catch (e) {

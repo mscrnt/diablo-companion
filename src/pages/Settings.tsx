@@ -206,7 +206,8 @@ function About() {
   return (
     <Card title="About">
       <div className="row" style={{ alignItems: "baseline" }}>
-        <b style={{ fontSize: 18 }}>D4 Companion</b>
+        <img src="/logo.png" alt="" width={36} height={36} style={{ alignSelf: "center" }} />
+        <b style={{ fontSize: 18 }}>Sanctuary Toolkit</b>
         <span className="mono">v{APP_VERSION}</span>
         {update && (
           <a className="badge" style={{ color: "var(--green)" }} href={update.url} target="_blank" rel="noreferrer">

@@ -1,5 +1,6 @@
 // Loot Judge decisions: a parsed tooltip (see parse.ts) → one plain-language action
 // for the active build variant.
+import { Archive, Box, CircleHelp, Coins, Gem, Hammer, ShieldCheck, Shirt, Sparkles, ThumbsUp, type LucideIcon } from "lucide-react";
 import { normName, similarity, trigramSim } from "./names";
 import type { BuildVariant, GearSlot, JudgeResult, ParsedItem, SlotProgress, Verdict } from "./types";
 
@@ -355,23 +356,24 @@ export function scoreItem(item: ParsedItem, variant: BuildVariant | undefined, p
   return decide(item, variant, { prog }, equipped);
 }
 
-export const VERDICT_STYLE: Record<string, { label: string; icon: string; color: string }> = {
-  WEAR: { label: "Wear this", icon: "✅", color: "#5fd18a" },
-  WEARING: { label: "Wearing", icon: "🛡", color: "#8fd3c7" },
-  CUBE: { label: "Cube it", icon: "🧊", color: "#7fd6ff" },
-  EXTRACT: { label: "Salvage for the power", icon: "✨", color: "#ff9b4a" },
-  STASH: { label: "Stash it", icon: "📦", color: "#e08cff" },
-  SCRAP: { label: "Scrap it", icon: "🔨", color: "#b8aa9a" },
-  SELL: { label: "Sell it", icon: "💰", color: "#c9b37a" },
-  SOCKET: { label: "Keep (build uses it)", icon: "💎", color: "#7fd6ff" },
-  UNKNOWN: { label: "?", icon: "❔", color: "#b9a" },
+/** How each verdict is shown: label, Lucide icon (render it in `color`) and colour. */
+export const VERDICT_STYLE: Record<string, { label: string; icon: LucideIcon; color: string }> = {
+  WEAR: { label: "Wear this", icon: Shirt, color: "#5fd18a" },
+  WEARING: { label: "Wearing", icon: ShieldCheck, color: "#8fd3c7" },
+  CUBE: { label: "Cube it", icon: Box, color: "#7fd6ff" },
+  EXTRACT: { label: "Salvage for the power", icon: Sparkles, color: "#ff9b4a" },
+  STASH: { label: "Stash it", icon: Archive, color: "#e08cff" },
+  SCRAP: { label: "Scrap it", icon: Hammer, color: "#b8aa9a" },
+  SELL: { label: "Sell it", icon: Coins, color: "#c9b37a" },
+  SOCKET: { label: "Keep (build uses it)", icon: Gem, color: "#7fd6ff" },
+  UNKNOWN: { label: "?", icon: CircleHelp, color: "#b9a" },
   // older history entries
-  BIS: { label: "Wear this", icon: "✅", color: "#5fd18a" },
-  UPGRADE: { label: "Wear this", icon: "✅", color: "#5fd18a" },
-  KEEP: { label: "Keep", icon: "👍", color: "#63a8ff" },
-  IMPRINT: { label: "Salvage for the power", icon: "✨", color: "#ff9b4a" },
-  SALVAGE: { label: "Scrap it", icon: "🔨", color: "#b8aa9a" },
-  EQUIPPED: { label: "Wearing", icon: "🛡", color: "#8fd3c7" },
+  BIS: { label: "Wear this", icon: Shirt, color: "#5fd18a" },
+  UPGRADE: { label: "Wear this", icon: Shirt, color: "#5fd18a" },
+  KEEP: { label: "Keep", icon: ThumbsUp, color: "#63a8ff" },
+  IMPRINT: { label: "Salvage for the power", icon: Sparkles, color: "#ff9b4a" },
+  SALVAGE: { label: "Scrap it", icon: Hammer, color: "#b8aa9a" },
+  EQUIPPED: { label: "Wearing", icon: ShieldCheck, color: "#8fd3c7" },
 };
 
 // background loops hold references to this module: reload the page instead of hot-swapping

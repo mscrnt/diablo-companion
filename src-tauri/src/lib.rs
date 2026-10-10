@@ -221,7 +221,7 @@ pub fn run() {
                 }
             }
 
-            let show = MenuItem::with_id(app, "show", "Open Companion", true, None::<&str>)?;
+            let show = MenuItem::with_id(app, "show", "Open Sanctuary Toolkit", true, None::<&str>)?;
             let edit = MenuItem::with_id(app, "edit", "Edit Overlay Layout", true, None::<&str>)?;
             let judge = MenuItem::with_id(app, "judge", "Judge Item Under Cursor", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -229,7 +229,7 @@ pub fn run() {
             let menu = Menu::with_items(app, &[&show, &edit, &judge, &sep, &quit])?;
             TrayIconBuilder::with_id("tray")
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip(format!("Diablo IV Companion v{}", app.package_info().version))
+                .tooltip(format!("Sanctuary Toolkit v{}", app.package_info().version))
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, ev| match ev.id().as_ref() {

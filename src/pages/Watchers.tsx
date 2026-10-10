@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Backpack, Coins, Eye, Flame, Hourglass, Skull, SquarePen, type LucideIcon } from "lucide-react";
 import { Card, Check, Empty, Modal, PageHead, RegionPicker, timeAgo } from "../components/ui";
 import { captureRegion, jpegUrl } from "../lib/native";
 import { useWatchers, type Watcher } from "../lib/store";
@@ -20,33 +21,38 @@ const base = (): Watcher => ({
   onlyWhenGameFocused: true,
 });
 
-const PRESETS: { label: string; hint: string; make: () => Watcher }[] = [
+const PRESETS: { label: string; icon: LucideIcon; hint: string; make: () => Watcher }[] = [
   {
-    label: "☠ Death detector",
+    label: "Death detector",
+    icon: Skull,
     hint: "Select the area where the death message appears. Logs deaths and adds them to the active run.",
     make: () => ({ ...base(), name: "Death", mode: "text", pattern: "died|killed by|you have died", action: "death", cooldownMs: 20000, intervalMs: 800 }),
   },
   {
-    label: "🔥 Cinder / currency counter",
+    label: "Cinder / currency counter",
+    icon: Flame,
     hint: "Select the cinder (or any number) on your HUD. Shown on the overlay; alerts at your threshold.",
     make: () => ({ ...base(), name: "Cinders", mode: "number", op: ">=", threshold: 75, action: "alert", cooldownMs: 120000, intervalMs: 1500 }),
   },
   {
-    label: "⏳ Loading screen → split",
+    label: "Loading screen → split",
+    icon: Hourglass,
     hint: "Go to a loading screen, select a stable part of it, then click 'Learn'. Each loading screen adds a split to the active run.",
     make: () => ({ ...base(), name: "Loading screen", mode: "scene", action: "runSplit", cooldownMs: 8000, intervalMs: 500, scene: { hash: "", luma: 0, maxDistance: 18 } }),
   },
   {
-    label: "🎒 Inventory open → judge hint",
+    label: "Inventory open → judge hint",
+    icon: Backpack,
     hint: "Open your inventory, select the inventory panel header, click 'Learn'.",
     make: () => ({ ...base(), name: "Inventory open", mode: "scene", action: "judgeHint", cooldownMs: 30000, intervalMs: 700, scene: { hash: "", luma: 0, maxDistance: 16 } }),
   },
   {
-    label: "💰 Gold tracker",
+    label: "Gold tracker",
+    icon: Coins,
     hint: "Select your gold amount (inventory). Shown on the overlay.",
     make: () => ({ ...base(), name: "Gold", mode: "number", op: "change", threshold: 0, action: "show", intervalMs: 3000 }),
   },
-  { label: "✎ Custom", hint: "Anything you can see on screen.", make: base },
+  { label: "Custom", icon: SquarePen, hint: "Anything you can see on screen.", make: base },
 ];
 
 export default function Watchers() {
@@ -63,14 +69,14 @@ export default function Watchers() {
         <div className="row">
           {PRESETS.map((p) => (
             <button key={p.label} className="btn" onClick={() => setEdit({ w: p.make(), hint: p.hint })}>
-              {p.label}
+              <p.icon size={15} strokeWidth={1.75} style={{ color: "var(--gold)" }} aria-hidden /> {p.label}
             </button>
           ))}
         </div>
       </Card>
       <Card title="Your watchers" style={{ marginTop: 14 }}>
         {watchers.length === 0 ? (
-          <Empty icon="👁">No watchers yet.</Empty>
+          <Empty icon={Eye}>No watchers yet.</Empty>
         ) : (
           <div className="table-wrap">
             <table className="table">

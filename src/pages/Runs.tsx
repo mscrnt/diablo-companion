@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Play, ScrollText, Skull, Square, Timer } from "lucide-react";
 import { Card, Empty, PageHead, Sparkline, fmtDur, timeAgo, useNow } from "../components/ui";
 import { runAction } from "../lib/engine";
 import { useRuns, useSettings, useWatchers } from "../lib/store";
@@ -45,17 +46,19 @@ export default function Runs() {
                 {fmtDur(Math.abs(elapsed - pb))} vs PB
               </span>
             )}
-            {r.active?.deaths ? <span style={{ color: "var(--blood2)" }}>· ☠ {r.active.deaths}</span> : null}
+            {r.active?.deaths ? <span style={{ color: "var(--blood2)" }}>
+                · <Skull className="i" size={13} strokeWidth={1.75} aria-label="deaths" /> {r.active.deaths}
+              </span> : null}
           </div>
           <div className="row" style={{ marginTop: 12 }}>
             <button className="btn primary" onClick={() => runAction("runToggle")}>
-              {r.active ? "■ Finish" : "▶ Start"} <span className="kbd">{settings.hotkeys.runToggle}</span>
+              {r.active ? <><Square size={12} strokeWidth={2} fill="currentColor" aria-hidden /> Finish</> : <><Play size={12} strokeWidth={2} fill="currentColor" aria-hidden /> Start</>} <span className="kbd">{settings.hotkeys.runToggle}</span>
             </button>
             <button className="btn" disabled={!r.active} onClick={() => runAction("runSplit")}>
               Split <span className="kbd">{settings.hotkeys.runSplit}</span>
             </button>
-            <button className="btn" disabled={!r.active} onClick={() => r.addDeath()}>
-              +☠
+            <button className="btn" disabled={!r.active} onClick={() => r.addDeath()} title="Add a death">
+              +<Skull size={15} strokeWidth={1.75} aria-label="death" />
             </button>
             <button className="btn ghost" disabled={!r.active} onClick={() => r.stop(false)}>
               Abandon
@@ -98,7 +101,7 @@ export default function Runs() {
               </div>
             </div>
           ) : (
-            <Empty icon="⏱">Finish a few runs to see trends.</Empty>
+            <Empty icon={Timer}>Finish a few runs to see trends.</Empty>
           )}
           <h3 style={{ marginTop: 16 }}>Recent deaths</h3>
           {deaths.length ? (
@@ -125,7 +128,7 @@ export default function Runs() {
         }
       >
         {list.length === 0 ? (
-          <Empty icon="📜">No runs yet.</Empty>
+          <Empty icon={ScrollText}>No runs yet.</Empty>
         ) : (
           <div className="table-wrap">
             <table className="table">

@@ -1,4 +1,4 @@
-import { EventRow, NextEvents } from "../components/EventList";
+import { EventIcon, EventRow, NextEvents } from "../components/EventList";
 import { Card, Check, PageHead, timeAgo, useNow } from "../components/ui";
 import { useRuntime } from "../lib/engine";
 import { useSettings } from "../lib/store";
@@ -40,7 +40,11 @@ export default function Timers() {
                   <Check
                     checked={settings.alerts.enabled[k]}
                     onChange={(v) => update((s) => void (s.alerts.enabled[k] = v))}
-                    label={`${EVENT_META[k].icon} ${EVENT_META[k].label}`}
+                    label={
+                      <span>
+                        <EventIcon kind={k} size={15} style={{ color: EVENT_META[k].color }} /> {EVENT_META[k].label}
+                      </span>
+                    }
                   />
                   <span className="right">
                     <Check
@@ -79,7 +83,7 @@ export default function Timers() {
           {(["worldBoss", "helltide", "legion"] as EventKind[]).map((k) => (
             <div key={k} className="col">
               <h3 style={{ color: EVENT_META[k].color }}>
-                {EVENT_META[k].icon} {EVENT_META[k].label}
+                <EventIcon kind={k} size={16} /> {EVENT_META[k].label}
               </h3>
               {upcoming
                 .filter((e) => e.kind === k)

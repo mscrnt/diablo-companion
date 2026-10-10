@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Anvil, Map as MapIcon, Skull, Star, WandSparkles } from "lucide-react";
 import { Badge, Card, Empty, PageHead } from "../components/ui";
 import { useRuntime } from "../lib/engine";
 import { bossRoute, farmContext, knowledge, planFarm } from "../lib/farm";
@@ -48,7 +49,7 @@ export default function Farm() {
     }
   };
 
-  if (!variant) return <Empty icon="🗺">Import a build first.</Empty>;
+  if (!variant) return <Empty icon={MapIcon}>Import a build first.</Empty>;
 
   return (
     <>
@@ -61,7 +62,7 @@ export default function Farm() {
               <input type="number" min={10} max={600} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} style={{ width: 110 }} />
             </label>
             <button className="btn primary" style={{ alignSelf: "flex-end" }} disabled={busy} onClick={makePlan}>
-              {busy ? <span className="loader" /> : "🕯"} Plan my session
+              {busy ? <span className="loader" /> : <WandSparkles size={15} strokeWidth={1.75} aria-hidden />} Plan my session
             </button>
           </div>
           {err && <div className="err" style={{ marginTop: 10 }}>{err}</div>}
@@ -73,7 +74,9 @@ export default function Farm() {
             <div className="col">
               {route.map((r) => (
                 <div key={r.boss} className="event" style={{ color: "var(--blood2)", alignItems: "flex-start" }}>
-                  <span className="ico">☠</span>
+                  <span className="ico">
+                    <Skull size={22} strokeWidth={1.75} aria-hidden />
+                  </span>
                   <div style={{ color: "var(--text)" }} className="grow">
                     <div style={{ fontWeight: 700 }}>{r.boss}</div>
                     <div className="small">
@@ -92,7 +95,7 @@ export default function Farm() {
               ))}
             </div>
           ) : (
-            <Empty icon="☠">No missing boss drops. Nice.</Empty>
+            <Empty icon={Skull}>No missing boss drops. Nice.</Empty>
           )}
         </Card>
       </div>
@@ -135,9 +138,13 @@ export default function Farm() {
                     )}
                   </td>
                   <td className="small">
-                    {s.gaTargets.length > 0 && <div>★ {s.gaTargets.join(", ")}</div>}
+                    {s.gaTargets.length > 0 && <div style={{ color: "var(--gold2)" }}>
+                        <Star className="i" size={11} strokeWidth={2} fill="currentColor" aria-label="greater" /> <span style={{ color: "var(--text)" }}>{s.gaTargets.join(", ")}</span>
+                      </div>}
                     {s.masterworkInto && <div style={{ color: "var(--blue)" }}>MW → {s.masterworkInto}</div>}
-                    {s.temper.length > 0 && <div style={{ color: "var(--orange)" }}>⚒ {s.temper.join(", ")}</div>}
+                    {s.temper.length > 0 && <div style={{ color: "var(--orange)" }}>
+                        <Anvil className="i" size={13} strokeWidth={1.75} aria-label="temper" /> {s.temper.join(", ")}
+                      </div>}
                     {s.sockets.length > 0 && <div style={{ color: "var(--purple)" }}>⬢ {s.sockets.join(", ")}</div>}
                   </td>
                 </tr>

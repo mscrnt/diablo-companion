@@ -48,7 +48,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Release v$v"
-          git tag -a "v$v" -m "D4 Companion $v"
+          git tag -a "v$v" -m "Sanctuary Toolkit $v"
           git push origin HEAD:main "v$v"
           echo "tag=v$v" >> "$GITHUB_OUTPUT"
 
@@ -132,14 +132,14 @@ jobs:
         with:
           args: ${{ env.TAURI_EXTRA_ARGS }}
           tagName: ${{ env.TAG }}
-          releaseName: D4 Companion ${{ env.TAG }}
+          releaseName: Sanctuary Toolkit ${{ env.TAG }}
           releaseBody: |
             ${{ steps.notes.outputs.body }}
 
             ## Install
             Download one of these below and run it. Both install for your user only (no admin needed), and installing over an older version keeps your settings.
-            - **D4 Companion_*_x64-setup.exe** (recommended, small). Uses the WebView2 runtime that Windows 10 and 11 already have, and fetches it only if it's missing.
-            - **D4 Companion_*_x64-offline-setup.exe** (large). Includes the WebView2 runtime, for PCs without internet access.
+            - **Sanctuary Toolkit_*_x64-setup.exe** (recommended, small). Uses the WebView2 runtime that Windows 10 and 11 already have, and fetches it only if it's missing.
+            - **Sanctuary Toolkit_*_x64-offline-setup.exe** (large). Includes the WebView2 runtime, for PCs without internet access.
 
             ${{ env.SIGN == 'true' && 'The installer is code-signed. A brand-new signing identity can still trigger a SmartScreen prompt for the first releases while it builds reputation: click *More info → Run anyway*.' || 'Windows may show a SmartScreen warning because the installer isn''t code-signed yet: click *More info → Run anyway*.' }}
           releaseDraft: false
@@ -153,8 +153,8 @@ jobs:
         run: |
           $setup = Get-ChildItem src-tauri/target/release/bundle/nsis -Filter *-setup.exe | Select-Object -First 1
           $out = Join-Path $env:RUNNER_TEMP "installer"
-          7z x -y "-o$out" $setup.FullName d4c.exe | Out-Null
-          $files = @($setup, (Get-Item (Join-Path $out "d4c.exe")))
+          7z x -y "-o$out" $setup.FullName sanctuary-toolkit.exe | Out-Null
+          $files = @($setup, (Get-Item (Join-Path $out "sanctuary-toolkit.exe")))
           $files | ForEach-Object { $s = Get-AuthenticodeSignature $_.FullName; "{0}: {1} ({2})" -f $_.Name, $s.Status, $s.SignerCertificate.Subject }
           $bad = $files | Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' }
           if ($bad) { throw "unsigned or invalid: $($bad.Name -join ', ')" }

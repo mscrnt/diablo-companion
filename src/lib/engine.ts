@@ -169,7 +169,7 @@ function checkAlerts(events: GameEvent[]) {
       if (now >= at && now < at + 20_000) {
         fired.add(key);
         const meta = EVENT_META[e.kind];
-        const title = lead === 0 ? `${meta.icon} ${e.name} — NOW` : `${meta.icon} ${e.name} in ${lead} min`;
+        const title = lead === 0 ? `${meta.emoji} ${e.name} — NOW` : `${meta.emoji} ${e.name} in ${lead} min`;
         const body = e.zone ? e.zone : meta.label;
         if (alerts.sound) playTone("alert", alerts.volume);
         if (alerts.toast) toast(title, body);

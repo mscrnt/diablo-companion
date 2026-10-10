@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { onGlobal } from "../lib/bus";
 import { captureMonitor, gameStatus, jpegUrl, type CaptureResult, type Rect } from "../lib/native";
 
@@ -38,9 +39,10 @@ export function PageHead(props: { title: string; sub?: ReactNode; children?: Rea
   );
 }
 
-export function Badge({ color, children }: { color: string; children: ReactNode }) {
+export function Badge({ color, icon: Icon, children }: { color: string; icon?: LucideIcon; children: ReactNode }) {
   return (
     <span className="badge" style={{ color }}>
+      {Icon && <Icon size={12} strokeWidth={2} aria-hidden />}
       {children}
     </span>
   );
@@ -54,10 +56,10 @@ export function Progress({ value }: { value: number }) {
   );
 }
 
-export function Empty({ icon, children }: { icon: string; children: ReactNode }) {
+export function Empty({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
   return (
     <div className="empty">
-      <div className="big">{icon}</div>
+      <Icon className="big" size={34} strokeWidth={1.75} aria-hidden />
       {children}
     </div>
   );

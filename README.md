@@ -1,4 +1,6 @@
-# Diablo IV Companion
+<img src="docs/brand/icon-512.png" alt="" width="96" align="left" />
+
+# Sanctuary Toolkit
 
 [![Latest release](https://img.shields.io/github/v/release/mscrnt/diablo-companion?label=release&color=d4ad62)](https://github.com/mscrnt/diablo-companion/releases/latest)
 [![CI](https://github.com/mscrnt/diablo-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/mscrnt/diablo-companion/actions/workflows/ci.yml)
@@ -23,8 +25,8 @@ Windows OCR and a local vision LLM — no memory reading, no injection, no input
 
 ## For players (install & use)
 1. Run the installer from the [latest release](https://github.com/mscrnt/diablo-companion/releases/latest). No admin rights needed, and installing over an older version keeps your settings.
-   - `D4 Companion_x.y.z_x64-setup.exe` (recommended, ~6 MB): uses the WebView2 runtime that Windows 10 and 11 already have, and fetches it only if it's missing.
-   - `D4 Companion_x.y.z_x64-offline-setup.exe` (~210 MB): includes the WebView2 runtime, for PCs without internet access.
+   - `Sanctuary Toolkit_x.y.z_x64-setup.exe` (recommended, ~6 MB): uses the WebView2 runtime that Windows 10 and 11 already have, and fetches it only if it's missing.
+   - `Sanctuary Toolkit_x.y.z_x64-offline-setup.exe` (~210 MB): includes the WebView2 runtime, for PCs without internet access.
 2. On first start, paste your **Mobalytics build link** (featured guide or profile build). Add more builds any time on the **Build** page — the active one drives the loot judge; the others still get "stash it — great for your other build" advice. Builds show an **update** badge when the author changes the guide.
 3. Optional: point **Settings → Local LLM** at any OpenAI-compatible server (vLLM, LM Studio, Ollama…) for the AI Coach/session plans. Everything else works without it.
 4. In game: Display Mode **Windowed Fullscreen**; hover your equipped gear once so it knows what you wear.
@@ -56,7 +58,7 @@ Add notes under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) as you go. The ve
 
 - **From GitHub:** Actions → *Release* → *Run workflow*, enter `patch`, `minor`, `major` or an exact `x.y.z`. It bumps the version files, commits, tags `vX.Y.Z` on main, builds the installer and publishes a GitHub release with it attached.
 - **From a terminal:** `npm run version -- 0.2.0`, commit, `git tag v0.2.0`, `git push --follow-tags`. Pushing the tag triggers the same build.
-- **Local installer only:** `npx tauri build` → `src-tauri/target/release/bundle/nsis/D4 Companion_<ver>_x64-setup.exe`.
+- **Local installer only:** `npx tauri build` → `src-tauri/target/release/bundle/nsis/Sanctuary Toolkit_<ver>_x64-setup.exe`.
 
 ## Data refresh
 ```

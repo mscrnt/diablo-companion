@@ -2,6 +2,7 @@
 // Times are deterministic (verified against helltides.com, S15): world boss every
 // 3h30m, legion every 25 min, helltide hourly for 55 min. Boss names and zones
 // come from helltides.com's public Firebase RTDB (credit shown in the UI).
+import { Diamond, Flame, Skull, Swords, type LucideIcon } from "lucide-react";
 import { httpJson } from "./http";
 import type { GameEvent } from "./types";
 
@@ -157,11 +158,12 @@ export function fmtCountdown(ms: number): string {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-export const EVENT_META: Record<GameEvent["kind"], { label: string; color: string; icon: string }> = {
-  worldBoss: { label: "World Boss", color: "#e0543c", icon: "☠" },
-  helltide: { label: "Helltide", color: "#ff7a2f", icon: "🔥" },
-  legion: { label: "Legion", color: "#b06cff", icon: "⚔" },
-  other: { label: "Event", color: "#9aa", icon: "◆" },
+/** `icon` is the Lucide icon for the UI; `emoji` is for plain-text places (OS notifications). */
+export const EVENT_META: Record<GameEvent["kind"], { label: string; color: string; icon: LucideIcon; emoji: string }> = {
+  worldBoss: { label: "World Boss", color: "#e0543c", icon: Skull, emoji: "☠" },
+  helltide: { label: "Helltide", color: "#ff7a2f", icon: Flame, emoji: "🔥" },
+  legion: { label: "Legion", color: "#b06cff", icon: Swords, emoji: "⚔" },
+  other: { label: "Event", color: "#9aa", icon: Diamond, emoji: "◆" },
 };
 
 // background loops hold references to this module: reload the page instead of hot-swapping
