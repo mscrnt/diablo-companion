@@ -95,11 +95,14 @@ export class MetaReader {
     this.gbid = gbid;                       // gbType -> { hash: name }
     this.fieldNames = {};
     this.typeForFormat = {};
+    this.typeByName = {};
     for (const [th, t] of Object.entries(definitions)) {
       if (t.fields) for (const f of t.fields) this.fieldNames[f.hash] = f.name;
       if (t.dwFormatHash) this.typeForFormat[t.dwFormatHash >>> 0] = Number(th);
+      if (t.name) this.typeByName[t.name] = Number(th);
     }
     this.errors = 0;
+    this.formatFallbacks = 0;
   }
 
   type(h) { const t = this.defs[h]; if (!t) throw new Error('unknown type hash ' + h); return t; }
@@ -280,7 +283,10 @@ export class MetaReader {
   }
 
   // Parse a standalone meta file (0xDEADBEEF header) or a combined-container sub-buffer.
-  parseMeta(buf, { standalone = true, group = null } = {}) {
+  // `asType` (a definitions.json type name) is used only when the file's format hash has no
+  // matching type, i.e. the definitions are older than the game build for that group. The
+  // caller must validate the result; `formatFallbacks` counts how often this happened.
+  parseMeta(buf, { standalone = true, group = null, asType = null } = {}) {
     let body = buf, fmt;
     if (standalone) {
       if (buf.readUInt32LE(0) !== 0xdeadbeef) throw new Error('bad meta signature');
@@ -290,7 +296,11 @@ export class MetaReader {
     } else {
       fmt = this.toc.formatHashes[group];
     }
-    const th = this.typeForFormat[fmt >>> 0];
+    let th = this.typeForFormat[fmt >>> 0];
+    if (th === undefined && asType) {
+      th = this.typeByName[asType];
+      if (th !== undefined) this.formatFallbacks++;
+    }
     if (th === undefined) throw new Error('no type for format hash ' + (fmt >>> 0).toString(16));
     const [v] = this.read(body, [th], 0, null);
     return v;

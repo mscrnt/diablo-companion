@@ -27,6 +27,7 @@ data/gamedata/
   monsters.json        named actors (monsters / bosses / NPCs), monster families, monster affixes
   powers.json          skills (Power_* strings with sno) and seasonal powers (CollectiblePower)
   gbid.json            GameBalance name tables (affix families, skill tags, item families, ...)
+  map.json             world-map POIs: waypoints, altars, journals, strongholds, dungeons, cellars, side quests, Helltide chests (extract-map.mjs)
   raw/                 cache of the binary files copied out of CASC (~110 MB). The app should IGNORE it.
                        Safe to delete. The next full run recreates it. Keep it out of app bundles and VCS.
 ```
@@ -141,6 +142,32 @@ It contains every item that has an enUS name (12k, including quest items, cosmet
 ### `powers.json`
 `skills[]` holds `{ sno, id: "Barbarian_Bash", name, desc, strings }`. These descriptions contain script placeholders (`{SF_2}`, `{payload:…}`) that cannot be resolved offline. `seasonalPowers[]` holds CollectiblePower entries.
 
+### `map.json` (from `tools/datamine/extract-map.mjs`)
+World-map points of interest in the overworld (World `Sanctuary_Eastern_Continent`), in world units. Details, transforms and sanity checks: `docs/research/map-data.md`.
+```jsonc
+{
+  "world": { "sno": 69068, "gridSize": 96, "sceneChunks": 1220, "bounds": { "minX": -2400, "minY": -2016, "maxX": 3456, "maxY": 1440 } },
+  "projection": { "formula": "u = artCenter.x/artSize + (y - x)/(span*sqrt2); v = artCenter.y/artSize + (x + y)/(span*sqrt2)", "span": 6144, "artSize": 4096, "artCenter": { "x": 2560, "y": 2212 }, ... },
+  "regions": { "Scosglen": "Scosglen", ... },          // Zone SNO name -> display name
+  "counts": { "altar": { "total": 160, "Scosglen": 34, ... }, ... },
+  "territories": [{ "id": "Scosglen_Downs", "name": "The Downs", "region": "Scosglen", "points": [[x, y], ...] }],
+  "validation": { ... },
+  "entries": [{
+    "kind": "journal",            // waypoint | altar | tenet_of_akarat | chronicle_of_creation | journal | stronghold | dungeon | cellar
+                                  // | quest_dungeon | campaign_dungeon | boss_dungeon | undercity | seasonal | activity | secret | portal
+                                  // | side_quest | helltide_chest
+    "name": "Deckard's Journal, 1237 - Part 1", "key": "S15_DeckardsJourney_Journal_01",   // key: stable id per kind
+    "region": "Kehjistan", "regionName": "Kehjistan", "territory": "Kehj_LowDesert", "territoryName": "Southern Expanse",
+    "subzone": "Kehj_Gea_Kul", "levelArea": null, "levelAreaName": null,
+    "x": 718.5, "y": -465.7, "z": 0.4, "u": 0.48871, "v": 0.56913,
+    "precision": "exact",         // "approx" for side quests (designer start location)
+    "actor": "...", "markerSet": 2638385, "markerId": 2, "item": "...", "hiddenCache": "LostCache_...", "destWorld": "DGN_...", "quest": "...",
+    "extra": { "part": 1 }         // journal part, dungeon archetype, helltide spawn tier, ...
+  }]
+}
+```
+Run `node tools/datamine/extract-map.mjs` after `extract.mjs` (it reuses `raw/` and `strings/`, and copies the ~3.4k overworld MarkerSet meta files it needs into `raw/base/meta`). `--skip-casc` re-parses only; `--data <dir>` points at another `data/gamedata`. The app ships the slim copy `src/generated/map-pois.json` (`node scripts/gen-map-pois.mjs`).
+
 ## What is NOT here (and why)
 
 - **Treasure classes / boss loot tables.** The client's CoreTOC has no `TreasureClass` SNO group. Item files only reference treasure-class SNO ids, which have no name. Drop tables are server-side, so boss farm targets must come from community sources.
@@ -158,6 +185,8 @@ node tools/datamine/extract.mjs                       # full run: copy from CASC
 node tools/datamine/extract.mjs --update-defs         # also refresh d4data definitions.json (do this after a patch)
 node tools/datamine/extract.mjs --skip-casc           # re-parse the existing raw/ cache only (~10 s)
 node tools/datamine/extract.mjs --game "D:\Games\Diablo IV"   # or set D4_GAME_DIR
+node tools/datamine/extract-map.mjs                   # then: map.json (world-map POIs)
+node scripts/gen-map-pois.mjs                         # then: src/generated/map-pois.json
 ```
 
 After a patch:
