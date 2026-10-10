@@ -48,3 +48,6 @@ research/samples
 # Local agent worktrees and scratch build output
 .claude/
 src-tauri/target-*/
+
+# Personal notes and drafts, never committed
+private/
