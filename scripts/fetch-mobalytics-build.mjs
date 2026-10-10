@@ -26,7 +26,7 @@
 //   1. POST the GraphQL document below directly to
 //      https://mobalytics.gg/api/diablo4/v1/graphql/query (not behind Cloudflare).
 //   2. If that fails, fetch the page HTML through FlareSolverr (FLARESOLVERR_URL env,
-//      default http://192.168.69.197:8191/v1) and pull the document out of
+//      default http://localhost:8191/v1) and pull the document out of
 //      window.__PRELOADED_STATE__ (diablo4State.apollo.graphqlV2.queries[*].state.data).
 //
 // The GraphQL document (also saved verbatim as scripts/mobalytics-build-query.graphql)
@@ -55,7 +55,7 @@ export const ENDPOINT = 'https://mobalytics.gg/api/diablo4/v1/graphql/query';
 export const SITE = 'https://mobalytics.gg';
 export const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
-export const FLARESOLVERR_URL = process.env.FLARESOLVERR_URL || 'http://192.168.69.197:8191/v1';
+export const FLARESOLVERR_URL = process.env.FLARESOLVERR_URL || 'http://localhost:8191/v1';
 
 // ===== GraphQL document (identical to scripts/mobalytics-build-query.graphql) =====
 // Operations (the fragments they spread follow them inside BUILD_QUERY):

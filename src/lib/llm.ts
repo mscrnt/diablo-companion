@@ -11,7 +11,7 @@ export interface ChatMessage {
 }
 
 export interface LlmConfig {
-  baseUrl: string; // e.g. http://192.168.69.197:8556/v1
+  baseUrl: string; // e.g. http://localhost:8000/v1
   model: string;
   apiKey?: string;
 }
