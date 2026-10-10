@@ -3,6 +3,7 @@ import { startEngine, useRuntime } from "./lib/engine";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Welcome from "./pages/Welcome";
 import { loadStaticData } from "./lib/names";
+import { APP_VERSION, RELEASES_URL } from "./lib/version";
 import { useBuilds, useCoach, useLoot } from "./lib/store";
 import Dashboard from "./pages/Dashboard";
 import Timers from "./pages/Timers";
@@ -95,6 +96,10 @@ export default function App() {
           <span className="lbl">D4 Companion</span>
           <span className="brand-short">D4</span>
           <small>Sanctuary toolkit</small>
+          <a className="ver" href={rt.update?.url ?? RELEASES_URL} target="_blank" rel="noreferrer" title={rt.update ? `v${rt.update.version} is available` : "Release notes"}>
+            v{APP_VERSION}
+            {rt.update && <span className="ver-new"> → v{rt.update.version}</span>}
+          </a>
         </div>
         <div style={{ height: 10 }} />
         {NAV.map((n) => (

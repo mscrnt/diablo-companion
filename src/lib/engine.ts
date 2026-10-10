@@ -11,6 +11,7 @@ import { snoozeJudge, startAutoJudge } from "./autojudge";
 import { guideNext, useGuide } from "./guide";
 import { listModels } from "./llm";
 import { fetchUpdatedAt } from "./mobalytics";
+import { checkForUpdate, type UpdateInfo } from "./version";
 import { captureMonitor, captureRegion, gameStatus, setOverlayCapturable, setOverlayInteractive, type GameStatus } from "./native";
 import { detectPillarbox, hamming, sceneSignature } from "./vision";
 import { scanSkillBar, useSkillBar } from "./skillbar";
@@ -32,6 +33,8 @@ interface Runtime {
   overlayHidden: boolean;
   hotkeyErrors: string[];
   lastPad: string[];
+  /** a newer GitHub release, if any */
+  update: UpdateInfo | null;
 }
 
 export const useRuntime = create<Runtime>(() => ({
@@ -44,6 +47,7 @@ export const useRuntime = create<Runtime>(() => ({
   overlayHidden: false,
   hotkeyErrors: [],
   lastPad: [],
+  update: null,
 }));
 
 // ---- actions ------------------------------------------------------------------
@@ -448,6 +452,13 @@ export async function startEngine() {
   };
   setTimeout(checkBuildUpdates, 15000);
   setInterval(checkBuildUpdates, 6 * 3600_000);
+
+  const checkAppUpdate = () =>
+    checkForUpdate()
+      .then((update) => useRuntime.setState({ update }))
+      .catch(() => {});
+  setTimeout(checkAppUpdate, 20000);
+  setInterval(checkAppUpdate, 6 * 3600_000);
 
   if (!isTauri) return;
 

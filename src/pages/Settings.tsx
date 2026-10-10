@@ -5,6 +5,7 @@ import { obsReplayStatus } from "../lib/obs";
 import { discord } from "../lib/alerts";
 import { useSettings, type ActionId } from "../lib/store";
 import { staticMeta } from "../lib/names";
+import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate } from "../lib/version";
 
 const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "judge", label: "Judge item under cursor" },
@@ -182,7 +183,55 @@ export default function SettingsPage() {
             Boss names/zones from helltides.com's public feed (be polite: ≥ 30s). Times are always computed locally, so timers work offline.
           </div>
         </Card>
+
+        <About />
       </div>
     </>
+  );
+}
+
+function About() {
+  const update = useRuntime((s) => s.update);
+  const [status, setStatus] = useState("");
+  const check = async () => {
+    setStatus("Checking…");
+    try {
+      const u = await checkForUpdate();
+      useRuntime.setState({ update: u });
+      setStatus(u ? "" : "You're on the latest version.");
+    } catch (e) {
+      setStatus(`Couldn't reach GitHub: ${(e as Error).message}`);
+    }
+  };
+  return (
+    <Card title="About">
+      <div className="row" style={{ alignItems: "baseline" }}>
+        <b style={{ fontSize: 18 }}>D4 Companion</b>
+        <span className="mono">v{APP_VERSION}</span>
+        {update && (
+          <a className="badge" style={{ color: "var(--green)" }} href={update.url} target="_blank" rel="noreferrer">
+            v{update.version} available
+          </a>
+        )}
+      </div>
+      <div className="row" style={{ marginTop: 10 }}>
+        <button className="btn sm" onClick={check}>
+          Check for updates
+        </button>
+        <a className="btn ghost sm" href={RELEASES_URL} target="_blank" rel="noreferrer">
+          Release notes
+        </a>
+        <a className="btn ghost sm" href={REPO_URL} target="_blank" rel="noreferrer">
+          GitHub
+        </a>
+        <a className="btn ghost sm" href={`${REPO_URL}/issues`} target="_blank" rel="noreferrer">
+          Report a problem
+        </a>
+      </div>
+      {status && <div className="small muted" style={{ marginTop: 6 }}>{status}</div>}
+      <div className="small dim" style={{ marginTop: 10 }}>
+        Free for noncommercial use (PolyForm Noncommercial 1.0.0). Not affiliated with Blizzard Entertainment or Mobalytics.
+      </div>
+    </Card>
   );
 }

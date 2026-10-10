@@ -172,7 +172,7 @@ pub fn run() {
             let menu = Menu::with_items(app, &[&show, &edit, &judge, &sep, &quit])?;
             TrayIconBuilder::with_id("tray")
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Diablo IV Companion")
+                .tooltip(format!("Diablo IV Companion v{}", app.package_info().version))
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, ev| match ev.id().as_ref() {

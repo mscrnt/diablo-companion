@@ -1,6 +1,9 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
+
+const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -8,6 +11,7 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react()],
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // static-slim.json (game data tables) is a deliberate ~1.7 MB lazy chunk
   build: { chunkSizeWarningLimit: 2000 },
   test: { include: ["tests/**/*.test.ts"], environment: "node" },
