@@ -124,7 +124,8 @@ jobs:
         shell: bash
         run: echo "TAURI_EXTRA_ARGS=--config src-tauri/tauri.signing.json" >> "$GITHUB_ENV"
 
-      # builds the NSIS installer (static CRT + offline WebView2) and attaches it to the release
+      # builds the recommended small NSIS installer (static CRT + WebView2 bootstrapper)
+      # and attaches it to the release
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -136,7 +137,9 @@ jobs:
             ${{ steps.notes.outputs.body }}
 
             ## Install
-            Download **D4 Companion_*_x64-setup.exe** below and run it. It installs for your user only (no admin needed) and includes everything it needs, including the WebView2 runtime.
+            Download one of these below and run it. Both install for your user only (no admin needed), and installing over an older version keeps your settings.
+            - **D4 Companion_*_x64-setup.exe** (recommended, small). Uses the WebView2 runtime that Windows 10 and 11 already have, and fetches it only if it's missing.
+            - **D4 Companion_*_x64-offline-setup.exe** (large). Includes the WebView2 runtime, for PCs without internet access.
 
             ${{ env.SIGN == 'true' && 'The installer is code-signed. A brand-new signing identity can still trigger a SmartScreen prompt for the first releases while it builds reputation: click *More info → Run anyway*.' || 'Windows may show a SmartScreen warning because the installer isn''t code-signed yet: click *More info → Run anyway*.' }}
           releaseDraft: false
@@ -155,3 +158,25 @@ jobs:
           $files | ForEach-Object { $s = Get-AuthenticodeSignature $_.FullName; "{0}: {1} ({2})" -f $_.Name, $s.Status, $s.SignerCertificate.Subject }
           $bad = $files | Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' }
           if ($bad) { throw "unsigned or invalid: $($bad.Name -join ', ')" }
+
+      # second installer with the full offline WebView2 runtime. Only the bundle
+      # differs, so this mostly re-packages the app built above.
+      - name: Build the offline installer
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $nsis = "src-tauri/target/release/bundle/nsis"
+          Remove-Item "$nsis/*-setup.exe"
+          $extra = if ($env:TAURI_EXTRA_ARGS) { $env:TAURI_EXTRA_ARGS -split ' ' } else { @() }
+          npm run tauri -- build --bundles nsis --config src-tauri/tauri.offline.json @extra
+          if ($LASTEXITCODE -ne 0) { throw "offline build failed" }
+          $setup = Get-ChildItem $nsis -Filter *-setup.exe | Select-Object -First 1
+          $offline = Join-Path $nsis ($setup.Name -replace '-setup\.exe$', '-offline-setup.exe')
+          Move-Item $setup.FullName $offline
+          if ($env:SIGN -eq 'true') {
+            $s = Get-AuthenticodeSignature $offline
+            "{0}: {1} ({2})" -f (Split-Path $offline -Leaf), $s.Status, $s.SignerCertificate.Subject
+            if ($s.Status -ne 'Valid') { throw "offline installer is $($s.Status)" }
+          }
+          gh release upload $env:TAG $offline --clobber

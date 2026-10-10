@@ -22,7 +22,9 @@ Windows OCR and a local vision LLM — no memory reading, no injection, no input
 | ![Runs and splits with Pit and Nightmare Dungeon history](docs/screenshots/runs.png) **Runs & Splits**: Pit and Nightmare Dungeon runs tracked automatically | |
 
 ## For players (install & use)
-1. Run the installer (`D4 Companion_x.y.z_x64-setup.exe`). It's self-contained: the C runtime is linked into the exe and the WebView2 runtime installs offline if it's missing — no admin rights needed.
+1. Run the installer from the [latest release](https://github.com/mscrnt/diablo-companion/releases/latest). No admin rights needed, and installing over an older version keeps your settings.
+   - `D4 Companion_x.y.z_x64-setup.exe` (recommended, ~6 MB): uses the WebView2 runtime that Windows 10 and 11 already have, and fetches it only if it's missing.
+   - `D4 Companion_x.y.z_x64-offline-setup.exe` (~210 MB): includes the WebView2 runtime, for PCs without internet access.
 2. On first start, paste your **Mobalytics build link** (featured guide or profile build). Add more builds any time on the **Build** page — the active one drives the loot judge; the others still get "stash it — great for your other build" advice. Builds show an **update** badge when the author changes the guide.
 3. Optional: point **Settings → Local LLM** at any OpenAI-compatible server (vLLM, LM Studio, Ollama…) for the AI Coach/session plans. Everything else works without it.
 4. In game: Display Mode **Windowed Fullscreen**; hover your equipped gear once so it knows what you wear.

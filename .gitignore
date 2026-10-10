@@ -44,3 +44,7 @@ data/gamedata/*
 !data/gamedata/README.md
 research/samples
 *.tsbuildinfo
+
+# Local agent worktrees and scratch build output
+.claude/
+src-tauri/target-*/

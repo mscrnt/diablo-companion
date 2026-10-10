@@ -11,6 +11,7 @@ The release workflow publishes each version's section as its GitHub release note
 - **Settings → About** card: check for updates, release notes, GitHub and "Report a problem" links.
 
 ### Changed
+- Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.
 - Licensed under the PolyForm Noncommercial License 1.0.0: free for personal and other noncommercial use.
 
 ### Fixed
