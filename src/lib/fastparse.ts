@@ -163,7 +163,7 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     nameParts.unshift(L[i].text);
     nameLines.unshift(L[i]);
   }
-  // a smaller top line with no game word at all is the character name above the tooltip ("BAZAQ")
+  // a smaller top line with no game word at all is the character name above the tooltip
   const words = (t: string) => t.match(/[A-Za-z][A-Za-z'’\-]+/g) ?? [];
   const titleH = Math.max(...nameLines.map((l) => l.h ?? 0));
   while (ocrVocabReady() && opts.snap !== false && nameParts.length > 1 && titleH && (nameLines[0].h ?? titleH) < titleH * 0.9 && !words(nameParts[0]).some(knownWord)) {
