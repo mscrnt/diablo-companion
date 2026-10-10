@@ -1,0 +1,57 @@
+name: Set up Azure Artifact Signing
+description: >
+  Installs Microsoft's signing dlib, writes its metadata file and a Tauri config
+  overlay (src-tauri/tauri.signing.json) whose signCommand runs signtool with it.
+  Run azure/login first; the dlib signs with that Azure CLI login.
+inputs:
+  endpoint:
+    description: Account URI, e.g. https://eus.codesigning.azure.net/
+    required: true
+  account:
+    description: Artifact Signing account name
+    required: true
+  profile:
+    description: Certificate profile name
+    required: true
+outputs:
+  signtool:
+    description: Path to signtool.exe
+    value: ${{ steps.setup.outputs.signtool }}
+  dlib:
+    description: Path to Azure.CodeSigning.Dlib.dll
+    value: ${{ steps.setup.outputs.dlib }}
+  metadata:
+    description: Path to the dlib metadata.json
+    value: ${{ steps.setup.outputs.metadata }}
+runs:
+  using: composite
+  steps:
+    - id: setup
+      shell: pwsh
+      env:
+        SIGNING_ENDPOINT: ${{ inputs.endpoint }}
+        SIGNING_ACCOUNT: ${{ inputs.account }}
+        SIGNING_PROFILE: ${{ inputs.profile }}
+      run: |
+        $dir = Join-Path $env:RUNNER_TEMP "signing"
+        nuget install Microsoft.ArtifactSigning.Client -Version 1.0.146 -OutputDirectory $dir -NonInteractive | Out-Null
+        $dlib = Get-ChildItem $dir -Recurse -Filter Azure.CodeSigning.Dlib.dll | Where-Object FullName -match '\\x64\\' | Select-Object -First 1
+        $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe | Where-Object FullName -match '\\x64\\' | Sort-Object FullName -Descending | Select-Object -First 1
+        if (-not $dlib -or -not $signtool) { throw "signing dlib or signtool not found" }
+        $meta = Join-Path $dir "metadata.json"
+        @{
+          Endpoint = $env:SIGNING_ENDPOINT
+          CodeSigningAccountName = $env:SIGNING_ACCOUNT
+          CertificateProfileName = $env:SIGNING_PROFILE
+          # only the Azure CLI login from azure/login
+          ExcludeCredentials = @("EnvironmentCredential", "WorkloadIdentityCredential", "ManagedIdentityCredential", "SharedTokenCacheCredential", "VisualStudioCredential", "VisualStudioCodeCredential", "AzurePowerShellCredential", "AzureDeveloperCliCredential", "InteractiveBrowserCredential")
+        } | ConvertTo-Json | Set-Content $meta -Encoding utf8
+        @{ bundle = @{ windows = @{ signCommand = @{
+          cmd = $signtool.FullName
+          args = @("sign", "/v", "/fd", "SHA256", "/tr", "http://timestamp.acs.microsoft.com", "/td", "SHA256", "/dlib", $dlib.FullName, "/dmdf", $meta, "%1")
+        } } } } | ConvertTo-Json -Depth 6 | Set-Content src-tauri/tauri.signing.json -Encoding utf8
+        "signtool=$($signtool.FullName)" >> $env:GITHUB_OUTPUT
+        "dlib=$($dlib.FullName)" >> $env:GITHUB_OUTPUT
+        "metadata=$meta" >> $env:GITHUB_OUTPUT
+        Write-Host "signtool: $($signtool.FullName)"
+        Write-Host "dlib:     $($dlib.FullName)"

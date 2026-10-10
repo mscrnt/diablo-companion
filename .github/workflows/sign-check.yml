@@ -1,0 +1,48 @@
+name: Signing check
+
+# Signs a throwaway exe to prove the Azure Artifact Signing setup works,
+# without building or publishing a release.
+on: workflow_dispatch
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sign:
+    runs-on: windows-latest
+    # the Azure federated credential trusts this environment
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - id: signing
+        uses: ./.github/actions/setup-signing
+        with:
+          endpoint: ${{ vars.SIGNING_ENDPOINT }}
+          account: ${{ vars.SIGNING_ACCOUNT }}
+          profile: ${{ vars.SIGNING_PROFILE }}
+
+      - name: Sign a test exe
+        shell: pwsh
+        env:
+          SIGNTOOL: ${{ steps.signing.outputs.signtool }}
+          DLIB: ${{ steps.signing.outputs.dlib }}
+          METADATA: ${{ steps.signing.outputs.metadata }}
+        run: |
+          Set-Content hello.rs 'fn main() { println!("signed"); }'
+          rustc -O hello.rs
+          & $env:SIGNTOOL sign /v /fd SHA256 /tr http://timestamp.acs.microsoft.com /td SHA256 /dlib $env:DLIB /dmdf $env:METADATA hello.exe
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed ($LASTEXITCODE)" }
+          $s = Get-AuthenticodeSignature hello.exe
+          "Status:    $($s.Status)"
+          "Signer:    $($s.SignerCertificate.Subject)"
+          "Issuer:    $($s.SignerCertificate.Issuer)"
+          "Timestamp: $($s.TimeStamperCertificate.Subject)"
+          if ($s.Status -ne 'Valid') { throw "signature is $($s.Status)" }
