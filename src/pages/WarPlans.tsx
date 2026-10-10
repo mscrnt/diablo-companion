@@ -35,7 +35,7 @@ export default function WarPlans() {
     maxY = Math.max(...ys);
   const W = 900,
     H = 520;
-  const px = (x: number) => 40 + ((x - minX) / Math.max(1, maxX - minX)) * (W - 80);
+  const px = (x: number) => 70 + ((x - minX) / Math.max(1, maxX - minX)) * (W - 140);
   const py = (y: number) => 30 + ((y - minY) / Math.max(1, maxY - minY)) * (H - 60);
 
   const askAi = async () => {

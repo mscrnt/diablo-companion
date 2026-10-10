@@ -77,28 +77,30 @@ export default function SettingsPage() {
         </Card>
 
         <Card title="Hotkeys & controller chords">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Keyboard</th>
-                <th>Controller chord</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ACTIONS.map((a) => (
-                <tr key={a.id}>
-                  <td>{a.label}</td>
-                  <td>
-                    <KeyCapture value={settings.hotkeys[a.id]} onChange={(v) => update((s) => void (s.hotkeys[a.id] = v))} />
-                  </td>
-                  <td>
-                    <PadCapture value={settings.padChords[a.id]} onChange={(v) => update((s) => void (s.padChords[a.id] = v))} />
-                  </td>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Keyboard</th>
+                  <th>Controller chord</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ACTIONS.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.label}</td>
+                    <td>
+                      <KeyCapture value={settings.hotkeys[a.id]} onChange={(v) => update((s) => void (s.hotkeys[a.id] = v))} />
+                    </td>
+                    <td>
+                      <PadCapture value={settings.padChords[a.id]} onChange={(v) => update((s) => void (s.padChords[a.id] = v))} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="col" style={{ marginTop: 10 }}>
             <Check checked={settings.padEnabled} onChange={(v) => update((s) => void (s.padEnabled = v))} label="Enable controller chords (XInput, read-only)" />
             <div className="small muted">

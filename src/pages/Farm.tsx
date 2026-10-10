@@ -98,51 +98,53 @@ export default function Farm() {
       </div>
 
       <Card title="Targets" style={{ marginTop: 14 }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Slot</th>
-              <th>Item</th>
-              <th>Status</th>
-              <th>Where / how</th>
-              <th>Roll targets</th>
-            </tr>
-          </thead>
-          <tbody>
-            {steps.map((s) => (
-              <tr key={s.slot}>
-                <td className="nowrap">{s.slotLabel}</td>
-                <td>
-                  <div className={"rar-" + s.kind} style={{ fontWeight: 700 }}>
-                    {s.item}
-                  </div>
-                  <div className="small muted">{s.why}</div>
-                </td>
-                <td>
-                  <span className={"state-" + s.state}>{s.state}</span>
-                </td>
-                <td className="small">
-                  {s.obtain.length ? (
-                    s.obtain.map((o, i) => (
-                      <div key={i}>
-                        <Badge color="var(--gold)">{o.method}</Badge> {o.detail}
-                        {o.verified === false && <span className="dim"> (unverified)</span>}
-                      </div>
-                    ))
-                  ) : (
-                    <span className="dim">unknown — ask the Coach</span>
-                  )}
-                </td>
-                <td className="small">
-                  {s.gaTargets.length > 0 && <div>★ {s.gaTargets.join(", ")}</div>}
-                  {s.masterworkInto && <div style={{ color: "var(--blue)" }}>MW → {s.masterworkInto}</div>}
-                  {s.temper.length > 0 && <div style={{ color: "var(--orange)" }}>⚒ {s.temper.join(", ")}</div>}
-                  {s.sockets.length > 0 && <div style={{ color: "var(--purple)" }}>⬢ {s.sockets.join(", ")}</div>}
-                </td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Slot</th>
+                <th>Item</th>
+                <th>Status</th>
+                <th>Where / how</th>
+                <th>Roll targets</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {steps.map((s) => (
+                <tr key={s.slot}>
+                  <td className="nowrap">{s.slotLabel}</td>
+                  <td>
+                    <div className={"rar-" + s.kind} style={{ fontWeight: 700 }}>
+                      {s.item}
+                    </div>
+                    <div className="small muted">{s.why}</div>
+                  </td>
+                  <td>
+                    <span className={"state-" + s.state}>{s.state}</span>
+                  </td>
+                  <td className="small">
+                    {s.obtain.length ? (
+                      s.obtain.map((o, i) => (
+                        <div key={i}>
+                          <Badge color="var(--gold)">{o.method}</Badge> {o.detail}
+                          {o.verified === false && <span className="dim"> (unverified)</span>}
+                        </div>
+                      ))
+                    ) : (
+                      <span className="dim">unknown — ask the Coach</span>
+                    )}
+                  </td>
+                  <td className="small">
+                    {s.gaTargets.length > 0 && <div>★ {s.gaTargets.join(", ")}</div>}
+                    {s.masterworkInto && <div style={{ color: "var(--blue)" }}>MW → {s.masterworkInto}</div>}
+                    {s.temper.length > 0 && <div style={{ color: "var(--orange)" }}>⚒ {s.temper.join(", ")}</div>}
+                    {s.sockets.length > 0 && <div style={{ color: "var(--purple)" }}>⬢ {s.sockets.join(", ")}</div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       {knowledge?.progression?.length > 0 && (

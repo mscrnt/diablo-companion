@@ -37,30 +37,32 @@ export default function Character() {
       <div className="grid g3">
         <Card title="Skills" right={<button className="btn sm" disabled={g.active} onClick={() => mapSkills()}>Read</button>}>
           {planned.length ? (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Skill</th>
-                  <th>Build</th>
-                  <th>Yours</th>
-                </tr>
-              </thead>
-              <tbody>
-                {planned.map(([slug, n]) => {
-                  const mine = c.skills[slug];
-                  const name = variant!.skillBar.find((b) => b.slug === slug)?.name ?? slug;
-                  return (
-                    <tr key={slug}>
-                      <td>{name}</td>
-                      <td className="mono">{n}</td>
-                      <td className="mono" style={{ color: mine ? (mine.rank >= n ? "var(--green)" : "var(--gold)") : "var(--dim)" }}>
-                        {mine ? `${mine.rank}${mine.max ? "/" + mine.max : ""}` : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Skill</th>
+                    <th>Build</th>
+                    <th>Yours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {planned.map(([slug, n]) => {
+                    const mine = c.skills[slug];
+                    const name = variant!.skillBar.find((b) => b.slug === slug)?.name ?? slug;
+                    return (
+                      <tr key={slug}>
+                        <td>{name}</td>
+                        <td className="mono">{n}</td>
+                        <td className="mono" style={{ color: mine ? (mine.rank >= n ? "var(--green)" : "var(--gold)") : "var(--dim)" }}>
+                          {mine ? `${mine.rank}${mine.max ? "/" + mine.max : ""}` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <Empty icon="📜">Import a build first.</Empty>
           )}
@@ -69,32 +71,34 @@ export default function Character() {
 
         <Card title="Paragon glyphs" right={<button className="btn sm" disabled={g.active} onClick={() => mapGlyphs()}>Read</button>}>
           {variant?.paragon.length ? (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Board / glyph</th>
-                  <th>Build</th>
-                  <th>Yours</th>
-                </tr>
-              </thead>
-              <tbody>
-                {variant.paragon.map((p) => {
-                  const mine = c.glyphs[p.glyphSlug];
-                  return (
-                    <tr key={p.slug}>
-                      <td>
-                        {p.glyphName}
-                        <div className="small dim">{p.name}</div>
-                      </td>
-                      <td className="mono">{p.glyphLevel}</td>
-                      <td className="mono" style={{ color: mine ? (mine.level >= p.glyphLevel ? "var(--green)" : "var(--gold)") : "var(--dim)" }}>
-                        {mine ? mine.level : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Board / glyph</th>
+                    <th>Build</th>
+                    <th>Yours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variant.paragon.map((p) => {
+                    const mine = c.glyphs[p.glyphSlug];
+                    return (
+                      <tr key={p.slug}>
+                        <td>
+                          {p.glyphName}
+                          <div className="small dim">{p.name}</div>
+                        </td>
+                        <td className="mono">{p.glyphLevel}</td>
+                        <td className="mono" style={{ color: mine ? (mine.level >= p.glyphLevel ? "var(--green)" : "var(--gold)") : "var(--dim)" }}>
+                          {mine ? mine.level : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <Empty icon="🔷">No paragon plan in this build.</Empty>
           )}

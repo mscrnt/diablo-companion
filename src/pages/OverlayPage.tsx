@@ -138,34 +138,36 @@ export default function OverlayPage() {
         </Card>
       </div>
       <Card title="Widgets" style={{ marginTop: 14 }}>
-        <table className="table">
-          <tbody>
-            {WIDGETS.map((w) => (
-              <tr key={w.id}>
-                <td style={{ width: 30 }}>
-                  <input type="checkbox" checked={o.widgets[w.id].on} onChange={(e) => update((s) => void (s.overlay.widgets[w.id].on = e.target.checked))} />
-                </td>
-                <td>
-                  <b>{w.label}</b>
-                  <div className="small muted">{w.desc}</div>
-                </td>
-                <td style={{ width: 220 }}>
-                  <label className="field">
-                    Scale {o.widgets[w.id].scale.toFixed(2)}×
-                    <input
-                      type="range"
-                      min={0.6}
-                      max={1.8}
-                      step={0.05}
-                      value={o.widgets[w.id].scale}
-                      onChange={(e) => update((s) => void (s.overlay.widgets[w.id].scale = Number(e.target.value)))}
-                    />
-                  </label>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="table">
+            <tbody>
+              {WIDGETS.map((w) => (
+                <tr key={w.id}>
+                  <td style={{ width: 30 }}>
+                    <input type="checkbox" checked={o.widgets[w.id].on} onChange={(e) => update((s) => void (s.overlay.widgets[w.id].on = e.target.checked))} />
+                  </td>
+                  <td>
+                    <b>{w.label}</b>
+                    <div className="small muted">{w.desc}</div>
+                  </td>
+                  <td style={{ width: 220 }}>
+                    <label className="field">
+                      Scale {o.widgets[w.id].scale.toFixed(2)}×
+                      <input
+                        type="range"
+                        min={0.6}
+                        max={1.8}
+                        step={0.05}
+                        value={o.widgets[w.id].scale}
+                        onChange={(e) => update((s) => void (s.overlay.widgets[w.id].scale = Number(e.target.value)))}
+                      />
+                    </label>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <div className="row" style={{ marginTop: 10 }}>
           <button className="btn sm" onClick={() => runAction("overlayToggle")}>
             Hide / show overlay now

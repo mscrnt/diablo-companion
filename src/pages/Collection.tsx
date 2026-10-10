@@ -65,30 +65,32 @@ export default function Collection() {
             </div>
           </div>
         </div>
-        <table className="table">
-          <tbody>
-            {rows.slice(0, 400).map(([slug, e]) => (
-              <tr key={slug}>
-                <td style={{ width: 30 }}>
-                  <input type="checkbox" checked={!!owned[slug]} onChange={() => toggleOwned(slug)} />
-                </td>
-                <td style={{ width: 260 }}>
-                  <div className={tab === "uniques" ? (e.m ? "rar-mythic" : "rar-unique") : tab === "aspects" ? "rar-aspect" : ""} style={{ fontWeight: 700 }}>
-                    {e.n}
-                  </div>
-                  {inBuild.has(slug) && <span className="tag" style={{ color: "var(--gold)" }}>in build</span>}
-                  {e.t && <span className="tag">{e.t}</span>}
-                </td>
-                <td className="small muted">
-                  {e.d}
-                  {e.src && <div style={{ color: "var(--blood2)" }}>Drops from: {e.src}</div>}
-                  {e.loc && <div style={{ color: "var(--orange)" }}>Codex: {e.loc}</div>}
-                  {e.set && <div style={{ color: "#8fd3c7" }}>Set: {e.set}</div>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="table">
+            <tbody>
+              {rows.slice(0, 400).map(([slug, e]) => (
+                <tr key={slug}>
+                  <td style={{ width: 30 }}>
+                    <input type="checkbox" checked={!!owned[slug]} onChange={() => toggleOwned(slug)} />
+                  </td>
+                  <td style={{ width: 260 }}>
+                    <div className={tab === "uniques" ? (e.m ? "rar-mythic" : "rar-unique") : tab === "aspects" ? "rar-aspect" : ""} style={{ fontWeight: 700 }}>
+                      {e.n}
+                    </div>
+                    {inBuild.has(slug) && <span className="tag" style={{ color: "var(--gold)" }}>in build</span>}
+                    {e.t && <span className="tag">{e.t}</span>}
+                  </td>
+                  <td className="small muted">
+                    {e.d}
+                    {e.src && <div style={{ color: "var(--blood2)" }}>Drops from: {e.src}</div>}
+                    {e.loc && <div style={{ color: "var(--orange)" }}>Codex: {e.loc}</div>}
+                    {e.set && <div style={{ color: "#8fd3c7" }}>Set: {e.set}</div>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {rows.length > 400 && <div className="small dim">Showing 400 of {rows.length} — refine your search.</div>}
       </Card>
     </>

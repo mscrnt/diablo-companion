@@ -92,35 +92,36 @@ export default function App() {
     <div className="shell">
       <nav className="side">
         <div className="brand">
-          D4 Companion
+          <span className="lbl">D4 Companion</span>
+          <span className="brand-short">D4</span>
           <small>Sanctuary toolkit</small>
         </div>
         <div style={{ height: 10 }} />
         {NAV.map((n) => (
-          <button key={n.id} className={"nav " + (page === n.id ? "on" : "")} onClick={() => go(n.id)}>
+          <button key={n.id} className={"nav " + (page === n.id ? "on" : "")} onClick={() => go(n.id)} title={n.label}>
             <span className="ico">{n.ico}</span>
-            {n.label}
+            <span className="lbl">{n.label}</span>
             {n.id === "coach" && pending && <span className="pill">📷</span>}
             {n.id === "loot" && lootCount > 0 && <span className="pill">{lootCount}</span>}
           </button>
         ))}
         <div className="side-foot">
-          <div>
+          <div title={`Diablo IV ${rt.game?.focused ? "focused" : rt.game?.running ? "running" : "not detected"}`}>
             <span className={"dot " + (rt.game?.focused ? "ok" : rt.game?.running ? "warn" : "")} />
-            Diablo IV {rt.game?.focused ? "focused" : rt.game?.running ? "running" : "not detected"}
+            <span className="lbl">Diablo IV {rt.game?.focused ? "focused" : rt.game?.running ? "running" : "not detected"}</span>
           </div>
-          <div title={rt.llm?.error}>
+          <div title={rt.llm?.error || `LLM ${rt.llm?.ok ? "online" : "…"}`}>
             <span className={"dot " + (rt.llm?.ok ? "ok" : rt.llm ? "bad" : "")} />
-            LLM {rt.llm?.ok ? "online" : rt.llm ? "offline" : "…"}
+            <span className="lbl">LLM {rt.llm?.ok ? "online" : rt.llm ? "offline" : "…"}</span>
           </div>
-          <div title={rt.live?.error}>
+          <div title={rt.live?.error || `Live timers ${rt.live ? "synced" : "…"}`}>
             <span className={"dot " + (rt.live && !rt.live.error ? "ok" : rt.live ? "warn" : "")} />
-            Live timers {rt.live && !rt.live.error ? "synced" : rt.live ? "partial" : "…"}
+            <span className="lbl">Live timers {rt.live && !rt.live.error ? "synced" : rt.live ? "partial" : "…"}</span>
           </div>
           {rt.hotkeyErrors.length > 0 && (
             <div title={rt.hotkeyErrors.join("\n")}>
               <span className="dot bad" />
-              {rt.hotkeyErrors.length} hotkey conflict(s)
+              <span className="lbl">{rt.hotkeyErrors.length} hotkey conflict(s)</span>
             </div>
           )}
         </div>

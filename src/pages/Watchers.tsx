@@ -72,61 +72,63 @@ export default function Watchers() {
         {watchers.length === 0 ? (
           <Empty icon="👁">No watchers yet.</Empty>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>On</th>
-                <th>Name</th>
-                <th>Mode</th>
-                <th>Action</th>
-                <th>Last read</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {watchers.map((w) => {
-                const v = values[w.id];
-                return (
-                  <tr key={w.id}>
-                    <td>
-                      <input type="checkbox" checked={w.enabled} onChange={(e) => upsert({ ...w, enabled: e.target.checked })} />
-                    </td>
-                    <td>
-                      <b>{w.name}</b>
-                      <div className="small dim mono">
-                        {w.rect.w}×{w.rect.h} @ {w.rect.x},{w.rect.y}
-                      </div>
-                    </td>
-                    <td className="small">{w.mode}</td>
-                    <td className="small">{w.action}</td>
-                    <td className="small">
-                      {v?.error ? (
-                        <span style={{ color: "var(--blood2)" }}>{v.error.slice(0, 60)}</span>
-                      ) : v ? (
-                        <>
-                          {w.mode === "scene" ? `distance ${v.distance ?? "?"} / ${w.scene?.maxDistance}` : w.mode === "number" ? (v.value ?? "—") : v.text.slice(0, 50) || "—"}
-                          <div className="dim">
-                            {timeAgo(v.at)}
-                            {v.fired ? ` · fired ${timeAgo(v.fired)}` : ""}
-                          </div>
-                        </>
-                      ) : (
-                        <span className="dim">{w.onlyWhenGameFocused ? "waiting for game focus" : "—"}</span>
-                      )}
-                    </td>
-                    <td className="nowrap">
-                      <button className="btn sm" onClick={() => setEdit({ w, hint: "" })}>
-                        Edit
-                      </button>
-                      <button className="btn ghost sm" onClick={() => remove(w.id)}>
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>On</th>
+                  <th>Name</th>
+                  <th>Mode</th>
+                  <th>Action</th>
+                  <th>Last read</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {watchers.map((w) => {
+                  const v = values[w.id];
+                  return (
+                    <tr key={w.id}>
+                      <td>
+                        <input type="checkbox" checked={w.enabled} onChange={(e) => upsert({ ...w, enabled: e.target.checked })} />
+                      </td>
+                      <td>
+                        <b>{w.name}</b>
+                        <div className="small dim mono">
+                          {w.rect.w}×{w.rect.h} @ {w.rect.x},{w.rect.y}
+                        </div>
+                      </td>
+                      <td className="small">{w.mode}</td>
+                      <td className="small">{w.action}</td>
+                      <td className="small">
+                        {v?.error ? (
+                          <span style={{ color: "var(--blood2)" }}>{v.error.slice(0, 60)}</span>
+                        ) : v ? (
+                          <>
+                            {w.mode === "scene" ? `distance ${v.distance ?? "?"} / ${w.scene?.maxDistance}` : w.mode === "number" ? (v.value ?? "—") : v.text.slice(0, 50) || "—"}
+                            <div className="dim">
+                              {timeAgo(v.at)}
+                              {v.fired ? ` · fired ${timeAgo(v.fired)}` : ""}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="dim">{w.onlyWhenGameFocused ? "waiting for game focus" : "—"}</span>
+                        )}
+                      </td>
+                      <td className="nowrap">
+                        <button className="btn sm" onClick={() => setEdit({ w, hint: "" })}>
+                          Edit
+                        </button>
+                        <button className="btn ghost sm" onClick={() => remove(w.id)}>
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
       {edit && <WatcherEditor initial={edit.w} hint={edit.hint} onClose={() => setEdit(null)} onSave={(w) => (upsert(w), setEdit(null))} />}

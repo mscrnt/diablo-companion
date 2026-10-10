@@ -135,7 +135,7 @@ ${runs || "(none)"}`;
 
   return (
     <>
-      <PageHead title="AI Coach" sub={`Chat with ${settings.llm.model.split("/").pop()} on your Unraid box. It knows your build, gear progress, loot, runs and the event schedule.`}>
+      <PageHead title="AI Coach" sub={`Chat with ${settings.llm.model ? settings.llm.model.split("/").pop() : "your local AI model"}. It knows your build, gear progress, loot, runs and the event schedule.`}>
         <Check checked={settings.llm.thinkingForCoach} onChange={(v) => update((s) => void (s.llm.thinkingForCoach = v))} label="Deep thinking" />
         <button className="btn ghost sm" onClick={() => confirm("Clear conversation?") && clear()}>
           Clear

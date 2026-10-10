@@ -96,40 +96,42 @@ export default function Loot() {
         {history.length === 0 ? (
           <Empty icon="📦">Judged items show up here.</Empty>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Verdict</th>
-                <th>Item</th>
-                <th>Slot</th>
-                <th>Build stats</th>
-                <th>When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((h) => (
-                <tr key={h.id} onClick={() => setSel(h)} style={{ cursor: "pointer" }}>
-                  <td>
-                    <Badge color={(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).color}>
-                      {(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).icon} {(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).label}
-                    </Badge>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 700 }} className={"rar-" + h.item.rarity}>
-                      {h.item.name}
-                    </div>
-                    <div className="small muted">{h.item.itemType}</div>
-                  </td>
-                  <td className="small">{h.slot ?? "—"}</td>
-                  <td className="small">
-                    {h.matched.length}/{h.matched.length + h.missing.length}
-                    {h.greaterOnTargets > 0 && <span style={{ color: "var(--gold2)" }}> · {h.greaterOnTargets}★</span>}
-                  </td>
-                  <td className="small dim nowrap">{timeAgo(h.at)}</td>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Verdict</th>
+                  <th>Item</th>
+                  <th>Slot</th>
+                  <th>Build stats</th>
+                  <th>When</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {history.map((h) => (
+                  <tr key={h.id} onClick={() => setSel(h)} style={{ cursor: "pointer" }}>
+                    <td>
+                      <Badge color={(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).color}>
+                        {(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).icon} {(VERDICT_STYLE[h.verdict] ?? VERDICT_STYLE.UNKNOWN).label}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700 }} className={"rar-" + h.item.rarity}>
+                        {h.item.name}
+                      </div>
+                      <div className="small muted">{h.item.itemType}</div>
+                    </td>
+                    <td className="small">{h.slot ?? "—"}</td>
+                    <td className="small">
+                      {h.matched.length}/{h.matched.length + h.missing.length}
+                      {h.greaterOnTargets > 0 && <span style={{ color: "var(--gold2)" }}> · {h.greaterOnTargets}★</span>}
+                    </td>
+                    <td className="small dim nowrap">{timeAgo(h.at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </div>

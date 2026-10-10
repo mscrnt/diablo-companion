@@ -65,9 +65,9 @@ export function Empty({ icon, children }: { icon: string; children: ReactNode })
 
 export function Check(props: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode }) {
   return (
-    <label className="row" style={{ gap: 8, cursor: "pointer" }}>
-      <input type="checkbox" checked={props.checked} onChange={(e) => props.onChange(e.target.checked)} />
-      <span>{props.label}</span>
+    <label className="row" style={{ gap: 8, cursor: "pointer", flexWrap: "nowrap" }}>
+      <input type="checkbox" checked={props.checked} onChange={(e) => props.onChange(e.target.checked)} style={{ flex: "none" }} />
+      <span style={{ minWidth: 0 }}>{props.label}</span>
     </label>
   );
 }
@@ -159,8 +159,8 @@ export function PadCapture({ value, onChange }: { value: string[]; onChange: (v:
     };
   }, [listening]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="row" style={{ gap: 4 }}>
-      <button className="btn sm" style={{ minWidth: 150, justifyContent: "center" }} onClick={() => setListening(true)}>
+    <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+      <button className="btn sm" style={{ minWidth: 130, justifyContent: "center" }} onClick={() => setListening(true)}>
         {listening ? "hold the chord on your pad…" : value.length ? value.map((b) => <span key={b} className="kbd">{b}</span>) : <span className="dim">unset</span>}
       </button>
       {value.length > 0 && (

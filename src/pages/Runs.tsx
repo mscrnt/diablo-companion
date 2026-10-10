@@ -62,17 +62,19 @@ export default function Runs() {
             </button>
           </div>
           {r.active && r.active.splits.length > 0 && (
-            <table className="table" style={{ marginTop: 10 }}>
-              <tbody>
-                {r.active.splits.map((s, i) => (
-                  <tr key={i}>
-                    <td>{s.label}</td>
-                    <td className="mono">{fmtDur(s.at - r.active!.start)}</td>
-                    <td className="mono dim">+{fmtDur(s.at - (i ? r.active!.splits[i - 1].at : r.active!.start))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-wrap">
+              <table className="table" style={{ marginTop: 10 }}>
+                <tbody>
+                  {r.active.splits.map((s, i) => (
+                    <tr key={i}>
+                      <td>{s.label}</td>
+                      <td className="mono">{fmtDur(s.at - r.active!.start)}</td>
+                      <td className="mono dim">+{fmtDur(s.at - (i ? r.active!.splits[i - 1].at : r.active!.start))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
         <Card title={`${act} trend`}>
@@ -125,39 +127,41 @@ export default function Runs() {
         {list.length === 0 ? (
           <Empty icon="📜">No runs yet.</Empty>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Activity</th>
-                <th>Tier</th>
-                <th>Time</th>
-                <th>Splits</th>
-                <th>Deaths</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {list.slice(0, 200).map((x) => (
-                <tr key={x.id}>
-                  <td className="small dim nowrap">{timeAgo(x.start)}</td>
-                  <td>{x.activity}</td>
-                  <td>{x.tier}</td>
-                  <td className="mono" style={{ color: x.success === false ? "var(--dim)" : x.end! - x.start === pb ? "var(--gold2)" : undefined }}>
-                    {fmtDur((x.end ?? now) - x.start)}
-                    {x.success === false ? " (abandoned)" : ""}
-                  </td>
-                  <td className="small">{x.splits.length}</td>
-                  <td className="small">{x.deaths ?? 0}</td>
-                  <td>
-                    <button className="btn ghost sm" onClick={() => r.remove(x.id)}>
-                      ✕
-                    </button>
-                  </td>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Activity</th>
+                  <th>Tier</th>
+                  <th>Time</th>
+                  <th>Splits</th>
+                  <th>Deaths</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {list.slice(0, 200).map((x) => (
+                  <tr key={x.id}>
+                    <td className="small dim nowrap">{timeAgo(x.start)}</td>
+                    <td>{x.activity}</td>
+                    <td>{x.tier}</td>
+                    <td className="mono" style={{ color: x.success === false ? "var(--dim)" : x.end! - x.start === pb ? "var(--gold2)" : undefined }}>
+                      {fmtDur((x.end ?? now) - x.start)}
+                      {x.success === false ? " (abandoned)" : ""}
+                    </td>
+                    <td className="small">{x.splits.length}</td>
+                    <td className="small">{x.deaths ?? 0}</td>
+                    <td>
+                      <button className="btn ghost sm" onClick={() => r.remove(x.id)}>
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
     </>
