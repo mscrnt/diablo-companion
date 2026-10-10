@@ -57,8 +57,15 @@ jobs:
     # runs after the tag job, or on its own when a tag was pushed
     if: ${{ !cancelled() && (needs.tag.result == 'success' || needs.tag.result == 'skipped') }}
     runs-on: windows-latest
+    # the Azure federated credential trusts this environment, whichever tag or branch runs it
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
     env:
       TAG: ${{ needs.tag.outputs.tag || github.ref_name }}
+      # code signing switches on once the AZURE_CLIENT_ID repo variable exists
+      SIGN: ${{ vars.AZURE_CLIENT_ID != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -85,16 +92,65 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # ---- Azure Artifact Signing (OIDC, no stored secret) ----
+      - name: Azure login
+        if: env.SIGN == 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      # Tauri calls signtool with Microsoft's signing dlib on the app exe, the
+      # uninstaller and the installer. The config is generated here so the paths
+      # resolve on the runner; local builds stay unsigned.
+      - name: Set up code signing
+        if: env.SIGN == 'true'
+        shell: pwsh
+        env:
+          SIGNING_ENDPOINT: ${{ vars.SIGNING_ENDPOINT }}
+          SIGNING_ACCOUNT: ${{ vars.SIGNING_ACCOUNT }}
+          SIGNING_PROFILE: ${{ vars.SIGNING_PROFILE }}
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "signing"
+          nuget install Microsoft.ArtifactSigning.Client -Version 1.0.146 -OutputDirectory $dir -NonInteractive | Out-Null
+          $dlib = Get-ChildItem $dir -Recurse -Filter Azure.CodeSigning.Dlib.dll | Where-Object FullName -match '\\x64\\' | Select-Object -First 1
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe | Where-Object FullName -match '\\x64\\' | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $dlib -or -not $signtool) { throw "signing dlib or signtool not found" }
+          $meta = Join-Path $dir "metadata.json"
+          @{
+            Endpoint = $env:SIGNING_ENDPOINT
+            CodeSigningAccountName = $env:SIGNING_ACCOUNT
+            CertificateProfileName = $env:SIGNING_PROFILE
+            # only the Azure CLI login from the step above
+            ExcludeCredentials = @("EnvironmentCredential", "WorkloadIdentityCredential", "ManagedIdentityCredential", "SharedTokenCacheCredential", "VisualStudioCredential", "VisualStudioCodeCredential", "AzurePowerShellCredential", "AzureDeveloperCliCredential", "InteractiveBrowserCredential")
+          } | ConvertTo-Json | Set-Content $meta -Encoding utf8
+          @{ bundle = @{ windows = @{ signCommand = @{
+            cmd = $signtool.FullName
+            args = @("sign", "/v", "/fd", "SHA256", "/tr", "http://timestamp.acs.microsoft.com", "/td", "SHA256", "/dlib", $dlib.FullName, "/dmdf", $meta, "%1")
+          } } } } | ConvertTo-Json -Depth 6 | Set-Content src-tauri/tauri.signing.json -Encoding utf8
+          "TAURI_EXTRA_ARGS=--config src-tauri/tauri.signing.json" >> $env:GITHUB_ENV
+
       # builds the NSIS installer (static CRT + offline WebView2) and attaches it to the release
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          args: ${{ env.TAURI_EXTRA_ARGS }}
           tagName: ${{ env.TAG }}
           releaseName: D4 Companion ${{ env.TAG }}
           releaseBody: |
             Download **D4 Companion_*_x64-setup.exe** below and run it. It installs for your user only (no admin needed) and includes everything it needs, including the WebView2 runtime.
 
-            Windows may show a SmartScreen warning because the installer isn't code-signed yet: click *More info → Run anyway*.
+            ${{ env.SIGN == 'true' && 'The installer is code-signed. A brand-new signing identity can still trigger a SmartScreen prompt for the first releases while it builds reputation: click *More info → Run anyway*.' || 'Windows may show a SmartScreen warning because the installer isn''t code-signed yet: click *More info → Run anyway*.' }}
           releaseDraft: false
           prerelease: ${{ contains(env.TAG, '-') }}
+
+      - name: Verify signatures
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem src-tauri/target/release/bundle/nsis -Filter *-setup.exe) + @(Get-Item src-tauri/target/release/d4c.exe)
+          $bad = $files | Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' }
+          $files | ForEach-Object { $s = Get-AuthenticodeSignature $_.FullName; "{0}: {1} ({2})" -f $_.Name, $s.Status, $s.SignerCertificate.Subject }
+          if ($bad) { throw "unsigned or invalid: $($bad.Name -join ', ')" }
