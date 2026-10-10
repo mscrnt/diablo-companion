@@ -2,7 +2,10 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capabilities for the dashboard and overlay windows",
-  "windows": ["main", "overlay"],
+  "windows": [
+    "main",
+    "overlay"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-show",
@@ -25,11 +28,21 @@
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://*" },
-        { "url": "https://*:*" },
-        { "url": "http://*" },
-        { "url": "http://*:*" }
+        {
+          "url": "https://*"
+        },
+        {
+          "url": "https://*:*"
+        },
+        {
+          "url": "http://*"
+        },
+        {
+          "url": "http://*:*"
+        }
       ]
-    }
+    },
+    "updater:default",
+    "process:allow-restart"
   ]
 }

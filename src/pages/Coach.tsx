@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Brain, Camera, X } from "lucide-react";
 import { Card, Check, PageHead } from "../components/ui";
 import { runAction, useRuntime } from "../lib/engine";
@@ -159,7 +161,15 @@ ${runs || "(none)"}`;
           {messages.map((m, i) => (
             <div key={i} className={"msg " + m.role}>
               {m.image && <img src={jpegUrl(m.image)} />}
-              {m.text || (busy && i === messages.length - 1 ? <span className="loader" /> : "")}
+              {m.role === "assistant" && m.text ? (
+                <div className="md">
+                  <Markdown remarkPlugins={[remarkGfm]} components={{ a: (p) => <a {...p} target="_blank" rel="noreferrer" /> }}>
+                    {m.text}
+                  </Markdown>
+                </div>
+              ) : (
+                m.text || (busy && i === messages.length - 1 ? <span className="loader" /> : "")
+              )}
             </div>
           ))}
           {thinking && (

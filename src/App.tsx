@@ -99,7 +99,20 @@ export default function App() {
           <img className="brand-logo" src="/logo.png" alt="" />
           <span className="lbl">Sanctuary Toolkit</span>
           <small>Diablo IV companion</small>
-          <a className="ver" href={rt.update?.url ?? RELEASES_URL} target="_blank" rel="noreferrer" title={rt.update ? `v${rt.update.version} is available` : "Release notes"}>
+          <a
+            className="ver"
+            href={rt.update?.url ?? RELEASES_URL}
+            target="_blank"
+            rel="noreferrer"
+            title={rt.update ? (rt.update.installable ? `Update to v${rt.update.version}` : `v${rt.update.version} is available`) : "Release notes"}
+            onClick={(e) => {
+              // installable updates are applied from Settings → About
+              if (rt.update?.installable) {
+                e.preventDefault();
+                go("settings");
+              }
+            }}
+          >
             v{APP_VERSION}
             {rt.update && <span className="ver-new"> → v{rt.update.version}</span>}
           </a>

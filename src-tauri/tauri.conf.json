@@ -59,7 +59,7 @@
       "icons/icon.ico"
     ],
     "publisher": "Kenneth",
-    "shortDescription": "Diablo IV companion \u2014 loot judge, timers, overlays",
+    "shortDescription": "Diablo IV companion — loot judge, timers, overlays",
     "longDescription": "Screen-reading Diablo IV companion: plain-language loot verdicts, event timers, Pit/Hordes/Helltide/Tree of Whispers helpers, build tracking from Mobalytics, guided character mapping. No memory reading, no injection, no input.",
     "category": "Utility",
     "windows": {
@@ -70,6 +70,18 @@
       "nsis": {
         "installMode": "currentUser",
         "displayLanguageSelector": false
+      }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDA2REU2NTdBMjZGNDFBMEIKUldRTEd2UW1lbVhlQmtVcTVxM2YzenpPNmk4aW9UVGhGczVOeCtTV1VIRy9BVUhIWnJuOGZWcXYK",
+      "endpoints": [
+        "https://github.com/mscrnt/diablo-companion/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

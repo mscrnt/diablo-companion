@@ -6,6 +6,7 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
+- **In-app updates:** when a new version is out, **Settings → About** shows an "Update to vX" button. It downloads the update, checks its signature, installs it and restarts the app. (This version still needs the new installer once; updates are automatic from here on.)
 - The app version now shows under the sidebar logo, in **Settings → About** and in the tray icon's tooltip.
 - The app checks GitHub for a newer release at start and every 6 hours. When one exists, the sidebar version turns into a link to it.
 - **Settings → About** card: check for updates, release notes, GitHub and "Report a problem" links.
@@ -19,6 +20,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- AI Coach answers show proper headings, bullet lists and bold text instead of raw `###` and `**` marks.
 - The Pit run timer now syncs to the in-game countdown. The pattern that reads it could never match before.
 - The farm planner matches aspect names whether or not they include the word "Aspect".
 - Link-style buttons no longer show an underline.

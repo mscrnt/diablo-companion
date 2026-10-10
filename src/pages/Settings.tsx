@@ -5,7 +5,7 @@ import { obsReplayStatus } from "../lib/obs";
 import { discord } from "../lib/alerts";
 import { useSettings, type ActionId } from "../lib/store";
 import { staticMeta } from "../lib/names";
-import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate } from "../lib/version";
+import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate, installUpdate } from "../lib/version";
 
 const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "judge", label: "Judge item under cursor" },
@@ -193,6 +193,7 @@ export default function SettingsPage() {
 function About() {
   const update = useRuntime((s) => s.update);
   const [status, setStatus] = useState("");
+  const [progress, setProgress] = useState<number | null | undefined>(undefined);
   const check = async () => {
     setStatus("Checking…");
     try {
@@ -201,6 +202,19 @@ function About() {
       setStatus(u ? "" : "You're on the latest version.");
     } catch (e) {
       setStatus(`Couldn't reach GitHub: ${(e as Error).message}`);
+    }
+  };
+  const install = async () => {
+    setStatus("Downloading the update…");
+    setProgress(null);
+    try {
+      await installUpdate((f) => {
+        setProgress(f);
+        if (f === 1) setStatus("Installing — the app will restart.");
+      });
+    } catch (e) {
+      setProgress(undefined);
+      setStatus(`Update failed: ${(e as Error).message}`);
     }
   };
   return (
@@ -216,9 +230,15 @@ function About() {
         )}
       </div>
       <div className="row" style={{ marginTop: 10 }}>
-        <button className="btn sm" onClick={check}>
-          Check for updates
-        </button>
+        {update?.installable ? (
+          <button className="btn primary sm" onClick={install} disabled={progress !== undefined}>
+            Update to v{update.version}
+          </button>
+        ) : (
+          <button className="btn sm" onClick={check}>
+            Check for updates
+          </button>
+        )}
         <a className="btn ghost sm" href={RELEASES_URL} target="_blank" rel="noreferrer">
           Release notes
         </a>
@@ -229,7 +249,17 @@ function About() {
           Report a problem
         </a>
       </div>
+      {progress !== undefined && (
+        <div className="progress" style={{ marginTop: 8 }}>
+          <div style={{ width: `${Math.round((progress ?? 0.05) * 100)}%` }} />
+        </div>
+      )}
       {status && <div className="small muted" style={{ marginTop: 6 }}>{status}</div>}
+      {update && !update.installable && (
+        <div className="small dim" style={{ marginTop: 4 }}>
+          This version can't update itself. Download the new installer from the release page; installing over this version keeps your settings.
+        </div>
+      )}
       <div className="small dim" style={{ marginTop: 10 }}>
         Free for noncommercial use (PolyForm Noncommercial 1.0.0). Not affiliated with Blizzard Entertainment or Mobalytics.
       </div>
