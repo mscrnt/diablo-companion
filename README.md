@@ -1,0 +1,47 @@
+# Diablo IV Companion
+
+Desktop companion for Diablo IV (Tauri 2 + React). Screen-reading only: capture,
+Windows OCR and a local vision LLM — no memory reading, no injection, no input sending.
+
+## For players (install & use)
+1. Run the installer (`D4 Companion_x.y.z_x64-setup.exe`). It's self-contained: the C runtime is linked into the exe and the WebView2 runtime installs offline if it's missing — no admin rights needed.
+2. On first start, paste your **Mobalytics build link** (featured guide or profile build). Add more builds any time on the **Build** page — the active one drives the loot judge; the others still get "stash it — great for your other build" advice. Builds show an **update** badge when the author changes the guide.
+3. Optional: point **Settings → Local LLM** at any OpenAI-compatible server (vLLM, LM Studio, Ollama…) for the AI Coach/session plans. Everything else works without it.
+4. In game: Display Mode **Windowed Fullscreen**; hover your equipped gear once so it knows what you wear.
+
+Screen-reading only (capture + Windows OCR): no memory reading, no injection, no input.
+
+## Run (development)
+```
+npm install
+npx tauri dev
+```
+Rust is pinned to 1.92 via `rust-toolchain.toml` (rustup installs it automatically).
+Game: Display Mode **Windowed Fullscreen** so the overlay can draw.
+
+## Configure (Settings page)
+- **LLM** (optional): any OpenAI-compatible endpoint, e.g. vLLM serving Qwen3.5-35B-A3B (vision) — used for the AI Coach, session plans and as the loot-parse fallback
+- **FlareSolverr** (optional): only needed if the Mobalytics GraphQL API is unavailable
+- Hotkeys / controller chords, OBS websocket, Discord webhook
+
+## Release
+```
+npx tauri build   # → src-tauri/target/release/bundle/nsis/D4 Companion_<ver>_x64-setup.exe
+```
+Bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` together.
+
+## Data refresh
+```
+node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs   # game data tables
+node tools/datamine/extract.mjs --update-defs                             # strings from local game files (after a patch)
+```
+`research/` holds the S15 farming knowledge and timer source notes used by the app.
+
+## Layout
+- `src-tauri/src` — capture (xcap), Windows OCR, game-window watcher, XInput reader, tray
+- `src/lib` — engine (timers, hotkeys, watchers), loot judge, guide, farm planner, importers
+- `src/overlay` — transparent click-through overlay (docks into the black pillarbox bars)
+- `src/pages` — dashboard UI
+- `scripts/dev` — `node scripts/dev/run.mjs <name>` runs TS test harnesses (judge, decide, farm, build)
+
+See `ROADMAP.md` for what's next.

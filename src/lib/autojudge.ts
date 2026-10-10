@@ -1,0 +1,326 @@
+// Auto-judge: no hotkey needed. While the game is focused, OCR the area around
+// the cursor ~2×/s (local, Windows OCR). When a NEW item tooltip appears:
+//   1. split it into columns (hovered item vs the game's "EQUIPPED" comparison),
+//   2. crop each tooltip and let the vision LLM label its OCR lines,
+//   3. decide what to do with the hovered item.
+// Same idea as Mobalytics' autotracker, minus the DLL injection and the upload.
+import { emitOverlay } from "./bus";
+import { cachedVerdict, judgeTooltips } from "./judgeRunner";
+import { normName, similarity } from "./names";
+import { captureAtCursor, captureRegion, cursorPosition, type CaptureResult, type OcrLine } from "./native";
+import { getActiveVariant, useSettings } from "./store";
+import { useGuide } from "./guide";
+import type { TooltipText } from "./parse";
+import { onFrame } from "./activity";
+
+// Words that only appear inside item tooltips.
+const MARKERS = [
+  /item power/i,
+  /sell value/i,
+  /requires level/i,
+  /durability/i,
+  /account bound/i,
+  /\b(ancestral|sacred)\b/i,
+  /\b(legendary|unique|mythic|rare|magic)\s+(helm|chest|gloves|pants|boots|amulet|ring|scythe|sword|axe|mace|dagger|wand|staff|focus|shield|two-handed|one-handed|polearm|bow|crossbow|glaive|quarterstaff|totem|charm|seal)/i,
+  /\b(helm|chest armor|gloves|pants|boots|amulet|ring|two-handed (scythe|sword|axe|mace))\b/i,
+  /empty socket/i,
+  /^\s*equipped\s*$/i,
+];
+const EQUIPPED_RE = /^\s*equipped\s*$/i;
+
+export interface TooltipBox {
+  /** absolute screen px */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface Prelim {
+  name: string;
+  matched: string[];
+  total: number;
+  unique: string | null;
+  box: TooltipBox;
+}
+
+export interface TooltipColumn {
+  box: TooltipBox; // absolute screen px
+  lines: OcrLine[]; // relative to the capture region
+  equipped: boolean;
+}
+
+export interface Detected {
+  hovered: TooltipColumn;
+  equipped: TooltipColumn | null;
+  score: number;
+}
+
+/** Strip comparison deltas "(-8)", "(+3.2%)" and "(3.2% Toughness)" before matching. */
+export function cleanLine(t: string) {
+  return t
+    .replace(/\((?:[+\-]\s*)?[\d.,]+%?(?:\s+\w+)?\)/g, " ")
+    .replace(/[◆♦•●▪★☆✦✧]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function bbox(lines: OcrLine[], cap: CaptureResult): TooltipBox {
+  const x0 = Math.min(...lines.map((l) => l.x));
+  const y0 = Math.min(...lines.map((l) => l.y));
+  const x1 = Math.max(...lines.map((l) => l.x + l.w));
+  const y1 = Math.max(...lines.map((l) => l.y + l.h));
+  return { x: cap.region.x + x0, y: cap.region.y + y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * Find tooltip(s) in an OCR'd capture. Tooltips are separate vertical panels, so we
+ * cluster OCR lines into columns by horizontal overlap, keep columns that contain
+ * tooltip markers, and pick the hovered one (not labelled EQUIPPED, nearest the cursor).
+ */
+export function detectTooltips(cap: CaptureResult): Detected | null {
+  const lines = (cap.ocr?.lines ?? []).filter((l) => l.text.trim().length > 0);
+  if (lines.length < 4) return null;
+  // never judge our own dashboard window
+  if (lines.some((l) => /d4 companion|sanctuary toolkit/i.test(l.text))) return null;
+
+  // 1) column clustering by x-overlap (lines sorted by width so wide lines seed columns)
+  const cols: { x0: number; x1: number; lines: OcrLine[] }[] = [];
+  for (const l of [...lines].sort((a, b) => b.w - a.w)) {
+    const cx = l.x + l.w / 2;
+    const c = cols.find((c) => cx > c.x0 - 30 && cx < c.x1 + 30 && l.x < c.x1 && l.x + l.w > c.x0);
+    if (c) {
+      c.x0 = Math.min(c.x0, l.x);
+      c.x1 = Math.max(c.x1, l.x + l.w);
+      c.lines.push(l);
+    } else cols.push({ x0: l.x, x1: l.x + l.w, lines: [l] });
+  }
+
+  // 1b) a column can also pick up unrelated text above/below (e.g. the inventory's
+  // "CHARACTER" header). Tooltips are one continuous block, so split on big vertical
+  // gaps and keep the block with the most tooltip markers.
+  for (const c of cols) {
+    const ls = [...c.lines].sort((a, b) => a.y - b.y);
+    const hs = ls.map((l) => l.h).sort((a, b) => a - b);
+    const lh = hs[Math.floor(hs.length / 2)] || 20;
+    const blocks: OcrLine[][] = [[]];
+    for (let i = 0; i < ls.length; i++) {
+      if (i > 0 && ls[i].y - (ls[i - 1].y + ls[i - 1].h) > 2.2 * lh) blocks.push([]);
+      blocks[blocks.length - 1].push(ls[i]);
+    }
+    const score = (b: OcrLine[]) => b.reduce((n, l) => n + (MARKERS.some((m) => m.test(l.text)) ? 1 : 0), 0) * 100 + b.length;
+    const best = blocks.reduce((a, b) => (score(b) > score(a) ? b : a), blocks[0]);
+    c.lines = best;
+    c.x0 = Math.min(...best.map((l) => l.x));
+    c.x1 = Math.max(...best.map((l) => l.x + l.w));
+  }
+
+  // 2) keep columns that look like item tooltips
+  const tips = cols
+    .map((c) => {
+      const hits = new Set<number>();
+      for (const l of c.lines) MARKERS.forEach((m, i) => m.test(l.text) && hits.add(i));
+      return { ...c, score: hits.size, equipped: c.lines.some((l) => EQUIPPED_RE.test(l.text)) };
+    })
+    .filter((c) => c.score >= 2 && c.lines.length >= 4);
+  if (!tips.length) return null;
+
+  // 3) hovered = non-equipped tooltip nearest the cursor; if only an EQUIPPED one exists you're hovering your own gear
+  const [cx] = [cap.cursor[0] - cap.region.x];
+  const dist = (c: { x0: number; x1: number }) => (cx < c.x0 ? c.x0 - cx : cx > c.x1 ? cx - c.x1 : 0);
+  const notEq = tips.filter((t) => !t.equipped).sort((a, b) => dist(a) - dist(b));
+  const eq = tips.filter((t) => t.equipped).sort((a, b) => dist(a) - dist(b));
+  const hov = notEq[0] ?? eq[0];
+  const other = notEq[0] ? eq[0] ?? null : null;
+  const toCol = (c: (typeof tips)[number]): TooltipColumn => ({
+    box: bbox(c.lines, cap),
+    lines: [...c.lines].sort((a, b) => a.y - b.y || a.x - b.x),
+    equipped: c.equipped,
+  });
+  return { hovered: toCol(hov), equipped: other ? toCol(other) : null, score: hov.score };
+}
+
+/**
+ * Where to look for tooltips: the game draws them on the side with more room, and for
+ * items on the right of the inventory that's LEFT of the whole inventory panel (with the
+ * EQUIPPED comparison even further left). So the strip is lopsided toward the open side.
+ */
+export function tooltipRegion(rect: [number, number, number, number], cx: number, width: number) {
+  const [gx, gy, gw, gh] = rect;
+  const w = Math.max(width, 3200);
+  const rightHalf = cx > gx + gw / 2;
+  const x0 = rightHalf ? cx - w * 0.82 : cx - w * 0.18;
+  const x = Math.max(gx, Math.round(x0));
+  const x1 = Math.min(gx + gw, Math.round(x0 + w));
+  return { x, y: gy, w: x1 - x, h: gh };
+}
+
+/** Grow the OCR box: the stylised item name & icons sit outside the text OCR finds. */
+export function padBox(b: TooltipBox): TooltipBox {
+  const px = Math.round(b.w * 0.1) + 20;
+  const top = Math.round(b.h * 0.1) + 36;
+  return { x: b.x - px, y: b.y - top, w: b.w + 2 * px, h: b.h + top + 24 };
+}
+
+/** Instant OCR-only estimate — no LLM. */
+export function prelimScore(lines: OcrLine[], box: TooltipBox): Prelim {
+  const { variant } = getActiveVariant();
+  const gear = variant?.gear.filter((g) => g.group === "gear") ?? [];
+  const texts = lines.map((l) => cleanLine(l.text)).filter((t) => t.length > 2);
+  // name = the 1–2 lines right above the type line ("Ancestral Legendary Shield")
+  const ti = texts.findIndex((t) => /\b(mythic|unique|legendary|rare|magic|common)\b/i.test(t));
+  const nameGuess = ti > 0 ? texts.slice(Math.max(0, ti - 2), ti).filter((t) => !/equipped|character|transmog|slot/i.test(t)).join(" ") : "";
+  let unique: string | null = null;
+  for (const g of gear) {
+    if (g.kind !== "unique" && g.kind !== "mythic") continue;
+    if (texts.slice(0, 4).some((t) => normName(t) === normName(g.itemName) || similarity(t, g.itemName) > 0.9)) unique = g.itemName;
+  }
+  let best = { matched: [] as string[], total: 0 };
+  for (const g of gear) {
+    const targets = [...g.implicits, ...g.affixes].map((a) => a.name);
+    const matched = targets.filter((t) => texts.some((x) => similarity(x, t) >= 0.8));
+    if (matched.length > best.matched.length) best = { matched, total: targets.length };
+  }
+  return { name: nameGuess.replace(/[*✸]/g, "").trim(), matched: best.matched, total: best.total, unique, box };
+}
+
+/**
+ * Identity of what's on screen: item lines AND the comparison part (deltas like "(-73)"
+ * and the "Properties lost when equipped" list), so holding Alt to compare against your
+ * other ring/weapon slot counts as a new tooltip and gets re-judged.
+ */
+function signature(lines: OcrLine[]) {
+  const item = lines.slice(0, 14).map((l) => normName(cleanLine(l.text)));
+  const deltas = lines.map((l) => l.text.match(/\(\s*[+\-][\d.,]+%?/g)?.join("") ?? "").join("");
+  const lostAt = lines.findIndex((l) => /properties lost/i.test(l.text));
+  const lost = lostAt >= 0 ? lines.slice(lostAt + 1, lostAt + 8).map((l) => normName(l.text)).join("|") : "";
+  return [...item.filter((t) => t.length > 3), deltas.replace(/\s+/g, ""), lost].join("|");
+}
+
+/**
+ * Package one tooltip column for the parsers. Bullet icons were classified in Rust on
+ * the SAME frame as the text (a second capture can be off if the tooltip scrolls).
+ * The crop image is only for the log / LLM fallback.
+ */
+export async function tooltipText(col: TooltipColumn, cap: CaptureResult): Promise<TooltipText> {
+  const crop = await captureRegion(padBox(col.box), { maxEdge: 1100, quality: 92 }).catch(() => null);
+  return {
+    image: crop?.image ?? cap.image,
+    lines: col.lines.map((l) => l.text),
+    equipped: col.equipped,
+    fast: col.lines.map((l) => ({ text: l.text, bullet: l.bullet ?? "none", h: l.h })),
+  };
+}
+
+let timer: ReturnType<typeof setTimeout> | null = null;
+let lastSig = "";
+let pendingSig = "";
+let pendingSince = 0;
+let snoozeUntil = 0;
+
+/** Mute the auto-judge for a while (hotkey / chord while fighting). */
+export function snoozeJudge(seconds: number) {
+  snoozeUntil = Date.now() + seconds * 1000;
+  emitOverlay("tooltip", null);
+}
+export const judgeSnoozed = () => Date.now() < snoozeUntil;
+let busy = false;
+const recent: string[] = [];
+
+export interface AutoJudgeStatus {
+  running: boolean;
+  lastTickMs: number;
+  tooltip: boolean;
+  judged: number;
+}
+export const autoStatus: AutoJudgeStatus = { running: false, lastTickMs: 0, tooltip: false, judged: 0 };
+
+async function tick(isFocused: () => boolean) {
+  const s = useSettings.getState().settings;
+  const g = useGuide.getState();
+  const scanning = g.flow === "gear" || (g.flow === "setup" && g.step === 4);
+  if ((!s.autoJudge.enabled && !scanning) || !isFocused() || busy) return;
+  if (Date.now() < snoozeUntil && !scanning) return;
+  busy = true;
+  const t0 = performance.now();
+  try {
+    const c = s.capture;
+    // only when the mouse is over the game (not over the dashboard / other monitors)
+    const rect = gameRect();
+    let cap: CaptureResult;
+    if (rect) {
+      const [mx, my] = await cursorPosition();
+      if (mx < rect[0] || my < rect[1] || mx > rect[0] + rect[2] || my > rect[1] + rect[3]) return;
+      cap = await captureRegion(tooltipRegion(rect, mx, c.width), { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true });
+    } else cap = await captureAtCursor(c.width, c.height, { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true });
+    onFrame(cap.ocr?.lines ?? [], cap.region);
+    const det = detectTooltips(cap);
+    autoStatus.tooltip = !!det;
+    if (!det) {
+      if (pendingSig || lastSig) emitOverlay("tooltip", null);
+      pendingSig = "";
+      lastSig = "";
+      return;
+    }
+    const sig = signature(det.hovered.lines);
+    if (sig === lastSig) return; // same tooltip still showing
+    // Inventory / stash / vendor open → judge right away with the full panel.
+    // Otherwise it's ground loot (probably mid-fight): wait for a deliberate hover, badge only.
+    const lines = cap.ocr?.lines ?? [];
+    const inMenu = scanning || lines.some((l) => /^(character|stash|inventory|equipment|blacksmith|occultist|jeweler|alchemist|purveyor)\b/i.test(l.text.trim()));
+    const quiet = !inMenu;
+    if (quiet) {
+      if (sig !== pendingSig) {
+        pendingSig = sig;
+        pendingSince = Date.now();
+        return;
+      }
+      if (Date.now() - pendingSince < s.autoJudge.worldDwellMs) return;
+    }
+    pendingSig = sig;
+    lastSig = sig;
+    if (recent.includes(sig)) {
+      const v = cachedVerdict(sig);
+      if (v) {
+        emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: v, sig, quiet });
+        if (!quiet) emitOverlay("verdict", v);
+        return;
+      }
+    }
+    recent.unshift(sig);
+    recent.length = Math.min(recent.length, 40);
+    if (!quiet) emitOverlay("tooltip", { box: det.hovered.box, state: "judging", prelim: prelimScore(det.hovered.lines, det.hovered.box) });
+    const [hov, eq] = await Promise.all([tooltipText(det.hovered, cap), det.equipped ? tooltipText(det.equipped, cap) : Promise.resolve(null)]);
+    const result = await judgeTooltips(hov, eq, { sig, box: det.hovered.box, quiet });
+    autoStatus.judged++;
+    if (result) emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: result, sig, quiet });
+    else emitOverlay("tooltip", null);
+  } catch (e) {
+    console.warn("autojudge tick failed", e);
+  } finally {
+    autoStatus.lastTickMs = Math.round(performance.now() - t0);
+    busy = false;
+  }
+}
+
+let gameRect: () => [number, number, number, number] | null = () => null;
+
+export function startAutoJudge(isFocused: () => boolean, rect?: () => [number, number, number, number] | null) {
+  if (rect) gameRect = rect;
+  if (timer) return;
+  autoStatus.running = true;
+  const loop = async () => {
+    await tick(isFocused);
+    const ms = Math.max(250, useSettings.getState().settings.autoJudge.intervalMs);
+    timer = setTimeout(loop, ms);
+  };
+  loop();
+}
+
+export function forgetRecent() {
+  recent.length = 0;
+  lastSig = "";
+}
+
+// background loops hold references to this module: reload the page instead of hot-swapping
+if (import.meta.hot) import.meta.hot.accept(() => window.location.reload());

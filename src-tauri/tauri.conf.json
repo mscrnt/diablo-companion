@@ -1,0 +1,75 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "D4 Companion",
+  "version": "0.1.0",
+  "identifier": "com.kenneth.d4companion",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Diablo IV Companion",
+        "url": "index.html",
+        "width": 1380,
+        "height": 900,
+        "minWidth": 980,
+        "minHeight": 640,
+        "center": true,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows"
+      },
+      {
+        "label": "overlay",
+        "title": "D4 Companion Overlay",
+        "url": "index.html?view=overlay",
+        "width": 1280,
+        "height": 720,
+        "x": 0,
+        "y": 0,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "focus": false,
+        "visible": true,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Kenneth",
+    "shortDescription": "Diablo IV companion \u2014 loot judge, timers, overlays",
+    "longDescription": "Screen-reading Diablo IV companion: plain-language loot verdicts, event timers, Pit/Hordes/Helltide/Tree of Whispers helpers, build tracking from Mobalytics, guided character mapping. No memory reading, no injection, no input.",
+    "category": "Utility",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}

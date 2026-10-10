@@ -1,0 +1,186 @@
+import { useState } from "react";
+import { Card, Check, KeyCapture, PadCapture, PageHead } from "../components/ui";
+import { checkLlm, useRuntime } from "../lib/engine";
+import { obsReplayStatus } from "../lib/obs";
+import { discord } from "../lib/alerts";
+import { useSettings, type ActionId } from "../lib/store";
+import { staticMeta } from "../lib/names";
+
+const ACTIONS: { id: ActionId; label: string }[] = [
+  { id: "judge", label: "Judge item under cursor" },
+  { id: "runToggle", label: "Start / finish run" },
+  { id: "runSplit", label: "Split" },
+  { id: "clip", label: "Clip (OBS replay buffer)" },
+  { id: "coachSnap", label: "Screenshot → Coach" },
+  { id: "overlayEdit", label: "Edit overlay layout" },
+  { id: "overlayToggle", label: "Hide / show overlay" },
+  { id: "mapCharacter", label: "Map my character (start / pause / resume)" },
+  { id: "snoozeJudge", label: "Snooze the loot judge (30 s)" },
+];
+
+export default function SettingsPage() {
+  const { settings, update, reset } = useSettings();
+  const llm = useRuntime((s) => s.llm);
+  const pad = useRuntime((s) => s.lastPad);
+  const errs = useRuntime((s) => s.hotkeyErrors);
+  const [obsMsg, setObsMsg] = useState("");
+  const meta = staticMeta() as any;
+
+  return (
+    <>
+      <PageHead title="Settings">
+        <button className="btn ghost sm" onClick={() => confirm("Reset all settings to defaults?") && reset()}>
+          Reset to defaults
+        </button>
+      </PageHead>
+      <div className="grid g2">
+        <Card title="Local LLM (vLLM / OpenAI-compatible)">
+          <div className="col">
+            <label className="field">
+              Base URL
+              <input type="url" value={settings.llm.baseUrl} onChange={(e) => update((s) => void (s.llm.baseUrl = e.target.value))} />
+            </label>
+            <label className="field">
+              Model
+              <input type="text" value={settings.llm.model} list="models" onChange={(e) => update((s) => void (s.llm.model = e.target.value))} />
+              <datalist id="models">{llm?.models.map((m) => <option key={m} value={m} />)}</datalist>
+            </label>
+            <label className="field">
+              API key (optional)
+              <input type="password" value={settings.llm.apiKey} onChange={(e) => update((s) => void (s.llm.apiKey = e.target.value))} />
+            </label>
+            <div className="row">
+              <button className="btn sm" onClick={checkLlm}>
+                Test connection
+              </button>
+              <span className="small">
+                <span className={"dot " + (llm?.ok ? "ok" : llm ? "bad" : "")} />
+                {llm?.ok ? `online · ${llm.models.join(", ")}` : llm?.error ?? "…"}
+              </span>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Build import">
+          <div className="col">
+            <label className="field">
+              FlareSolverr URL (for full guide text behind Cloudflare)
+              <input type="url" value={settings.flaresolverr} onChange={(e) => update((s) => void (s.flaresolverr = e.target.value))} />
+            </label>
+            <div className="small muted">Without it, imports fall back to Mobalytics' GraphQL API (all gear/skills/paragon, but no author notes).</div>
+            {meta && (
+              <div className="small dim">
+                Static data {String(meta.staticDataVersion ?? "")} · fetched {String(meta.fetchedAt ?? "").slice(0, 10)} — refresh with <span className="mono">node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs</span>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card title="Hotkeys & controller chords">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Keyboard</th>
+                <th>Controller chord</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ACTIONS.map((a) => (
+                <tr key={a.id}>
+                  <td>{a.label}</td>
+                  <td>
+                    <KeyCapture value={settings.hotkeys[a.id]} onChange={(v) => update((s) => void (s.hotkeys[a.id] = v))} />
+                  </td>
+                  <td>
+                    <PadCapture value={settings.padChords[a.id]} onChange={(v) => update((s) => void (s.padChords[a.id] = v))} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="col" style={{ marginTop: 10 }}>
+            <Check checked={settings.padEnabled} onChange={(v) => update((s) => void (s.padEnabled = v))} label="Enable controller chords (XInput, read-only)" />
+            <div className="small muted">
+              Pad live: {pad.length ? pad.map((b) => <span key={b} className="kbd" style={{ marginRight: 4 }}>{b}</span>) : <span className="dim">press buttons to test</span>}
+            </div>
+            <div className="small dim">
+              Global hotkeys are swallowed system-wide while the app runs — pick keys you don't use in game. The companion only reads your controller; it never sends input to the game.
+            </div>
+            {errs.length > 0 && <div className="err">{errs.join("\n")}</div>}
+          </div>
+        </Card>
+
+        <Card title="Alerts & integrations">
+          <div className="col">
+            <label className="field">
+              Volume {Math.round(settings.alerts.volume * 100)}%
+              <input type="range" min={0} max={1} step={0.05} value={settings.alerts.volume} onChange={(e) => update((s) => void (s.alerts.volume = Number(e.target.value)))} />
+            </label>
+            <label className="field">
+              Discord webhook URL (event alerts)
+              <input type="url" value={settings.alerts.discordWebhook} onChange={(e) => update((s) => void (s.alerts.discordWebhook = e.target.value))} />
+            </label>
+            <div>
+              <button className="btn sm" disabled={!settings.alerts.discordWebhook} onClick={() => discord(settings.alerts.discordWebhook, "👋 D4 Companion test message")}>
+                Send test
+              </button>
+            </div>
+            <h3 style={{ marginTop: 8 }}>OBS (clip great drops)</h3>
+            <Check checked={settings.obs.enabled} onChange={(v) => update((s) => void (s.obs.enabled = v))} label="Enable OBS websocket (v5)" />
+            <div className="grid g2">
+              <label className="field">
+                URL
+                <input type="text" value={settings.obs.url} onChange={(e) => update((s) => void (s.obs.url = e.target.value))} />
+              </label>
+              <label className="field">
+                Password
+                <input type="password" value={settings.obs.password} onChange={(e) => update((s) => void (s.obs.password = e.target.value))} />
+              </label>
+            </div>
+            <Check checked={settings.obs.clipOnBis} onChange={(v) => update((s) => void (s.obs.clipOnBis = v))} label="Auto-save a replay when you find a missing build piece" />
+            <div className="row">
+              <button
+                className="btn sm"
+                onClick={() =>
+                  obsReplayStatus(settings.obs.url, settings.obs.password)
+                    .then((r) => setObsMsg(`Connected · replay buffer ${r.outputActive ? "running ✓" : "NOT running — start it in OBS"}`))
+                    .catch((e) => setObsMsg(String(e.message ?? e)))
+                }
+              >
+                Test OBS
+              </button>
+              <span className="small muted">{obsMsg}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Activities (run tracker)">
+          <textarea
+            rows={6}
+            defaultValue={settings.activities.join("\n")}
+            onBlur={(e) =>
+              update((s) => {
+                s.activities = e.target.value
+                  .split("\n")
+                  .map((x) => x.trim())
+                  .filter(Boolean);
+              })
+            }
+          />
+          <div className="small dim">One per line.</div>
+        </Card>
+
+        <Card title="Live timer source">
+          <label className="field">
+            Poll every (seconds)
+            <input type="number" min={30} value={settings.timers.pollSeconds} onChange={(e) => update((s) => void (s.timers.pollSeconds = Number(e.target.value)))} />
+          </label>
+          <div className="small muted" style={{ marginTop: 6 }}>
+            Boss names/zones from helltides.com's public feed (be polite: ≥ 30s). Times are always computed locally, so timers work offline.
+          </div>
+        </Card>
+      </div>
+    </>
+  );
+}

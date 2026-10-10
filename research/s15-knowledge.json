@@ -1,0 +1,1443 @@
+{
+  "season": 15,
+  "seasonName": "Season of Hell's Legacy",
+  "seasonStart": "2026-09-15",
+  "verifiedAt": "2026-10-09",
+  "buildGuide": {
+    "url": "https://mobalytics.gg/diablo-4/builds/necromancer-mages-necro-guide",
+    "author": "Kay",
+    "summary": "S15 'Skeletal Warrior Minions' (updated 2026-09-15): Skeletal Warriors Reapers + Deathgrip + Bloodless Scream; variants Early Game Army (no uniques) and End Game Warriors (Undercrown, Bloodless Scream, Deathgrip, Blood Moon Breeches, Pact of Bone; aspects Hellbent Commander, Reanimation, Hewed Flesh, Heavenly Strength); Black Shroud charm set + The Furnace; 100% minion attack speed for Cult Leader; Army of the Dead ultimate. No dedicated leveling section; recent comments criticize inconsistencies."
+  },
+  "sources": [
+    "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables",
+    "https://www.aoeah.com/news/4818--diablo-4-season-15-boss-loot-table--legacymythicsuniques-drop-boss",
+    "https://www.icy-veins.com/d4/guides/lair-boss-system-guide/",
+    "https://www.icy-veins.com/d4/guides/belial-boss-guide/",
+    "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown",
+    "https://www.icy-veins.com/d4/news/mythic-uniques-retain-their-affixes-when-upgraded-and-new-horadric-cube-recipes-diablo-4-season-15-crafting-updates/",
+    "https://www.icy-veins.com/d4/guides/horadric-cube-overview/",
+    "https://d4guides.gg/en/horadric-cube",
+    "https://d4guides.gg/en/guides/diablo-4-season-15-legacy-uniques-new-mythic-items",
+    "https://www.icy-veins.com/d4/news/defeat-the-uber-prime-evils-and-earn-a-hellfire-torch-in-diablo-4-season-15/",
+    "https://www.icy-veins.com/d4/news/diablo-4-season-15-brings-back-iconic-boss-fights-and-locations-from-past-games/",
+    "https://mobalytics.gg/diablo-4/guides/diablo-4-season-15-hells-legacy",
+    "https://mein-mmo.de/en/diablo-4-entwertet-was-spieler-an-lord-of-hatred-lobten,1583031/",
+    "https://nexttier.pro/guide/diablo-4-bloodless-scream",
+    "https://timesaver.gg/blog/diablo-4-nihlathak-boss-guide-season-15",
+    "https://boostmatch.gg/blog/diablo-4/articles/echo-of-mephisto-boss-guide-diablo-4-season-13",
+    "https://progametalk.com/?p=52837",
+    "https://d4guides.gg/en/season15",
+    "https://d4guides.gg/guides/miscellaneous/talisman-lord-of-hatred",
+    "https://d4guides.gg/en/database/talismans",
+    "https://d4guides.gg/en/database/talismans/beru-of-the-black-shroud",
+    "https://d4guides.gg/en/database/talismans/temerity",
+    "https://d4guides.gg/en/database/horadric-cube",
+    "https://d4guides.gg/en/database/horadric-cube/craft-the-furnace-charm",
+    "https://d4guides.gg/en/database/horadric-cube/craft-unique",
+    "https://d4guides.gg/en/database/horadric-cube/transfigure-item",
+    "https://d4guides.gg/en/database/horadric-cube/kullean-tuning-prism",
+    "https://d4guides.gg/en/database/season-powers",
+    "https://d4guides.gg/en/database/runes",
+    "https://d4guides.gg/en/database/runes/jah",
+    "https://d4guides.gg/en/database/runes/igni",
+    "https://d4guides.gg/en/database/runes/nagu",
+    "https://d4guides.gg/en/database/runes/wat",
+    "https://d4guides.gg/en/database/gems",
+    "https://d4guides.gg/en/database/mercenaries/subo",
+    "https://d4guides.gg/en/guides/endgame/war-plans-best-skill-setups-for-every-activity",
+    "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15",
+    "https://d4guides.gg/en/news/diablo-4-season-15-24-new-talisman-charms-explained",
+    "https://mobalytics.gg/diablo-4/guides/diablo-4-legacy-runeword-crafting",
+    "https://www.icy-veins.com/d4/guides/mercenaries-guide/",
+    "https://www.icy-veins.com/d4/news/every-new-runeword-recipe-added-to-diablo-4-in-season-15/",
+    "https://www.icy-veins.com/d4/news/diablo-4-season-12-adds-bloodied-items-that-grow-with-kills/",
+    "https://www.wowhead.com/news/killstreaks-coming-to-diablo-4-in-newest-seasonal-mechanic-season-12-patch-notes-380193",
+    "https://www.icy-veins.com/d4/news/diablo-4-season-of-infernal-chaos-brings-big-changes",
+    "https://progametalk.com/diablo-4/the-tower-guide/",
+    "https://progametalk.com/diablo-4/chaos-perks-guide/",
+    "https://progametalk.com/?p=52718",
+    "https://timesaver.gg/blog/diablo-4-deckard-cain-questline-season-15",
+    "https://mobalytics.gg/diablo-4/builds/necromancer-mages-necro-guide",
+    "https://mobalytics.gg/diablo-4/profile/kay/builds",
+    "https://mobalytics.gg/diablo-4/builds/necromancer-minion-leveling",
+    "https://maxroll.gg/d4/news/the-3-2-0-ptr-what-you-need-to-know",
+    "https://www.wowhead.com/diablo-4/aspects/necromancer",
+    "https://www.wowhead.com/diablo-4/aspect/hellbent-commander-aspect-2239052",
+    "https://www.wowhead.com/diablo-4/aspect/aspect-of-reanimation-1223323",
+    "https://www.wowhead.com/diablo-4/guide/gear/masterworking",
+    "https://diablo4.wiki.fextralife.com/Legendary_Aspects",
+    "https://diablo4.wiki.fextralife.com/Aspect+of+Grasping+Veins",
+    "https://diablo4.wiki.fextralife.com/Aspect+of+Frenzied+Dead",
+    "https://diablo4.wiki.fextralife.com/Tempering",
+    "https://diablo4.wiki.fextralife.com/Temper+Manuals",
+    "https://diablo4.wiki.fextralife.com/The+Tower",
+    "https://www.icy-veins.com/d4/news/players-realize-aspects-cant-be-targeted-in-lord-of-hatred/",
+    "https://www.icy-veins.com/d4/news/diablo-4-patch-3-2-2-notes-seasonal-questline-runeword-bugfixes-and-more/",
+    "https://consolepulse.com/multiplatform/diablo/guides/diablo-4-season-15-xp-paragon-farming-guide",
+    "https://d4guides.gg/en/guides/season/diablo-4-season-15-leveling-guide-fast-level-1-70",
+    "https://helltides.com/",
+    "https://helltides-7e530-r1.firebaseio.com/helltide.json",
+    "https://helltides.com/api/schedule",
+    "https://diablo4.life/api/trackers/list",
+    "https://d4planner.io/trackers"
+  ],
+  "items": [
+    {
+      "name": "The Undercrown",
+      "slug": "the-undercrown",
+      "slot": "helm",
+      "kind": "unique",
+      "obtain": [
+        {
+          "method": "boss",
+          "detail": "Duriel's Necromancer pool (Greater Lair Boss). S15 boss Mythics roll only from the boss's own pool, so a Mythic Undercrown can drop here.",
+          "materials": [
+            "Greater Lair Key x1"
+          ],
+          "bossName": "Duriel",
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+        },
+        {
+          "method": "boss",
+          "detail": "Belial Hoard with Duriel's loot pool selected (highest Mythic chance)",
+          "materials": [
+            "Betrayer's Husk x2"
+          ],
+          "bossName": "Belial",
+          "verified": true,
+          "source": "https://www.icy-veins.com/d4/guides/belial-boss-guide/"
+        },
+        {
+          "method": "cube",
+          "detail": "Upgrade Direct Item to Mythic: 1:1 Mythic copy that keeps affixes, Tempering and Masterwork; Crafted tag (only 1 can be equipped); not on Unmodifiable items. d4guides lists the cost as 1 Ancestral Unique + 5 Resplendent Spark.",
+          "materials": [
+            "The Undercrown (Ancestral)",
+            "Resplendent Spark x5 (cost unverified)"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://www.icy-veins.com/d4/news/mythic-uniques-retain-their-affixes-when-upgraded-and-new-horadric-cube-recipes-diablo-4-season-15-crafting-updates/"
+        },
+        {
+          "method": "drop",
+          "detail": "Random world drop (Mythic quality also possible)",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+        }
+      ],
+      "note": "Standard Unique; the builder's 'mythic' flag = Mythic-quality version (since S14 most Uniques can roll Mythic). Not on the Iconic Mythic list."
+    },
+    {
+      "name": "Bloodless Scream",
+      "slug": "bloodless-scream",
+      "slot": "two-handed scythe",
+      "kind": "unique",
+      "obtain": [
+        {
+          "method": "boss",
+          "detail": "Astaroth's Necromancer pool; Astaroth is at the end of Escalating Nightmares (Escalation Sigil from Nightmare Dungeons with the Recurring Nightmare War Plans upgrade)",
+          "materials": [
+            "Escalation Sigil x1"
+          ],
+          "bossName": "Astaroth",
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+        },
+        {
+          "method": "cube",
+          "detail": "Horadric Cube 'Craft Unique' (a.k.a. Upgrade to Unique): Common (white) Two-Handed Scythe + 1 Enhanced Primordial Dust + 10 Raw Primordial Dust -> random Unique of the same item type. Bloodless Scream is the only known 2H-scythe Unique (Black River is a 1H scythe), so Kay's guide calls it guaranteed; absence of other 2H-scythe uniques in S15 not independently verified.",
+          "materials": [
+            "Common two-handed scythe x1",
+            "Enhanced Primordial Dust x1",
+            "Raw Primordial Dust x10"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/horadric-cube/craft-unique"
+        },
+        {
+          "method": "cube",
+          "detail": "Upgrade Direct Item to Mythic (Crafted tag, 1 equipped)",
+          "materials": [
+            "Bloodless Scream (Ancestral)",
+            "Resplendent Spark x5 (cost unverified)"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/horadric-cube"
+        },
+        {
+          "method": "boss",
+          "detail": "S14 info: Echo of Varshan and Beast in the Ice. Not in their S15 pools per Mobalytics, so likely outdated.",
+          "materials": [
+            "Lair Key x1"
+          ],
+          "bossName": "Echo of Varshan",
+          "verified": false,
+          "source": "https://nexttier.pro/guide/diablo-4-bloodless-scream"
+        }
+      ]
+    },
+    {
+      "name": "Deathgrip",
+      "slug": "deathgrip",
+      "slot": "gloves",
+      "kind": "unique",
+      "obtain": [
+        {
+          "method": "boss",
+          "detail": "Grigoire's Necromancer pool (Initiate Lair Boss)",
+          "materials": [
+            "Lair Key x1"
+          ],
+          "bossName": "Grigoire",
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+        },
+        {
+          "method": "boss",
+          "detail": "Belial Hoard with Grigoire's pool selected",
+          "materials": [
+            "Betrayer's Husk x2"
+          ],
+          "bossName": "Belial",
+          "verified": true,
+          "source": "https://www.icy-veins.com/d4/guides/belial-boss-guide/"
+        },
+        {
+          "method": "cube",
+          "detail": "Upgrade to Unique from Common gloves (random gloves Unique)",
+          "materials": [
+            "Common gloves x1",
+            "Enhanced Primordial Dust x1",
+            "Raw Primordial Dust x10"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://www.icy-veins.com/d4/guides/horadric-cube-overview/"
+        }
+      ]
+    },
+    {
+      "name": "Blood Moon Breeches",
+      "slug": "blood-moon-breeches",
+      "slot": "pants",
+      "kind": "unique",
+      "obtain": [
+        {
+          "method": "boss",
+          "detail": "Astaroth's Necromancer pool (end of Escalating Nightmares)",
+          "materials": [
+            "Escalation Sigil x1"
+          ],
+          "bossName": "Astaroth",
+          "verified": true,
+          "source": "https://www.aoeah.com/news/4818--diablo-4-season-15-boss-loot-table--legacymythicsuniques-drop-boss"
+        },
+        {
+          "method": "cube",
+          "detail": "Upgrade to Unique from Common pants (random pants Unique)",
+          "materials": [
+            "Common pants x1",
+            "Enhanced Primordial Dust x1",
+            "Raw Primordial Dust x10"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://www.icy-veins.com/d4/guides/horadric-cube-overview/"
+        }
+      ]
+    },
+    {
+      "name": "Pact of Bone",
+      "slug": "pact-of-bone",
+      "slot": "ring",
+      "kind": "unique",
+      "obtain": [
+        {
+          "method": "boss",
+          "detail": "Harbinger of Hatred's Necromancer pool (Greater Lair Boss, Nahantu)",
+          "materials": [
+            "Greater Lair Key x1"
+          ],
+          "bossName": "Harbinger of Hatred",
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+        },
+        {
+          "method": "boss",
+          "detail": "Belial Hoard with Harbinger's pool selected",
+          "materials": [
+            "Betrayer's Husk x2"
+          ],
+          "bossName": "Belial",
+          "verified": true,
+          "source": "https://www.icy-veins.com/d4/guides/belial-boss-guide/"
+        },
+        {
+          "method": "cube",
+          "detail": "Upgrade to Unique from a Common ring (random ring Unique)",
+          "materials": [
+            "Common ring x1",
+            "Enhanced Primordial Dust x1",
+            "Raw Primordial Dust x10"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://www.icy-veins.com/d4/guides/horadric-cube-overview/"
+        }
+      ]
+    },
+    {
+      "name": "Hellbent Commander",
+      "slug": "hellbent-commander-aspect",
+      "slot": "ring-1 (endgame) / amulet (early)",
+      "kind": "aspect",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Drop-only since Lord of Hatred (no dungeon unlock). Salvage a Legendary with it to add to Codex; Codex keeps best roll, so upgrade by salvaging higher rolls. Effect: You deal [50-70]%[x] increased Summon damage.",
+          "materials": [],
+          "bossName": null,
+          "verified": false,
+          "source": "https://diablo4.wiki.fextralife.com/Legendary_Aspects"
+        },
+        {
+          "method": "other",
+          "detail": "Horadric Cube: upgrade a Rare to Legendary for a random aspect; Tuning Prisms target Offensive category (S13/LoH info).",
+          "materials": [
+            "Tuning Prism"
+          ],
+          "bossName": null,
+          "verified": false,
+          "source": "https://diablo4.wiki.fextralife.com/Legendary_Aspects"
+        }
+      ]
+    },
+    {
+      "name": "Aspect of Reanimation",
+      "slug": "aspect-of-reanimation",
+      "slot": "amulet (endgame) / weapon (early)",
+      "kind": "aspect",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Drop-only (LoH system). Effect: Summons gain up to [60-90]%[x] damage after 10s alive. S15 fixed it wrongly enabling for Warlock.",
+          "materials": [],
+          "bossName": null,
+          "verified": false,
+          "source": "https://www.wowhead.com/diablo-4/aspect/aspect-of-reanimation-1223323"
+        },
+        {
+          "method": "other",
+          "detail": "Horadric Cube Rare->Legendary random aspect, Tuning Prisms for Offensive category.",
+          "materials": [
+            "Tuning Prism"
+          ],
+          "bossName": null,
+          "verified": false,
+          "source": "https://diablo4.wiki.fextralife.com/Legendary_Aspects"
+        }
+      ]
+    },
+    {
+      "name": "Aspect of Hewed Flesh",
+      "slug": "aspect-of-hewed-flesh",
+      "slot": "boots",
+      "kind": "aspect",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Drop-only (LoH system). Utility, Necromancer-only. Lucky Hit up to 25% to form a Corpse; Corpse skills deal [15-20]%[x] (Reapers have Corpse tag).",
+          "materials": [],
+          "bossName": null,
+          "verified": false,
+          "source": "https://www.wowhead.com/diablo-4/aspects/necromancer"
+        }
+      ]
+    },
+    {
+      "name": "Aspect of Heavenly Strength",
+      "slug": "aspect-of-heavenly-strength",
+      "slot": "chest-armor (endgame) / helm (early)",
+      "kind": "aspect",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Drop-only (LoH system). Defensive: DR while wielding a 2H weapon; S15 nerfed 30-40% -> 20-30% and opened to Spiritborn.",
+          "materials": [],
+          "bossName": null,
+          "verified": false,
+          "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+        }
+      ]
+    },
+    {
+      "name": "Aspect of Grasping Veins",
+      "slug": "aspect-of-grasping-veins",
+      "slot": "offensive slot (guide note only)",
+      "kind": "aspect",
+      "obtain": [
+        {
+          "method": "other",
+          "detail": "Listed by Fextralife as no longer available in Diablo IV; absent from Wowhead's current Necromancer aspect list. Kay's guide text still references it (likely stale).",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://diablo4.wiki.fextralife.com/Aspect+of+Grasping+Veins"
+        }
+      ]
+    },
+    {
+      "name": "Aspect of Frenzied Dead",
+      "slug": "aspect-of-frenzied-dead",
+      "slot": "offensive slot (guide alt if <100% minion AS)",
+      "kind": "aspect",
+      "obtain": [
+        {
+          "method": "other",
+          "detail": "Fextralife: 'This aspect can no longer be obtained in the game'; absent from Wowhead's current Necromancer list. Effect was +[10-18]% minion AS per hit up to [30-54]%.",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://diablo4.wiki.fextralife.com/Aspect+of+Frenzied+Dead"
+        }
+      ]
+    },
+    {
+      "name": "Splinter of Anguish",
+      "slug": "splinter-of-anguish",
+      "slot": "jewelry socket",
+      "kind": "gem",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "[dungeon] Nightmare Dungeon / Escalation with the Ruby Reserve affix (Rare-tier Soul Splinter, Andariel; +Attack Speed and Crit Chance, +30% Primary Resource cost)",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15"
+        },
+        {
+          "method": "cube",
+          "detail": "Amalgamation: 5 Lesser (Magic) Splinter of Anguish give 1 Rare",
+          "materials": [
+            "5x Lesser Splinter of Anguish"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15"
+        }
+      ]
+    },
+    {
+      "name": "Splinter of Pain",
+      "slug": "splinter-of-pain",
+      "slot": "jewelry socket",
+      "kind": "gem",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "[dungeon] Nightmare Dungeon / Escalation with the Emerald Reserve affix (Rare-tier Soul Splinter, Duriel; Damage Reduction, -30% Movement Speed)",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15"
+        },
+        {
+          "method": "cube",
+          "detail": "Amalgamation: 5 Lesser (Magic) Splinter of Pain give 1 Rare",
+          "materials": [
+            "5x Lesser Splinter of Pain"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15"
+        }
+      ]
+    },
+    {
+      "name": "Splinter of Hellfire",
+      "slug": "splinter-of-hellfire",
+      "slot": "jewelry socket",
+      "kind": "gem",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "[dungeon] Nightmare Dungeon / Escalation with the Diamond Reserve affix (Rare-tier Soul Splinter, Na-Krul; +x% damage but -100% Crit Chance)",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15"
+        },
+        {
+          "method": "cube",
+          "detail": "Amalgamation: 5 Lesser (Magic) Splinter of Hellfire give 1 Rare",
+          "materials": [
+            "5x Lesser Splinter of Hellfire"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15"
+        },
+        {
+          "method": "boss",
+          "detail": "Random popup Waking Nightmare; Unique-tier Splinters reported at higher Torment (boosting-site claim)",
+          "materials": [],
+          "bossName": "Nihlathak",
+          "verified": false,
+          "source": "https://timesaver.gg/blog/diablo-4-nihlathak-boss-guide-season-15"
+        }
+      ]
+    },
+    {
+      "name": "Topaz (Chipped / Flawless / Royal / Grand)",
+      "slug": "topaz",
+      "slot": "weapon/armor/jewelry socket",
+      "kind": "gem",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Elites in T10+ drop many more Gem Fragments and Royal gems (3.2.1); Whisper Gem Caches give a Royal or Grand gem",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+        },
+        {
+          "method": "craft",
+          "detail": "Jeweler: Royal gem now costs 10 Forgotten Souls, Grand gem 50 (3.2.1); also needs gem fragments/lower gems (exact amounts not verified)",
+          "materials": [
+            "Forgotten Souls"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+        }
+      ]
+    },
+    {
+      "name": "Amethyst (Chipped / Flawless / Royal / Grand)",
+      "slug": "amethyst",
+      "slot": "weapon/armor/jewelry socket",
+      "kind": "gem",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Elites in T10+ drop Gem Fragments and Royal gems; Whisper Gem Caches give a Royal or Grand gem. Amethyst gives Shadow damage, Barrier generation and Shadow resistance",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/gems"
+        },
+        {
+          "method": "craft",
+          "detail": "Jeweler: Royal 10 / Grand 50 Forgotten Souls in 3.2.1",
+          "materials": [
+            "Forgotten Souls"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+        }
+      ]
+    },
+    {
+      "name": "Jah",
+      "slug": "jah",
+      "slot": "socket (rune)",
+      "kind": "rune",
+      "obtain": [
+        {
+          "method": "cube",
+          "detail": "Hidden rune-upgrade recipe: 2x Ber + Grand Sapphire give Jah",
+          "materials": [
+            "2x Ber",
+            "Grand Sapphire"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/runes/jah"
+        },
+        {
+          "method": "cube",
+          "detail": "'Invocation Rune: Jah' recipe listed with Cem + 5x Rune + 5x Rune of Ritual (meaning of ingredients unclear)",
+          "materials": [
+            "Cem",
+            "5x Rune",
+            "5x Rune of Ritual"
+          ],
+          "bossName": null,
+          "verified": false,
+          "source": "https://d4guides.gg/en/database/runes/jah"
+        },
+        {
+          "method": "drop",
+          "detail": "World drop (Legendary Rune of Invocation); the Countess is said to guarantee Legacy runes",
+          "materials": [],
+          "bossName": "The Countess",
+          "verified": false,
+          "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-legacy-runeword-crafting"
+        }
+      ]
+    },
+    {
+      "name": "Igni",
+      "slug": "igni",
+      "slot": "socket (rune)",
+      "kind": "rune",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "World drop / rune sources (Legendary Rune of Ritual)",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/runes/igni"
+        },
+        {
+          "method": "cube",
+          "detail": "'Ritual Rune: Igni' recipe listed with Teb + 5x Rune + 5x Rune of Invocation (meaning unclear)",
+          "materials": [
+            "Teb",
+            "5x Rune",
+            "5x Rune of Invocation"
+          ],
+          "bossName": null,
+          "verified": false,
+          "source": "https://d4guides.gg/en/database/runes/igni"
+        },
+        {
+          "method": "cube",
+          "detail": "3x Igni give a random rune (3-to-1); Igni is an input here, not a target",
+          "materials": [
+            "3x Igni"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/runes/igni"
+        }
+      ]
+    },
+    {
+      "name": "Nagu",
+      "slug": "nagu",
+      "slot": "socket (rune)",
+      "kind": "rune",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "World drop / Undercity Rune Tributes / Lair Bosses (Lair of Runes node); no dedicated cube creation recipe (Rare Rune of Ritual)",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/runes/nagu"
+        },
+        {
+          "method": "cube",
+          "detail": "3-to-1: 3 identical runes give a random rune (can land on Nagu)",
+          "materials": [
+            "3x same rune"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/horadric-cube"
+        }
+      ]
+    },
+    {
+      "name": "Wat",
+      "slug": "wat",
+      "slot": "socket (rune)",
+      "kind": "rune",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "World drop / rune sources; no dedicated cube creation recipe (Rare Rune of Invocation: Necromancer Decrepify)",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/runes/wat"
+        },
+        {
+          "method": "cube",
+          "detail": "3-to-1: 3 identical runes give a random rune (can land on Wat)",
+          "materials": [
+            "3x same rune"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/horadric-cube"
+        }
+      ]
+    },
+    {
+      "name": "Berú of the Black Shroud",
+      "slug": "beru-of-the-black-shroud",
+      "slot": "talisman charm",
+      "kind": "charm",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Necromancer set charm (Peace of the Black Shroud, 5 pieces), Lvl 70 / IP 850. Class set charms drop from the Fallen Council in Infernal Hordes and as world loot",
+          "materials": [],
+          "bossName": "Fallen Council",
+          "verified": true,
+          "source": "https://d4guides.gg/guides/miscellaneous/talisman-lord-of-hatred"
+        },
+        {
+          "method": "cube",
+          "detail": "Reroll Set Charm: another Black Shroud charm + 25 Raw Primordial Dust + 50 Infused Horadric Resin give a random charm of the same set",
+          "materials": [
+            "Peace of the Black Shroud set charm",
+            "25x Raw Primordial Dust",
+            "50x Infused Horadric Resin"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans/beru-of-the-black-shroud"
+        }
+      ]
+    },
+    {
+      "name": "Fer of the Black Shroud",
+      "slug": "fer-of-the-black-shroud",
+      "slot": "talisman charm",
+      "kind": "charm",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Necromancer set charm (Peace of the Black Shroud); Fallen Council / world loot",
+          "materials": [],
+          "bossName": "Fallen Council",
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans"
+        },
+        {
+          "method": "cube",
+          "detail": "Reroll Set Charm from another Black Shroud piece (25 Raw Primordial Dust + 50 Infused Horadric Resin)",
+          "materials": [
+            "Peace of the Black Shroud set charm",
+            "25x Raw Primordial Dust",
+            "50x Infused Horadric Resin"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans/beru-of-the-black-shroud"
+        }
+      ]
+    },
+    {
+      "name": "Linta of the Black Shroud",
+      "slug": "linta-of-the-black-shroud",
+      "slot": "talisman charm",
+      "kind": "charm",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Necromancer set charm (Peace of the Black Shroud); Fallen Council / world loot",
+          "materials": [],
+          "bossName": "Fallen Council",
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans"
+        },
+        {
+          "method": "cube",
+          "detail": "Reroll Set Charm from another Black Shroud piece (25 Raw Primordial Dust + 50 Infused Horadric Resin)",
+          "materials": [
+            "Peace of the Black Shroud set charm",
+            "25x Raw Primordial Dust",
+            "50x Infused Horadric Resin"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans/beru-of-the-black-shroud"
+        }
+      ]
+    },
+    {
+      "name": "Mlor of the Black Shroud",
+      "slug": "mlor-of-the-black-shroud",
+      "slot": "talisman charm",
+      "kind": "charm",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Necromancer set charm (Peace of the Black Shroud); Fallen Council / world loot",
+          "materials": [],
+          "bossName": "Fallen Council",
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans"
+        },
+        {
+          "method": "cube",
+          "detail": "Reroll Set Charm from another Black Shroud piece (25 Raw Primordial Dust + 50 Infused Horadric Resin)",
+          "materials": [
+            "Peace of the Black Shroud set charm",
+            "25x Raw Primordial Dust",
+            "50x Infused Horadric Resin"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans/beru-of-the-black-shroud"
+        }
+      ]
+    },
+    {
+      "name": "Phoba of the Black Shroud",
+      "slug": "phoba-of-the-black-shroud",
+      "slot": "talisman charm",
+      "kind": "charm",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Necromancer set charm (Peace of the Black Shroud); Fallen Council / world loot",
+          "materials": [],
+          "bossName": "Fallen Council",
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans"
+        },
+        {
+          "method": "cube",
+          "detail": "Reroll Set Charm from another Black Shroud piece (25 Raw Primordial Dust + 50 Infused Horadric Resin)",
+          "materials": [
+            "Peace of the Black Shroud set charm",
+            "25x Raw Primordial Dust",
+            "50x Infused Horadric Resin"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans/beru-of-the-black-shroud"
+        }
+      ]
+    },
+    {
+      "name": "The Furnace",
+      "slug": "the-furnace",
+      "slot": "talisman charm",
+      "kind": "charm",
+      "obtain": [
+        {
+          "method": "cube",
+          "detail": "Craft Unique Charm: The Furnace (Legacy Unique 2H mace, new in S15) + 3x Charm + 1 Enhanced Primordial Dust + 50 Raw Primordial Dust + 100 Infused Horadric Resin. Charm: 75-100% more damage to Elites",
+          "materials": [
+            "The Furnace (unique 2H mace)",
+            "3x Charm",
+            "1x Enhanced Primordial Dust",
+            "50x Raw Primordial Dust",
+            "100x Infused Horadric Resin"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/horadric-cube/craft-the-furnace-charm"
+        },
+        {
+          "method": "drop",
+          "detail": "Unique Charm world drop; small chance at Mythic quality in S15",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/guides/miscellaneous/talisman-lord-of-hatred"
+        },
+        {
+          "method": "cube",
+          "detail": "Recycle Uniques: 3 identical Unique Charms give a new copy",
+          "materials": [
+            "3x The Furnace charm"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/horadric-cube"
+        }
+      ]
+    },
+    {
+      "name": "Temerity",
+      "slug": "temerity",
+      "slot": "talisman charm",
+      "kind": "charm",
+      "obtain": [
+        {
+          "method": "cube",
+          "detail": "Craft Unique Charm: Temerity (unique item) + 3x Charm + 1 Enhanced Primordial Dust + 50 Raw Primordial Dust + 100 Infused Horadric Resin. Overheal grants a Barrier of 80-100% for 8s; potions usable at full Life",
+          "materials": [
+            "Temerity (unique item)",
+            "3x Charm",
+            "1x Enhanced Primordial Dust",
+            "50x Raw Primordial Dust",
+            "100x Infused Horadric Resin"
+          ],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/en/database/talismans/temerity"
+        },
+        {
+          "method": "drop",
+          "detail": "Unique Charm world drop",
+          "materials": [],
+          "bossName": null,
+          "verified": true,
+          "source": "https://d4guides.gg/guides/miscellaneous/talisman-lord-of-hatred"
+        }
+      ]
+    },
+    {
+      "name": "Annihilus",
+      "slug": "annihilus",
+      "slot": "talisman seal",
+      "kind": "seal",
+      "obtain": [
+        {
+          "method": "boss",
+          "detail": "First Unique Seal (6 slots, +20% All Stats, +20% All Resist, +10 All Skills, +10% XP). Drops from Uber Diablo after World Bosses; trigger not officially confirmed",
+          "materials": [],
+          "bossName": "Uber Diablo",
+          "verified": false,
+          "source": "https://d4guides.gg/guides/miscellaneous/talisman-lord-of-hatred"
+        }
+      ]
+    },
+    {
+      "name": "Seal of the Diamond Mind",
+      "slug": "seal-of-the-diamond-mind",
+      "slot": "talisman seal",
+      "kind": "seal",
+      "obtain": [
+        {
+          "method": "drop",
+          "detail": "Mythic Seal from high Torment; best farmed in T10 Nightmare Escalations, or Bartuc in Infernal Hordes",
+          "materials": [],
+          "bossName": "Bartuc",
+          "verified": true,
+          "source": "https://d4guides.gg/guides/miscellaneous/talisman-lord-of-hatred"
+        }
+      ]
+    }
+  ],
+  "bosses": [
+    {
+      "name": "Echo of Varshan",
+      "summonMaterials": [
+        "Lair Key x1 (opens Hoard)"
+      ],
+      "materialSources": [
+        "War Plans",
+        "Helltide",
+        "World Bosses",
+        "Legion Events",
+        "Tree of Whispers caches"
+      ],
+      "notableDrops": [
+        "Hangman's Hand",
+        "The Hand of Naz",
+        "Greater Lair Key"
+      ],
+      "source": "https://www.icy-veins.com/d4/guides/lair-boss-system-guide/"
+    },
+    {
+      "name": "Grigoire, the Galvanic Saint",
+      "summonMaterials": [
+        "Lair Key x1"
+      ],
+      "materialSources": [
+        "War Plans",
+        "Helltide",
+        "World Bosses",
+        "Legion Events",
+        "Tree of Whispers caches"
+      ],
+      "notableDrops": [
+        "Deathgrip",
+        "The Mortacrux",
+        "Greater Lair Key"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "The Beast in the Ice",
+      "summonMaterials": [
+        "Lair Key x1"
+      ],
+      "materialSources": [
+        "War Plans",
+        "Helltide",
+        "World Bosses",
+        "Legion Events",
+        "Tree of Whispers caches"
+      ],
+      "notableDrops": [
+        "Deathless Visage",
+        "Howl from Below",
+        "Greater Lair Key"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Lord Zir",
+      "summonMaterials": [
+        "Lair Key x1 (Icy Veins); Mobalytics says Greater Lair Key x1 (conflict)"
+      ],
+      "materialSources": [
+        "War Plans",
+        "Helltide",
+        "World Bosses",
+        "Legion Events",
+        "Tree of Whispers caches"
+      ],
+      "notableDrops": [
+        "Cruor's Embrace",
+        "Sanguivor, Blade of Zir"
+      ],
+      "source": "https://www.icy-veins.com/d4/guides/lair-boss-system-guide/"
+    },
+    {
+      "name": "Urivar",
+      "summonMaterials": [
+        "Lair Key x1"
+      ],
+      "materialSources": [
+        "War Plans",
+        "Helltide",
+        "World Bosses",
+        "Legion Events",
+        "Tree of Whispers caches"
+      ],
+      "notableDrops": [
+        "Gospel of the Devotee",
+        "Will of Rathma",
+        "Greater Lair Key"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Duriel, King of Maggots",
+      "summonMaterials": [
+        "Greater Lair Key x1"
+      ],
+      "materialSources": [
+        "Initiate Lair Bosses",
+        "Stygian Stone (from Initiates, converts 1:1)"
+      ],
+      "notableDrops": [
+        "The Undercrown",
+        "Path of Trag'Oul",
+        "Mutilator Plate",
+        "Brimstone Mount (cosmetic)"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Andariel",
+      "summonMaterials": [
+        "Greater Lair Key x1"
+      ],
+      "materialSources": [
+        "Initiate Lair Bosses",
+        "Stygian Stone"
+      ],
+      "notableDrops": [
+        "Ebonpiercer",
+        "Lidless Wall",
+        "Kessime's Legacy"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Harbinger of Hatred",
+      "summonMaterials": [
+        "Greater Lair Key x1"
+      ],
+      "materialSources": [
+        "Initiate Lair Bosses",
+        "Stygian Stone"
+      ],
+      "notableDrops": [
+        "Pact of Bone",
+        "Blood Wake",
+        "The Gloom Ward"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Bloodied Butcher",
+      "summonMaterials": [
+        "Greater Lair Key x1"
+      ],
+      "materialSources": [
+        "Initiate Lair Bosses",
+        "Stygian Stone"
+      ],
+      "notableDrops": [
+        "Mace of King Leoric",
+        "Red Blessing",
+        "Vengeful Sinew"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Belial, Lord of Lies",
+      "summonMaterials": [
+        "Betrayer's Husk x2"
+      ],
+      "materialSources": [
+        "Belial's Ambush (small chance after any Initiate or Greater Lair Boss kill)"
+      ],
+      "notableDrops": [
+        "Choose any Lair Boss loot pool",
+        "Highest Mythic chance",
+        "Guaranteed Ancestral Unique chance"
+      ],
+      "source": "https://www.icy-veins.com/d4/guides/belial-boss-guide/"
+    },
+    {
+      "name": "Echo of Mephisto",
+      "summonMaterials": [
+        "Crux of the False Prophet x1"
+      ],
+      "materialSources": [
+        "High-Torment endgame activities (Icy Veins)",
+        "Whisper Key Caches small chance of Mephisto Key (patch notes)"
+      ],
+      "notableDrops": [
+        "Guaranteed Mythic drop (S15 buff)"
+      ],
+      "source": "https://www.icy-veins.com/d4/guides/lair-boss-system-guide/"
+    },
+    {
+      "name": "Astaroth",
+      "summonMaterials": [
+        "Escalation Sigil x1"
+      ],
+      "materialSources": [
+        "Nightmare Dungeons with the Recurring Nightmare War Plans upgrade"
+      ],
+      "notableDrops": [
+        "Bloodless Scream",
+        "Blood Moon Breeches",
+        "Ring of the Sacrilegious Soul"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Bartuc",
+      "summonMaterials": [
+        "Infernal Horde Compass (reach 666 Aether in the Horde)"
+      ],
+      "materialSources": [
+        "Occultist (500 Sigil Powder in S15)",
+        "Whispers / endgame"
+      ],
+      "notableDrops": [
+        "Gravewalker's Hand",
+        "Omen of Pain",
+        "The Unmaker"
+      ],
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    },
+    {
+      "name": "Uber Prime Evils (Pandemonium: Baal, Mephisto, Diablo)",
+      "summonMaterials": [
+        "Wirt's Lucky Coin (cube Splinter of Destruction + Splinter of Hatred + Splinter of Terror), thrown in the Old Tristram fountain"
+      ],
+      "materialSources": [
+        "Splinters drop (chance) from echoes of Baal (Worldstone Keep), Mephisto (Durance of Hate) and Diablo (Labyrinth) in Prime Evil Nightmares"
+      ],
+      "notableDrops": [
+        "Multiple Mythic Uniques",
+        "Mythic Unique Charms",
+        "Hellfire Torch",
+        "Standard of Heroes"
+      ],
+      "source": "https://www.icy-veins.com/d4/news/defeat-the-uber-prime-evils-and-earn-a-hellfire-torch-in-diablo-4-season-15/"
+    },
+    {
+      "name": "Nihlathak (unverified)",
+      "summonMaterials": [],
+      "materialSources": [
+        "Random pop-up Waking Nightmare 'Nihlathak's Temple', no key (single commercial source)"
+      ],
+      "notableDrops": [
+        "Ancestral gear",
+        "Soul Splinters",
+        "possibly Legacy Uniques"
+      ],
+      "source": "https://timesaver.gg/blog/diablo-4-nihlathak-boss-guide-season-15"
+    }
+  ],
+  "activities": [
+    {
+      "name": "Kurast Undercity",
+      "whatItRewards": "XP orbs per Attunement (Jade Epiphany node doubled in S15); Tribute of Refinement = masterworking mats incl. Forgotten Souls (added S15)",
+      "tips": "Default leveling/paragon route from ~lvl 25; unlock Jade Epiphany in Undercity War Plan; Baal's Splinter of Destruction modifies it",
+      "source": "https://consolepulse.com/multiplatform/diablo/guides/diablo-4-season-15-xp-paragon-farming-guide"
+    },
+    {
+      "name": "Infernal Hordes",
+      "whatItRewards": "Dense XP via Damnation stacks; Spoils of Materials chest = Obducite + Gem Fragments (S13 info)",
+      "tips": "Use Splinter of Damnation/Lies, Leoric's Crown; only push T11-T12 if comfortable",
+      "source": "https://consolepulse.com/multiplatform/diablo/guides/diablo-4-season-15-xp-paragon-farming-guide"
+    },
+    {
+      "name": "Helltides + Tree of Whispers",
+      "whatItRewards": "Gear/aspect drops, Cinder chests; Whisper caches buffed in S15 (4-6 XP orbs +2-4 at T10+, ~3x gold, Royal/Grand gem, 2-3x cube & salvage mats, Key caches 2x tributes/5x sigil dust)",
+      "tips": "Good for early leveling and gear gaps; turn in at 10 Grim Favor",
+      "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+    },
+    {
+      "name": "The Pit",
+      "whatItRewards": "Glyph upgrades, Torment unlocks (Pit 10 -> Torment 1); higher tier bonus XP buffed in S15 (T150 1800%->2700%)",
+      "tips": "Pit material tiers (Obducite/Ingolith/Neathiron) are from older seasons and unverified",
+      "source": "https://d4guides.gg/en/guides/season/diablo-4-season-15-leveling-guide-fast-level-1-70"
+    },
+    {
+      "name": "Nightmare Dungeons",
+      "whatItRewards": "Obducite from lvl 60 (S13 info), Temper Manuals (older info), Forgotten Wisdom sigil = +15% XP well",
+      "tips": "Mephisto's Splinter of Hatred modifies NM dungeons and Pit",
+      "source": "https://www.wowhead.com/diablo-4/guide/gear/masterworking"
+    },
+    {
+      "name": "Lair Bosses / Belial / Echo of Mephisto",
+      "whatItRewards": "Mythic Uniques: S15 boss-specific pools, higher rates; Echo of Mephisto guaranteed Mythic",
+      "tips": "Farm once gear can handle Torment content; Key caches can give Mephisto Keys",
+      "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+    },
+    {
+      "name": "War Plans",
+      "whatItRewards": "Boosted XP in S15 (T10+ nodes 4 orbs base; XP nodes doubled); account-wide progress per partition",
+      "tips": "Start Helltide-heavy War Plan at level 1",
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-season-15-hells-legacy"
+    },
+    {
+      "name": "Waking Nightmares / Splinters of Evil (seasonal)",
+      "whatItRewards": "Seasonal rep, Iconic Power upgrades, Season Journey: 14 skill pts, 42 paragon, 10 Resplendent Sparks, 5 Mythic caches, masterworking mats",
+      "tips": "Capstones gate Season Rank; questline awards the three Splinters",
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-season-15-hells-legacy"
+    },
+    {
+      "name": "The Tower",
+      "whatItRewards": "Leaderboard Halos/Titles, Treasures of the Artificer caches (guaranteed GA items), Artificer's Favor",
+      "tips": "10-minute 5-floor run; endgame pushing only (S13/S14 info, unverified S15)",
+      "source": "https://diablo4.wiki.fextralife.com/The+Tower"
+    },
+    {
+      "name": "Prime Evil Waking Nightmares / Pandemonium (Uber Tristram)",
+      "whatItRewards": "Echoes of Baal/Mephisto/Diablo drop Splinters of Destruction/Hatred/Terror; cubing all three makes Wirt's Lucky Coin -> Pandemonium (Uber Prime Evils): Mythic Uniques, Mythic Unique Charms, Hellfire Torch, Unique Soul Splinters",
+      "tips": "Worldstone Keep reportedly needs Torment IV (single source). Throw the coin in the Old Tristram fountain.",
+      "source": "https://www.icy-veins.com/d4/news/defeat-the-uber-prime-evils-and-earn-a-hellfire-torch-in-diablo-4-season-15/"
+    },
+    {
+      "name": "Escalating Nightmares (Astaroth)",
+      "whatItRewards": "Astaroth's pool: Bloodless Scream, Blood Moon Breeches, Ring of the Sacrilegious Soul; talisman charms/seals at T10",
+      "tips": "Escalation Sigil from Nightmare Dungeons with the 'Recurring Nightmare' War Plans node, or cube 5 Nightmare Sigils -> 1 Escalation Sigil. Run Gem Reserve sigil affixes to also farm Soul Splinters.",
+      "source": "https://mobalytics.gg/diablo-4/guides/diablo-4-boss-loot-tables"
+    }
+  ],
+  "systems": [
+    {
+      "name": "Splinters of Evil (S15 seasonal mechanic)",
+      "summary": "Defeat echoes of Diablo, Baal and Mephisto in the seasonal questline / Waking Nightmares to earn Splinters of Terror, Destruction and Hatred. Carry one at a time for its Prime Evil Power plus a vulnerability to that Prime Evil. Each Splinter modifies specific activities and War Plan nodes.",
+      "howToProgress": "Finish the seasonal questline to get all three Splinters, then carry one. Earn that Splinter's reputation by entering Waking Nightmares and killing remnants of evils past. Swap Splinters (they are consumables) to match the activity you are farming.",
+      "source": "https://d4guides.gg/en/season15"
+    },
+    {
+      "name": "Prime Evil Powers",
+      "summary": "Flames of Metus (Terror/Diablo, Fire), Ice of Excidium (Destruction/Baal, Cold) and Ghosts of Odium (Hatred/Mephisto, Physical). The power is active from rank 1, with 6 upgrades at ranks 2/6/10/16/21/24.",
+      "howToProgress": "Earn 350/1,300/5,150/13,100/17,400/20,000 reputation on the carried Splinter. The Mal and Ist runes can also invoke the power.",
+      "source": "https://d4guides.gg/en/database/season-powers"
+    },
+    {
+      "name": "Season Journey / Season Rank",
+      "summary": "Nine ranks with 125+ account-wide objectives (about 15% need Lord of Hatred). Rewards: up to 14 Skill Points, 42 Paragon points, 10 Resplendent Sparks, 5 Mythic Unique Caches, the Dark Wanderbear pet, the Banner of the Three trophy, and caches with runes, sigils, charms and seals. Smoldering Ashes buy five Season Blessings (Urns).",
+      "howToProgress": "Complete objectives and chapter rewards. Spend Smoldering Ashes on Urns of Curiosities, Reclamation, Masterworking, Glyphs or Ancestral Whispers.",
+      "source": "https://d4guides.gg/en/season15"
+    },
+    {
+      "name": "Talisman (Seals and Charms)",
+      "summary": "Lord of Hatred system: 1 Seal (sets 3-6 Charm slots and the Unique Charm limit) plus up to 6 Charms (set, unique, legendary). S15 adds Mythic-quality Unique Charms, 24 new charms including the Hellfire Torch, and Annihilus, the first Unique Seal.",
+      "howToProgress": "Unlock at the LoH quest 'The Last of the Horadrim' (immediate in later seasons if the campaign is done). Farm world drops: Nightmare Escalations at T10, Infernal Hordes (Bartuc, Fallen Council), the Undercity with Tributes. Refine in the Horadric Cube (Reroll Set Charm, Recycle Uniques, Affix Value Reroll, Horadric Reroll, Craft Unique Charm).",
+      "source": "https://d4guides.gg/guides/miscellaneous/talisman-lord-of-hatred"
+    },
+    {
+      "name": "Bloodied items / Killstreaks",
+      "summary": "Season 12 mechanic: Bloodied items with Rampage (armor), Feast (weapon) and Hunger (jewelry) affixes scaling with Killstreak tiers (Killstreak, Carnage, Devastation, Bloodbath, Massacre). Not confirmed as active in S15. Conflict: Kay's S15 Mobalytics guide (updated 2026-09-15) still gives a Bloodied affix priority (Berserking every 25 kills > Movement Speed per tier > CDR per tier > XP per tier > Attack Speed per tier), suggesting the system may persist; no S15 patch/system source found. Status: unverified.",
+      "howToProgress": "Unverified for S15. In S12: keep kill streaks going to raise the tier; Bloodied affixes stack across items.",
+      "source": "https://www.icy-veins.com/d4/news/diablo-4-season-12-adds-bloodied-items-that-grow-with-kills/"
+    },
+    {
+      "name": "The Tower",
+      "summary": "Permanent leaderboard activity (left Beta in S14): 10-minute timed run over 5 randomized floors ending in a Tower Boss. Weekly leaderboards count your highest Tower Tier.",
+      "howToProgress": "Unlock via the Season Rank II capstone 'Hellish Descent' and enter at the Artificer's Obelisk. Clearing a tier unlocks the next. Rewards: weekly participation, Tower Tier 100+ milestones, and Top 1000/500/100/10/1 Halos, Prestige Titles and Gear Caches. Details are from S14 and unverified for S15.",
+      "source": "https://progametalk.com/diablo-4/the-tower-guide/"
+    },
+    {
+      "name": "War Plans",
+      "summary": "Seven activity trees with 7 points each. In S15, reputation is shared account-wide across matching realm, mode and SSF, and 24 nodes gain seasonal bonuses that need the matching Splinter at a given reputation rank.",
+      "howToProgress": "Spend points in the tree of the activity you farm. Carry Terror for Helltide/Infernal Hordes, Destruction for Undercity/Lair Bosses, Hatred for Nightmare Dungeons/Pit. All three help the Tree of Whispers.",
+      "source": "https://d4guides.gg/en/guides/endgame/war-plans-best-skill-setups-for-every-activity"
+    },
+    {
+      "name": "Horadric Cube",
+      "summary": "1,127 recipes: affix add/reroll/remove, Affix Value Reroll and Horadric Reroll (new), Transfigure, 3-to-1, Recycle Uniques, Craft Unique (white base to random Unique), Craft Unique Charm, Reroll Set Charm, Upgrade to Mythic (new), Amalgamation, rune upgrades, 182 hidden Runeword recipes.",
+      "howToProgress": "Gather Primordial Dust (Raw/Enhanced/Volatile, etc.), Infused Horadric Resin and Tuning Prisms from Cube Materials Caches (Whispers), salvage and drops. Craft Unique = Common item + 1 Enhanced Primordial Dust + 10 Raw Primordial Dust. Runewords = white base + 2-5 Legacy runes.",
+      "source": "https://d4guides.gg/en/database/horadric-cube"
+    },
+    {
+      "name": "Transfiguration / Kullean Tuning Prism",
+      "summary": "Transfigure Item: Legendary, Unique or Mythic item + Volatile Primordial Dust (+ optional Tuning Prism) gives a random powerful modification, usually making the item Unmodifiable. The Kullean Tuning Prism (amulets only) adds a random bonus Legendary Aspect and keeps the item Modifiable.",
+      "howToProgress": "Kullean Prisms drop from War Plans Cube Spoils, Tree of Whispers caches, Elites and the Undercity. Use the Mythic Amulet + Volatile Dust + Kullean Prism recipe.",
+      "source": "https://d4guides.gg/en/database/horadric-cube/kullean-tuning-prism"
+    },
+    {
+      "name": "Chaos Perks / Infernal Hordes",
+      "summary": "Chaos Perks were a Season 10 mechanic (3 slots + 1 Unique; upgraded with Infernal Warp) and are not confirmed in S15. Infernal Hordes remain: buy Spoils with Aether at the Fallen Council or fight Bartuc; boosted by the Splinter of Terror. Status of Chaos Perks in S15: unverified (likely not active).",
+      "howToProgress": "Craft an Infernal Horde Compass (500 Sigil Powder in 3.2.1) at the Occultist. Use the Terror War Plan nodes; Council Coffers at Terror rank 20 makes the Chest of Talismans cost 1 Aether.",
+      "source": "https://d4guides.gg/en/guides/endgame/war-plans-best-skill-setups-for-every-activity"
+    },
+    {
+      "name": "Mercenaries (Subo, Aldkin)",
+      "summary": "Vessel of Hatred companions. One primary mercenary plus one different Reinforcement, which triggers on a chosen Opportunity (skill cast, injured, crowd control). Subo is a ranged/trap bounty hunter who marks targets for cooldown reduction; Aldkin is a shapeshifting half-demon caster.",
+      "howToProgress": "Own Vessel of Hatred and reach the Den. Subo: quest 'A Feather on the Scale' (Muddy Letter at the Den, then the Toxic Fens). Aldkin: quest 'A Nameless Mystery' (Archive of Kuo Chosah at the Den); quest names unverified for S15. Raise Rapport (10 levels, resets each season) and spend Pale Marks at the Den.",
+      "source": "https://www.icy-veins.com/d4/guides/mercenaries-guide/"
+    },
+    {
+      "name": "Soul Splinters",
+      "summary": "New S15 jewelry socketables, up to 3 equipped, each with a boon and a drawback. Eight types in Magic (Lesser), Rare, Legendary (Greater) and Unique (Abyssal) tiers.",
+      "howToProgress": "Run Nightmare Dungeons/Escalations with the matching Gem Reserve affix. Fuse 5 identical Splinters in the cube for the next rarity. Uber Tristram and Nihlathak popups also drop them.",
+      "source": "https://d4guides.gg/en/guides/season/soul-splinter-farming-in-diablo-4-season-15"
+    },
+    {
+      "name": "Mythic Uniques (S15)",
+      "summary": "Mythic is a quality tier most Uniques can roll (since S14) plus a fixed Iconic Mythic list. S15: Lair bosses/Belial roll Mythics only from their own pool with raised rates; Echo of Mephisto guaranteed Mythic; Pandemonium drops Mythics; Season Journey gives 5 Mythic Unique Caches + up to 10 Resplendent Sparks.",
+      "howToProgress": "Target-farm the boss whose pool contains the item (Belial lets you pick a pool). Or Horadric Cube 'Upgrade to Mythic' on an Ancestral Unique (keeps affixes/tempers/masterwork; Crafted tag, only 1 equipped; not on Unmodifiable items; cost ~5 Resplendent Sparks per d4guides, unverified). Jeweler / Blacksmith random-Mythic crafts (costs unverified).",
+      "source": "https://mobalytics.gg/diablo-4/news/season-15-patch-notes-rundown"
+    },
+    {
+      "name": "Aspects / Codex of Power",
+      "summary": "Since Lord of Hatred aspects are drop-only (no Codex dungeon unlocks). Salvaging a Legendary stores its aspect in the Codex, which keeps the best roll. Imprint at the Occultist. Cube can turn a Rare into a Legendary with a random aspect; Tuning Prisms narrow the category.",
+      "howToProgress": "Salvage every higher-rolled copy of build aspects. Confirmed for S13, assumed unchanged in S15 (no S15 patch-note change found). Aspect of Grasping Veins and Aspect of Frenzied Dead are reported as no longer obtainable.",
+      "source": "https://diablo4.wiki.fextralife.com/Legendary_Aspects"
+    },
+    {
+      "name": "Masterworking & Tempering",
+      "summary": "Masterwork at the Blacksmith: per rank 50 Obducite + 1 Forgotten Soul + 2 slot material (Coiling Ward armor / Baleful Fragment weapon / Abstruse Sigil jewelry); final rank 500 Obducite + 3 Forgotten Souls + 6 Abstruse Sigils (S13 numbers, unverified S15). Tempering costs Veiled Crystal + Forgotten Soul + slot material; Temper Manuals drop from bosses, World Bosses, Nightmare Dungeons and are stored per season.",
+      "howToProgress": "Obducite: Nightmare Dungeons, Infernal Hordes 'Spoils of Materials', Undercity 'Tribute of Refinement' (now also Forgotten Souls in S15), Mercenary's Den cache; Whisper Salvage caches 2-3x in S15; Urn of Masterworking seasonal blessing.",
+      "source": "https://www.wowhead.com/diablo-4/guide/gear/masterworking"
+    }
+  ],
+  "progression": [
+    {
+      "step": 1,
+      "goal": "Level 1-25",
+      "activity": "Seasonal questline + Helltides with Helltide War Plan",
+      "notes": "Early Game Army variant; imprint Hellbent Commander/Reanimation when found"
+    },
+    {
+      "step": 2,
+      "goal": "Level 25-70, Bloodless Scream",
+      "activity": "Undercity (Jade Epiphany); capstone dungeons at ~30-40 and ~50-60",
+      "notes": "Cube a white 2H Scythe into Bloodless Scream (guaranteed)"
+    },
+    {
+      "step": 3,
+      "goal": "Paragon 25-40, Torment 1, core uniques",
+      "activity": "Penitent -> Pit 10; Helltide/Undercity/Hordes",
+      "notes": "Hunt Deathgrip, The Undercrown, Blood Moon Breeches, Pact of Bone; Black Shroud charms; reach 100% minion attack speed for Cult Leader"
+    },
+    {
+      "step": 4,
+      "goal": "End Game Warriors in Torment 1-9",
+      "activity": "Hordes, Undercity, Helltides, NM Dungeons",
+      "notes": "Upgrade aspect rolls via Codex salvage; temper (Resolve, attack speed); Whirlpool Blight"
+    },
+    {
+      "step": 5,
+      "goal": "Masterwork + Mythic, Torment 10-12",
+      "activity": "Hordes Spoils/Undercity Refinement for Obducite; Echo of Mephisto, Lair bosses, Belial",
+      "notes": "Season Journey Mythic caches/Sparks; Jeweler rune crafting or Cube direct-to-Mythic"
+    },
+    {
+      "step": 6,
+      "goal": "Pit/Tower pushing",
+      "activity": "High Pit tiers, The Tower",
+      "notes": "Soul Splinters (Hellfire, Anguish, Pain); glyph levels from Pit"
+    }
+  ],
+  "eventSchedule": {
+    "verifiedAt": "2026-10-10T01:15Z",
+    "verifiedAgainst": "https://helltides.com/api/schedule (all entries matched)",
+    "worldBoss": {
+      "intervalSeconds": 12600,
+      "rule": "unix_seconds % 12600 == 10800",
+      "anchorUnix": 1697583600,
+      "despawnAfterMinutes": 15,
+      "despawnVerified": false,
+      "bossAndZoneDeterministic": false,
+      "bossesSeenS15": [
+        "Avarice",
+        "Ashava",
+        "Azmodan",
+        "Wandering Death"
+      ]
+    },
+    "legion": {
+      "intervalSeconds": 1500,
+      "rule": "unix_seconds % 1500 == 1200",
+      "anchorUnix": 1697582700,
+      "zoneDeterministic": false
+    },
+    "helltide": {
+      "intervalSeconds": 3600,
+      "rule": "starts at every full hour UTC (unix % 3600 == 0)",
+      "activeSeconds": 3300,
+      "downtimeSeconds": 300,
+      "zoneDeterministic": false,
+      "zoneIds": [
+        "scosglen",
+        "fractured_peaks",
+        "dry_steppes",
+        "kehjistan",
+        "hawezar",
+        "nahantu",
+        "skovos"
+      ]
+    },
+    "liveSources": {
+      "primary": {
+        "name": "helltides.com Firebase RTDB (unofficial)",
+        "method": "GET",
+        "urls": [
+          "https://helltides-7e530-r1.firebaseio.com/world_boss.json",
+          "https://helltides-7e530-r1.firebaseio.com/helltide.json",
+          "https://helltides-7e530-r1.firebaseio.com/legion.json"
+        ],
+        "replicas": [
+          "r1",
+          "r2",
+          "r3",
+          "default-rtdb"
+        ],
+        "auth": null,
+        "cors": "Access-Control-Allow-Origin: * / echoes Origin",
+        "streaming": "Accept: text/event-stream (Firebase REST SSE)"
+      },
+      "secondary": {
+        "name": "helltides.com /api/schedule",
+        "url": "https://helltides.com/api/schedule",
+        "note": "Cloudflare managed challenge (403 to plain HTTP clients)"
+      },
+      "tertiary": {
+        "name": "diablo4.life",
+        "url": "https://diablo4.life/api/trackers/list",
+        "note": "World boss only (ms timestamps); helltide/zoneEvent empty; no CORS header"
+      },
+      "dead": [
+        "https://d4armory.io/api/events/recent (301 to diablo4.com)",
+        "https://data.d4planner.io/events.json (stale since 2025-09-20)",
+        "d4timers.com (DNS fail)"
+      ]
+    }
+  }
+}

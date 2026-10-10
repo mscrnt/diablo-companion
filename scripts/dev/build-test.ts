@@ -1,0 +1,16 @@
+import { loadStaticData } from "../../src/lib/names";
+import { normaliseMobalytics } from "../../src/lib/mobalytics";
+import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+await loadStaticData();
+const b = normaliseMobalytics(raw as any);
+console.log(b.name, "|", b.author, "|", b.className, b.season, "| variants:", b.variants.map((v) => `${v.id}=${v.name}`).join(", "));
+console.log("general sections:", b.sections.map((s) => s.title).join(" / "));
+const v = b.variants.find((v) => v.id === "1")!;
+for (const g of v.gear) console.log(`${g.slotLabel.padEnd(16)} ${g.kind.padEnd(8)} ${g.itemName} | ${g.affixes.map((a) => a.name + (a.greater ? "*" : "") + (a.masterwork ? "(MW)" : "")).join(", ")} | T: ${g.tempers.map((t) => t.name).join(", ")} | S: ${g.sockets.map((s) => s.name).join(", ")}${g.extras.map((e) => " | " + e.label + ": " + e.stats.map((s) => s.name).join(", ")).join("")}`);
+console.log("skillbar:", v.skillBar.map((s) => s.name).join(", "));
+console.log("ranks:", Object.entries(v.skillRanks).map(([k, n]) => `${k}:${n}`).join(" "));
+console.log("summons:", v.summons.map((s) => s.name).join(", "));
+console.log("paragon:", v.paragon.map((p) => `${p.name} [${p.glyphName} ${p.glyphLevel}] ${p.nodes.length}n`).join(" -> "));
+console.log("merc:", JSON.stringify(v.mercenary));
+console.log("variant sections:", v.sections.map((s) => s.title + "(" + s.text.length + ")").join(" / "));
+console.log("---\n" + v.sections[0]?.text.slice(0, 600));

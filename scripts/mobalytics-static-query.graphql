@@ -1,0 +1,787 @@
+query Diablo4NgfStaticDataQuery(
+$skillsFilter: D4SkillsFilter
+$aspectsFilter: D4AspectsFilter
+$uniqueItemsFilter: D4UniqueItemsFilter
+$runesFilter: D4RunesFilter
+$gemsFilter: D4GemsFilter
+$witchcraftPowersFilter: D4WitchcraftPowersFilter
+$bossPowersFilter: D4BossPowersFilter
+$paragonBoardFilter: D4ParagonBoardsFilter
+$paragonGlyphFilter: D4ParagonGlyphsFilter
+$paragonNodesFilter: D4ParagonNodesFilter
+$classesFilter: D4ClassesFilter
+$skillSectionsFilter: D4SkillSectionsFilter
+$skillTreeConnectorsFilter: D4ConnectorsFilter
+$buildSlotsFilter: D4BuildSlotsFilter
+$statsFilter: D4StatsFilter
+$statImplicitFilter: D4StatImplicitFilter
+$statTemperingFilter: D4StatTemperingFilter
+$transfiguredStatsFilter: D4TransfiguredStatsFilter
+$mercenariesFilter: D4MercenariesFilter
+$mercenarySkillsFilter: D4MercenarySkillsFilter
+$reinforcementMercenaryOpportunitiesFilter: D4OpportunitiesFilter
+$chaosPerksFilter: D4ChaosPerksFilter
+$bloodiedAffixesFilter: D4BloodiedAffixesFilter
+$divineGiftsFilter: D4DivineGiftsFilter
+$elixirsFilter: D4ElixirsFilter
+$soulShardsFilter: D4SoulShardsFilter
+$charmsFilter: D4CharmsFilter
+$sealsFilter: D4SealsFilter
+$warplanTreesFilter: D4WarplanTreesFilter
+$warplanNodesFilter: D4WarplanNodesFilter
+$triadSplintersFilter: D4TriadSplintersFilter
+$triadPowersFilter: D4TriadPowersFilter
+  ) {
+game: diablo4 {
+  staticData: staticDataV2 {
+    d4Skills(filter: $skillsFilter) {
+      data {
+        ...D4SkillTreeSkillFragment
+      }
+    }
+    d4Aspects(filter: $aspectsFilter) {
+      data {
+        ...D4AspectFragment
+      }
+    }
+    d4UniqueItems(filter: $uniqueItemsFilter) {
+      data {
+        ...D4UniqItemFragment
+      }
+    }
+    d4Runes(filter: $runesFilter) {
+      data {
+        ...D4RuneFragment
+      }
+    }
+    d4Gems(filter: $gemsFilter) {
+      data {
+        ...D4GemFragment
+      }
+    }
+    d4WitchcraftPowers(filter: $witchcraftPowersFilter) {
+      data {
+        ...D4WitchcraftPowerFragment
+      }
+    }
+    d4BossPowers(filter: $bossPowersFilter) {
+      data {
+        ...D4BossPowerFragment
+      }
+    }
+    d4ParagonBoards(filter: $paragonBoardFilter) {
+      data {
+        ...D4ParagonBoardFragment
+      }
+    }
+    d4ParagonGlyphs(filter: $paragonGlyphFilter) {
+      data {
+        ...D4ParagonBoardGlyphFragment
+      }
+    }
+    d4ParagonNodes(filter: $paragonNodesFilter) {
+      data {
+        ...D4ParagonBoardNodeFragment
+      }
+    }
+    d4Classes(filter: $classesFilter) {
+      data {
+        ...D4ClassFragment
+      }
+    }
+    d4SkillSections(filter: $skillSectionsFilter) {
+      data {
+        ...D4SkillSectionFragment
+      }
+    }
+    d4Connectors(filter: $skillTreeConnectorsFilter) {
+      data {
+        ...D4SkillTreeConnectorFragment
+      }
+    }
+    d4BuildSlots(filter: $buildSlotsFilter) {
+      data {
+        ...D4BuildSlotFragment
+      }
+    }
+    d4Stats(filter: $statsFilter) {
+      data {
+        ...D4StatFragment
+      }
+    }
+    d4StatImplicit(filter: $statImplicitFilter) {
+      data {
+        ...D4StatImplicitFragment
+      }
+    }
+    d4StatTempering(filter: $statTemperingFilter) {
+      data {
+        ...D4StatTemperingFragment
+      }
+    }
+    d4TransfiguredStats(filter: $transfiguredStatsFilter) {
+      data {
+        ...D4TransfiguredStatFragment
+      }
+    }
+    d4Mercenaries(filter: $mercenariesFilter) {
+      data {
+        ...D4MercenaryFragment
+      }
+    }
+    d4MercenarySkills(filter: $mercenarySkillsFilter) {
+      data {
+        ...D4MercenarySkillFragment
+      }
+    }
+    reinforcementMercenaryOpportunities: d4Opportunities(filter: $reinforcementMercenaryOpportunitiesFilter) {
+      data {
+        ...D4MercenaryOpportunityFragment
+      }
+    }
+    d4ChaosPerks(filter: $chaosPerksFilter) {
+      data {
+        ...D4ChaosPerkFragment
+      }
+    }
+    d4BloodiedAffixes(filter: $bloodiedAffixesFilter) {
+      data {
+        ...D4BloodiedAffixFragment
+      }
+    }
+    d4DivineGifts(filter: $divineGiftsFilter) {
+      data {
+        ...D4DivineGiftsFragment
+      }
+    }
+    d4Elixirs(filter: $elixirsFilter) {
+      data {
+        ...D4ElixirsAndIncensesFragment
+      }
+    }
+    d4SoulShards(filter: $soulShardsFilter) {
+      data {
+        ...D4SoulShardFragment
+      }
+    }
+    d4Charms(filter: $charmsFilter) {
+      data {
+        ...D4CharmFragment
+      }
+    }
+    d4Seals(filter: $sealsFilter) {
+      data {
+        ...D4SealFragment
+      }
+    }
+    d4WarplanTrees(filter: $warplanTreesFilter) {
+      data {
+        ...D4WarplanTreeFragment
+      }
+    }
+    d4WarplanNodes(filter: $warplanNodesFilter) {
+      data {
+        ...D4WarplanNodeFragment
+      }
+    }
+    d4TriadSplinters(filter: $triadSplintersFilter) {
+      data {
+        ...D4TriadSplintersFragment
+      }
+    }
+    d4TriadPowers(filter: $triadPowersFilter) {
+      data {
+        ...D4TriadPowersFragment
+      }
+    }
+    meta: d4Skills {
+      version
+    }
+  }
+}
+  }
+
+fragment D4SkillTreeSkillFragment on D4Skill {
+__typename
+id
+slug
+classSlug
+class {
+  name
+}
+name
+description
+enchantment
+maxRank
+requiredRank
+iconUrl
+deprecated
+weaponArsenalSlots {
+  id
+  name
+  iconUrl
+}
+x
+y
+section {
+  id
+  name
+}
+disables {
+  id
+  type {
+    id
+    name
+  }
+}
+dependsOnSlugs: dependsOnV2Slugs
+type: typeV2 {
+  id
+  slug
+  name
+}
+tags {
+  name
+}
+resources {
+  value
+  name
+}
+substitutions {
+  key
+  values
+}
+  }
+
+fragment D4AspectFragment on D4Aspect {
+__typename
+slug
+id
+name
+iconUrl
+description
+type {
+  id
+  name
+}
+dungeon {
+  id
+  name
+}
+location {
+  id
+  name
+}
+class {
+  id
+  name
+  iconUrl
+}
+deprecated
+  }
+
+fragment D4UniqItemFragment on D4UniqueItem {
+__typename
+id
+slug
+name
+iconUrl
+description
+type {
+  id
+  name
+}
+class {
+  id
+  name
+}
+effect
+mainStats
+secondaryStats
+secondaryStatsSlugs
+deprecated
+chaos
+mythic
+dropSource
+  }
+
+fragment D4RuneFragment on D4Rune {
+__typename
+id
+slug
+name
+iconUrl
+deprecated
+
+rarity
+type
+
+gain
+bonus
+requires
+cooldown
+overflow
+  }
+
+fragment D4GemFragment on D4Gem {
+__typename
+id
+slug
+name
+iconUrl
+description
+occult
+bonuses {
+  description
+  slotSlug
+  slot {
+    id
+    name
+  }
+}
+deprecated
+  }
+
+fragment D4WitchcraftPowerFragment on D4WitchcraftPower {
+__typename
+id
+slug
+name
+description
+iconUrl
+unique
+type
+deprecated
+  }
+
+fragment D4BossPowerFragment on D4BossPower {
+__typename
+id
+name
+slug
+iconUrl
+location
+main
+modifier
+type
+deprecated
+  }
+
+fragment D4ParagonBoardFragment on D4ParagonBoard {
+__typename
+id
+slug
+name
+description
+deprecated
+iconUrl
+classes {
+  id
+  name
+}
+nodes {
+  id
+  name
+  x
+  y
+  iconUrlNormal
+  iconUrlActive
+  effects
+  requiredStats {
+    value
+    step
+    type {
+      name
+    }
+  }
+  bonusAmount
+  requires
+  type {
+    id
+    name
+  }
+  nodeStats {
+    value
+    type {
+      name
+    }
+  }
+}
+  }
+
+fragment D4ParagonBoardGlyphFragment on D4ParagonGlyph {
+__typename
+id
+slug
+name
+iconUrl
+deprecated
+level: maxLevel
+radius: maxRadius
+affectedType {
+  id
+}
+scaling
+rarity {
+  id
+  name
+}
+bonus
+additionalBonus
+value
+legendaryValue
+legendaryBonus
+requirementsStats {
+  value
+  type {
+    id
+    name
+  }
+}
+radiusDistribution {
+  radius
+  level
+}
+class {
+  id
+  name
+}
+  }
+
+fragment D4ParagonBoardNodeFragment on D4ParagonNode {
+__typename
+id
+slug
+name
+type {
+  id
+  name
+}
+iconUrlNormal
+effects
+requiredStats {
+  value
+  step
+  type {
+    id
+    name
+  }
+}
+bonusAmount
+nodeStats {
+  value
+  type {
+    id
+    name
+  }
+}
+deprecated
+  }
+
+fragment D4ClassFragment on D4Class {
+__typename
+id
+slug
+name
+dex
+int
+will
+str
+deprecated
+  }
+
+fragment D4SkillSectionFragment on D4SkillSection {
+__typename
+id
+slug
+name
+iconUrl
+classSlug
+requiredRank
+deprecated
+index
+x
+y
+skills {
+  ...D4SkillTreeSkillFragment
+}
+class {
+  id
+  slug
+  name
+  dex
+  str
+  will
+  int
+}
+  }
+
+fragment D4SkillTreeConnectorFragment on D4Connector {
+__typename
+id
+x
+y
+name
+iconUrl
+classSlug
+deprecated
+dependsOnSlugs
+section {
+  id
+  name
+}
+  }
+
+fragment D4BuildSlotFragment on D4BuildSlot {
+__typename
+id
+name
+slug
+aspectBonuses
+deprecated
+  }
+
+fragment D4StatFragment on D4Stat {
+__typename
+id
+name
+slug
+buildSlotsSlugs
+classesSlugs
+isUniqueItemStat
+deprecated
+  }
+
+fragment D4StatImplicitFragment on D4StatImplicit {
+__typename
+id
+name
+slug
+buildSlotsSlugs
+classesSlugs
+isUniqueItemStat
+deprecated
+  }
+
+fragment D4StatTemperingFragment on D4StatTempering {
+__typename
+id
+name
+slug
+description
+buildSlotsSlugs
+classesSlugs
+isUniqueItemStat
+deprecated
+  }
+
+fragment D4TransfiguredStatFragment on D4TransfiguredStat {
+__typename
+id
+name
+slug
+description
+buildSlotsSlugs
+classesSlugs
+isUniqueItemStat
+deprecated
+  }
+
+fragment D4MercenaryFragment on D4Mercenary {
+__typename
+id
+slug
+iconUrl
+name
+title
+deprecated
+  }
+
+fragment D4MercenarySkillFragment on D4MercenarySkill {
+__typename
+id
+slug
+nodeTypeSlug
+iconUrl
+outs
+depends
+description
+attackDescription
+resources {
+  slug
+  name
+  value
+}
+mercenarySlug
+mercenary {
+  ...D4MercenaryFragment
+}
+name
+tags
+x
+y
+deprecated
+  }
+
+fragment D4MercenaryOpportunityFragment on D4Opportunity {
+__typename
+id
+slug
+iconUrl
+name
+deprecated
+  }
+
+fragment D4ChaosPerkFragment on D4ChaosPerk {
+__typename
+id
+slug
+name
+class
+description
+iconUrl
+rarity
+deprecated
+filters
+  }
+
+fragment D4BloodiedAffixFragment on D4BloodiedAffix {
+__typename
+id
+slug
+name
+all
+deprecated
+  }
+
+fragment D4DivineGiftsFragment on D4DivineGift {
+__typename
+id
+slug
+name
+rarity
+boss
+rewards
+purified
+corrupted
+location
+deprecated
+imageUrl
+  }
+
+fragment D4ElixirsAndIncensesFragment on D4Elixir {
+__typename
+id
+slug
+name
+type
+iconUrl
+rarity
+description
+deprecated
+  }
+
+fragment D4SoulShardFragment on D4SoulShard {
+__typename
+id
+slug
+name
+iconUrl
+deprecated
+description
+classSlug
+season
+fragments {
+  id
+  slug
+  name
+  iconUrl
+}
+  }
+
+fragment D4CharmFragment on D4Charm {
+__typename
+id
+slug
+name
+iconUrl
+deprecated
+class {
+  id
+  name
+}
+rarity
+set {
+  id
+  name
+  bonuses {
+    count
+    value
+  }
+}
+effects
+  }
+
+fragment D4SealFragment on D4Seal {
+__typename
+id
+slug
+name
+iconUrl
+deprecated
+description
+effect
+rarity
+  }
+
+fragment D4WarplanTreeFragment on D4WarplanTree {
+__typename
+id
+slug
+iconUrl
+name
+maxPoints
+deprecated
+  }
+
+fragment D4WarplanNodeFragment on D4WarplanNode {
+__typename
+id
+slug
+iconUrl
+name
+description
+nodeTypeSlug
+treeSlug
+x
+y
+depends
+disables
+outs
+deprecated
+  }
+
+fragment D4TriadSplintersFragment on D4TriadSplinter {
+__typename
+slug
+id
+name
+iconUrl
+description
+deprecated
+effect
+requirement
+  }
+
+fragment D4TriadPowersFragment on D4TriadPower {
+__typename
+slug
+id
+name
+iconUrl
+description
+deprecated
+splinterSlug
+type
+unlock
+  }

@@ -1,0 +1,13 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { loadStaticData } from "../../src/lib/names";
+import { fastParse } from "../../src/lib/fastparse";
+import { normaliseMobalytics } from "../../src/lib/mobalytics";
+import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+await loadStaticData();
+const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
+const dir = process.env.LOCALAPPDATA + "/com.kenneth.d4companion/logs/judge-log";
+const f = readdirSync(dir).find((f) => f.includes(process.argv[2]) && !f.includes("_equipped") && f.endsWith(".json"))!;
+const j = JSON.parse(readFileSync(dir + "/" + f, "utf8"));
+console.log(j.hovered.llm.lines.map((l: any) => `${l.bullet.padEnd(10)} h${Math.round(l.h ?? 0)} ${l.text}`).join("\n"));
+const p = fastParse(j.hovered.llm.lines, false, v)!;
+console.log(p.affixes);

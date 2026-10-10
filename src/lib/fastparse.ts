@@ -1,0 +1,306 @@
+// Instant tooltip parser: OCR lines + bullet-icon colours + rules. No LLM.
+// Returns null (→ fall back to the LLM labeller) when it isn't confident.
+import { buildTargetNames, cleanStat, matchTarget } from "./parse";
+import { canonicalUnique, identifyAspect, similarity, table, trigramSim } from "./names";
+import type { Bullet } from "./vision";
+import type { BuildVariant, CompareRow, ParsedAffix, ParsedItem } from "./types";
+
+export interface FastLine {
+  text: string;
+  bullet: Bullet;
+  /** OCR line height (px) — the item name uses a bigger font */
+  h?: number;
+}
+
+const JUNK = /^(equipped|slot transmog.*|n slot|character|scroll down|.{0,2})$/i;
+const FOOTER =
+  /item power|^\d+\s*\(.*\)\s*quality|quality$|requires level|account bound|sell value|durability|tempers:|^equip$|^drop$|^\+?\s*drop$|^\+?\s*link$|ctrl|shift|hide comparison|mark as|scroll down|lord of hatred item|^legendary power$|^unique power$|^\W*legendary power|^\W*unique power|^socket|empty socket|^!?\s*[\d,]{6,}$/i;
+const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b/i;
+const SLOT_NOUN =
+  /\b(helm|headgear|head|chest armor|chest|gloves|pants|boots|amulet|ring|scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|charm|seal|two-handed|one-handed)\b/i;
+export const STAT_START = /^[+x\-]?\s*[\d][\d.,\s]*%?\s+\S/i;
+const NONGEAR = /\b(gem|rune|soul splinter|splinter|socketable|charm|seal|talisman|elixir|incense|potion|key|sigil|material|cache|scroll|consumable)\b/i;
+
+function categoryOf(type: string, all: string): ParsedItem["category"] {
+  if (/\b(gem|rune|splinter|socketable)\b/i.test(type) || /can be inserted into|amalgamate|^weapon:|jewelry:/im.test(all)) return "socketable";
+  if (/\b(charm|seal|talisman)\b/i.test(type)) return "talisman";
+  if (NONGEAR.test(type)) return "consumable";
+  return "gear";
+}
+
+function slotOf(type: string): string {
+  const t = type.toLowerCase();
+  if (/helm|headgear|\bhead\b/.test(t)) return "helm";
+  if (/chest/.test(t)) return "chest";
+  if (/gloves/.test(t)) return "gloves";
+  if (/pants/.test(t)) return "pants";
+  if (/boots/.test(t)) return "boots";
+  if (/amulet/.test(t)) return "amulet";
+  if (/\bring\b/.test(t)) return "ring";
+  if (/focus|shield|totem|off-?hand/.test(t)) return "offhand";
+  if (/charm/.test(t)) return "charm";
+  if (/seal/.test(t)) return "seal";
+  if (SLOT_NOUN.test(t)) return "weapon";
+  return "other";
+}
+
+function titleCase(n: string) {
+  const t = n.replace(/[^A-Za-z0-9'’\- ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!t) return t;
+  const lower = t.toLowerCase();
+  return lower.replace(/(^|[\s-])([a-z])/g, (_m, p, c) => p + c.toUpperCase()).replace(/(?!^)\b(Of|The|And|To)\b/g, (w) => w.toLowerCase());
+}
+
+function deltaOf(t: string): string | null {
+  return t.match(/\(\s*([+\-]\s*[\d.,]+%?)/)?.[1]?.replace(/\s+/g, "") ?? null;
+}
+
+function sameMagnitude(text: string, delta: string): boolean {
+  const v = Number((text.match(/[\d.,]+/)?.[0] ?? "").replace(/,/g, ""));
+  const d = Math.abs(Number(delta.replace(/[^\d.\-]/g, "")));
+  // "(+22%)" on a 23% stat still means yours doesn't have it (the game rounds/scales deltas)
+  return v > 0 && Math.abs(v - d) / v < 0.1;
+}
+
+function finalNameFor(name: string, rarity: string) {
+  return rarity === "unique" || rarity === "mythic" ? canonicalUnique(name) ?? name : name;
+}
+
+export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: BuildVariant | undefined): ParsedItem | null {
+  // OCR reads the bullet icons as letters ("o +9.8% Crit…", "0 +4,375 Armor") — strip them
+  const L = lines
+    .map((l) => ({ ...l, text: l.text.trim().replace(/^(?:[oO0•*◆◇¤✸✷·°]\s*)+(?=[+x\-]?\s*\d)/, "") }))
+    .filter((l) => l.text.length > 0);
+  const hs = L.map((l) => l.h ?? 0).filter(Boolean).sort((a, b) => a - b);
+  const bodyH = hs[Math.floor(hs.length / 2)] ?? 0;
+  // 1) type line: has a rarity word (+ maybe the slot noun on the next line)
+  let ti = L.findIndex((l, i) => i < 8 && RARITY.test(l.text) && (SLOT_NOUN.test(l.text) || SLOT_NOUN.test(L[i + 1]?.text ?? "") || NONGEAR.test(l.text)));
+  // gems show "Weapon: … / Armor: … / Jewelry: …" and often no rarity line at all
+  if (ti < 0 && L.some((l) => /^(weapon|armor|jewelry):/i.test(l.text))) {
+    const all = L.map((l) => l.text).join("\n");
+    const bonus = L.filter((l) => /^(weapon|armor|jewelry):/i.test(l.text)).map((l) => l.text).join(" ");
+    // name the gem by its bonuses ("Weapon: x28% Shadow Damage…" → Amethyst)
+    let gem = "";
+    let gs = 0;
+    for (const g of Object.values(table("gems"))) {
+      const sc = trigramSim(bonus.replace(/[\d.,%x+]/g, ""), (g.d ?? "").replace(/[\d.,%x+]/g, ""));
+      if (sc > gs) {
+        gs = sc;
+        gem = g.n;
+      }
+    }
+    const nameLine = gs >= 0.6 ? gem : L.find((l) => /\bgem\b|\brune\b|splinter/i.test(l.text) && !/:/.test(l.text))?.text ?? "Gem";
+    return {
+      name: titleCase(nameLine),
+      rarity: "common",
+      itemType: "Gem",
+      slot: "other",
+      itemPower: null,
+      affixes: [],
+      aspect: { name: "", text: L.filter((l) => /^(weapon|armor|jewelry):/i.test(l.text)).map((l) => l.text).join(" · ") },
+      rawText: all,
+      category: "socketable",
+    };
+  }
+  if (ti < 0) ti = L.findIndex((l, i) => i < 8 && /^(ancestral |sacred )?(two-handed |one-handed )?(scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|helm|gloves|pants|boots|amulet|ring)$/i.test(l.text));
+  if (ti < 0) return null; // top of tooltip not visible → let the LLM try
+  let typeLine = L[ti].text;
+  let after = ti + 1;
+  if (!SLOT_NOUN.test(typeLine) && L[ti + 1] && SLOT_NOUN.test(L[ti + 1].text) && L[ti + 1].text.length < 24) {
+    typeLine += " " + L[ti + 1].text;
+    after = ti + 2;
+  }
+
+  // 2) name: the lines just above the type line (skip header junk); trailing ✸ marks = greater-affix count
+  const nameParts: string[] = [];
+  for (let i = ti - 1; i >= 0 && nameParts.length < 3; i--) {
+    if (JUNK.test(L[i].text) || /slot|transmog|equipped|character/i.test(L[i].text)) break;
+    // the title font is clearly bigger than body text; small lines above it are UI (character name…)
+    // all-caps title lines measure about body height; small UI text (character name) is clearly shorter
+    if (bodyH && L[i].h && L[i].h! < bodyH * 0.85) break;
+    nameParts.unshift(L[i].text);
+  }
+  const rawName = nameParts.join(" ");
+  const starMarks = (rawName.match(/[*✸✹✺❋✷]/g) ?? []).length;
+  const name = titleCase(rawName.replace(/[*✸✹✺❋✷]/g, ""));
+  if (!name || name.length < 3) return null;
+
+  // 3) walk the body. A line WITH a bullet icon starts a new entry; lines without one
+  //    (or obvious wraps like "Multiplier", "+22%)", "6 seconds.") continue it.
+  const lostStart = L.findIndex((l) => /properties lost when equipped/i.test(l.text));
+  type Entry = { text: string; bullet: Bullet; lost: boolean };
+  const entries: Entry[] = [];
+  let lostPower = false;
+  let lostPowerKind: "unique" | "legendary" | null = null;
+  let inLost = false;
+  let closed = true;
+  for (let i = after; i < L.length; i++) {
+    const { text, bullet } = L[i];
+    if (i === lostStart) {
+      inLost = true;
+      closed = true;
+      continue;
+    }
+    // weapon base lines (DPS / damage per hit / attacks per second) aren't affixes
+    if (/damage per second|damage per hit|attacks per second/i.test(text)) {
+      closed = true;
+      continue;
+    }
+    if (FOOTER.test(text)) {
+      if (inLost && /unique power|legendary power/i.test(text)) {
+        lostPower = true;
+        lostPowerKind = /unique/i.test(text) ? "unique" : "legendary";
+      }
+      if (inLost) break; // footer ends the "lost" block and the useful part of the tooltip
+      closed = true;
+      continue;
+    }
+    const prev = entries[entries.length - 1];
+    // an OCR'd icon ("* Gain …", "• +12 …") always marks a new entry
+    const iconLead = /^[*•◆◇o]\s+\S/.test(text);
+    const clean = iconLead ? text.replace(/^[*•◆◇o]\s+/, "") : text;
+    const deltaTail = /^[+\-]?\s*[\d.,]+%?\s*\)\s*$/.test(clean);
+    const numStart = /^[+x\-]?\s*\d/i.test(clean) && !deltaTail && !/^\d+(\.\d+)?\s*(seconds?)/i.test(clean);
+    const looksWrapped =
+      deltaTail ||
+      /^[a-z]/.test(text) || // continues mid-sentence
+      /^(multiplier|speed|chance|damage|skills?|seconds?|resistance|generation|reduction)\b/i.test(text) ||
+      /^\d+(\.\d+)?\s*(seconds?|second)\b/i.test(text) ||
+      (!!prev && /[(,]\s*$/.test(prev.text));
+    // a number-led line is always a new stat (icon detection can miss on bright backgrounds)
+    if (prev && !closed && prev.lost === inLost && !numStart && !iconLead && (bullet === "none" || looksWrapped)) {
+      prev.text += " " + clean;
+      continue;
+    }
+    if (!/[a-z]{2,}/i.test(clean)) continue; // icon junk ("*", "o") and stray numbers
+    entries.push({ text: clean, bullet: iconLead && bullet === "none" ? "normal" : bullet, lost: inLost });
+    closed = false;
+  }
+
+  const stats: { text: string; bullet: Bullet; delta: string | null }[] = [];
+  const lost: string[] = [];
+  const power: string[] = [];
+  let imprinted = false;
+  for (const e of entries) {
+    const t = e.text.replace(/\s+/g, " ").trim();
+    const numStart = /^[+x\-]?\s*\d/i.test(t);
+    if (e.lost) {
+      if (/[a-z]{3,}/i.test(t)) lost.push(cleanStat(t));
+      continue;
+    }
+    const sentence = /\b(deal|deals|grant|grants|gain|gains|your|when|while|chance to|increased|after|every)\b/i.test(t) && t.length > 45;
+    const isPower = /^\W*imprinted:/i.test(t) || (!numStart && (e.bullet === "greater" || sentence || t.length > 70));
+    if (isPower) {
+      if (/^\W*imprinted:/i.test(t)) imprinted = true;
+      power.push(t.replace(/^\W*imprinted:\s*/i, ""));
+      continue;
+    }
+    if (!/\d/.test(t)) continue;
+    // "54.0% increased damage." = tail of a power paragraph, not an affix
+    if (/\.\s*$/.test(t) && /\b(increased|damage|seconds?|chance)\b/i.test(t) && power.length) {
+      power.push(t);
+      continue;
+    }
+    stats.push({ text: cleanStat(t), bullet: e.bullet, delta: deltaOf(t) });
+  }
+  const category = categoryOf(typeLine, L.map((l) => l.text).join("\n"));
+  if (stats.length < 2 && category === "gear") return null;
+
+  // 4) assemble
+  const targets = buildTargetNames(variant);
+  const affixes: ParsedAffix[] = stats.map((s) => ({
+    text: s.text,
+    greater: s.bullet === "greater",
+    tempered: s.bullet === "tempered",
+    masterwork: s.bullet === "masterwork",
+    enchanted: s.bullet === "enchanted",
+    match: matchTarget(s.text, targets),
+  }));
+  // sanity: the ✸ marks after the name count greater affixes — if the icon check disagrees, trust the marks for the count
+  const ga = affixes.filter((a) => a.greater).length;
+  if (starMarks > 0 && ga === 0) {
+    // couldn't see icons (low res) — no guess about which; leave as is
+  }
+  const tl = typeLine.toLowerCase();
+  const rarity0 = /mythic/.test(tl) ? "mythic" : /unique/.test(tl) ? "unique" : /legendary/.test(tl) ? "legendary" : /\brare\b/.test(tl) ? "rare" : /magic/.test(tl) ? "magic" : "common";
+  const rarity = rarity0;
+  const powerText = power.join(" ").replace(/\s+/g, " ").trim();
+  const legendaryName =
+    rarity === "legendary"
+      ? identifyAspect(powerText) ?? (/ of /i.test(name) ? `Aspect ${name.slice(name.toLowerCase().lastIndexOf(" of ")).trim()}` : "")
+      : "";
+  const all = L.map((l) => l.text).join(" ");
+  const tempers = all.match(/tempers:\s*(\d)\s*\/\s*(\d)/i);
+
+  let compare: ParsedItem | null = null;
+  let compareRows: CompareRow[] | undefined;
+  if (lostStart >= 0 || stats.some((s) => s.delta)) {
+    const lacks = (s: { text: string; delta: string | null }) => !!s.delta && !s.delta.startsWith("-") && sameMagnitude(s.text, s.delta);
+    const shared = stats.filter((s) => s.delta && !lacks(s)).map((s) => s.text);
+    const samePower = lostStart >= 0 && !lostPower && power.length > 0;
+    const num = (t: string) => Number((t.match(/[\d][\d,]*\.?\d*/)?.[0] ?? "").replace(/,/g, "")) || 0;
+    const rows: CompareRow[] = [];
+    for (const st of stats) {
+      const mine = num(st.text);
+      const label = cleanStat(st.text).replace(/^[+x\-]?\s*[\d.,]+%?\s*/, "");
+      const pct = /%/.test(st.text) ? "%" : "";
+      let yours: number | null = mine;
+      if (st.delta) yours = lacks(st) ? null : Math.round((mine - Number(st.delta.replace(/[^\d.\-]/g, ""))) * 10) / 10;
+      rows.push({ label, mine, yours, unit: pct, wanted: !!matchTarget(st.text, targets), match: matchTarget(st.text, targets) });
+    }
+    for (const t of lost) {
+      const label = cleanStat(t).replace(/^[+x\-]?\s*[\d.,]+%?\s*/, "");
+      rows.push({ label, mine: null, yours: num(t), unit: /%/.test(t) ? "%" : "", wanted: !!matchTarget(t, targets), match: matchTarget(t, targets) });
+    }
+    compareRows = rows;
+    compare = {
+      // if switching wouldn't lose a power, you're wearing the same unique / aspect
+      name: samePower ? finalNameFor(name, rarity) : "Your equipped item",
+      rarity: "unknown",
+      itemType: typeLine,
+      slot: slotOf(typeLine),
+      itemPower: null,
+      affixes: [...shared, ...lost].map((t) => ({ text: t, greater: false, match: matchTarget(t, targets) })),
+      aspect: samePower ? { name: legendaryName, text: powerText } : null,
+      equipped: true,
+    };
+  }
+
+  // repair OCR'd titles: snap uniques to the official name; for legendaries fix the "of X" suffix from the aspect
+  let finalName = name;
+  if (rarity === "unique" || rarity === "mythic") finalName = canonicalUnique(name) ?? name;
+  else if (legendaryName && / of /i.test(name)) {
+    const suffix = legendaryName.replace(/^aspect\s+of\s+/i, "").replace(/\s+aspect$/i, "");
+    const cut = name.toLowerCase().lastIndexOf(" of ");
+    if (suffix && trigramSim(name.slice(cut + 4), suffix) >= 0.45) finalName = name.slice(0, cut + 4) + suffix;
+  }
+
+  return {
+    name: finalName,
+    rarity,
+    itemType: typeLine,
+    slot: slotOf(typeLine),
+    itemPower: Number(all.match(/(\d{3,4})\s*item power/i)?.[1] ?? 0) || null,
+    ancestral: /ancestral/i.test(typeLine),
+    affixes,
+    aspect: power.length ? { name: legendaryName, text: powerText, imprinted } : null,
+    sockets: L.filter((l) => /socket/i.test(l.text)).length,
+    rawText: L.map((l) => l.text).join("\n"),
+    equipped: equippedLabel,
+    truncated: L.some((l) => /scroll down/i.test(l.text)),
+    category,
+    tempersUsed: tempers ? Number(tempers[1]) : undefined,
+    compare,
+    compareRows,
+    compareKind: lostPowerKind,
+  };
+}
+
+/** Quick check used by tests: how sure are we the parse makes sense? */
+export function looksSane(p: ParsedItem): boolean {
+  if (p.category && p.category !== "gear") return p.name.length >= 3;
+  return p.name.length >= 3 && p.affixes.length >= 2 && p.slot !== "other" && similarity(p.name, p.itemType) < 0.8;
+}
+
+// background loops hold references to this module: reload the page instead of hot-swapping
+if (import.meta.hot) import.meta.hot.accept(() => window.location.reload());
