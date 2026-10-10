@@ -1,0 +1,211 @@
+{
+ "source": "2026-10-10T05-02-03-364Z_b02b82.json",
+ "ocr": [
+  "SERRATED REAPER",
+  "OF SERRATION",
+  "Legendary Scythe",
+  "850 Item Power",
+  "1,525 Damage Per Second (-3048)",
+  "1—• [1,131 - 1,643] Damage per Hit",
+  "1.10 Attacks per Second (Fast) (",
+  "+0.20)",
+  "+108 Weapon Damage (-368)",
+  "+125 Intelligence (-253)",
+  "+473 Life On Hit (+473)",
+  "x14% Critical Strike Damage",
+  "Multiplier (+14%)",
+  "Your Corpse and Bone Skills gain",
+  "*",
+  "10% increased Critical Strike Chance",
+  "and 45% increased Critical Strike",
+  "Damage.",
+  "Properties lost when equipped:",
+  "+4 to Darkness Skills",
+  "+11.0% Critical Strike Chance",
+  "+4,825 Maximum Life",
+  "Unique Power",
+  "Socket (2)",
+  "Requires Level 70",
+  "ocount Bound",
+  "Scroll Down",
+  "(i Only",
+  "Equip",
+  "S111vr",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison",
+  "Mark as Junk"
+ ],
+ "lines": [
+  {
+   "text": "SERRATED REAPER",
+   "bullet": "greater",
+   "h": 22
+  },
+  {
+   "text": "OF SERRATION",
+   "bullet": "normal",
+   "h": 22
+  },
+  {
+   "text": "Legendary Scythe",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "850 Item Power",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "1,525 Damage Per Second (-3048)",
+   "bullet": "normal",
+   "h": 28
+  },
+  {
+   "text": "1—• [1,131 - 1,643] Damage per Hit",
+   "bullet": "normal",
+   "h": 33
+  },
+  {
+   "text": "1.10 Attacks per Second (Fast) (",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+0.20)",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "+108 Weapon Damage (-368)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+125 Intelligence (-253)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+473 Life On Hit (+473)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "x14% Critical Strike Damage",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Multiplier (+14%)",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Your Corpse and Bone Skills gain",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "*",
+   "bullet": "normal",
+   "h": 14
+  },
+  {
+   "text": "10% increased Critical Strike Chance",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "and 45% increased Critical Strike",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "Damage.",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "+4 to Darkness Skills",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "+11.0% Critical Strike Chance",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "+4,825 Maximum Life",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Socket (2)",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "ocount Bound",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Scroll Down",
+   "bullet": "greater",
+   "h": 23
+  },
+  {
+   "text": "(i Only",
+   "bullet": "none",
+   "h": 28
+  },
+  {
+   "text": "Equip",
+   "bullet": "greater",
+   "h": 24
+  },
+  {
+   "text": "S111vr",
+   "bullet": "normal",
+   "h": 9
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "CTRL",
+   "bullet": "normal",
+   "h": 13
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Mark as Junk",
+   "bullet": "normal",
+   "h": 23
+  }
+ ]
+}

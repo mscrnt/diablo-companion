@@ -1,0 +1,199 @@
+{
+ "source": "2026-10-10T05-45-33-526Z_0f048b.json",
+ "ocr": [
+  "Doom ARIT10R OF",
+  "DOTTIINANCE",
+  "Ancestral Legendary Chest",
+  "Armor",
+  "900 Item Power",
+  "2,805 Armor (-12.4% Toughness)",
+  "+115 Intelligence (-10)",
+  "+2,527 Fire Resistance (+2,527)",
+  "6.4% Resource Cost Reduction (",
+  "+6.4%)",
+  "9.6% Impairment Reduction (+9.6%)",
+  "Crowd Controlling an enemy grants",
+  "2 Resolve.",
+  "Empty Socket",
+  "Empty Socket",
+  "Properties lost when equipped:",
+  "+3 Maximum Resolve Stacks",
+  "+458 Resistance to All Elements",
+  "+220 Life Regeneration",
+  "+2 459",
+  "Scroll Down",
+  "* Legendai",
+  "Equip",
+  "+ Link",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison",
+  "Mark as Junk",
+  "Resolve increases your Armor by 25%",
+  "while active. Resolve stores up to 8",
+  "charges, or 30 with additional bonuses.",
+  "Taking direct damage removes a charge."
+ ],
+ "lines": [
+  {
+   "text": "Doom ARIT10R OF",
+   "bullet": "greater",
+   "h": 24
+  },
+  {
+   "text": "DOTTIINANCE",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Ancestral Legendary Chest",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Armor",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "900 Item Power",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "2,805 Armor (-12.4% Toughness)",
+   "bullet": "greater",
+   "h": 29
+  },
+  {
+   "text": "+115 Intelligence (-10)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+2,527 Fire Resistance (+2,527)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "6.4% Resource Cost Reduction (",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+6.4%)",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "9.6% Impairment Reduction (+9.6%)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Crowd Controlling an enemy grants",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "2 Resolve.",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "Empty Socket",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Empty Socket",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "+3 Maximum Resolve Stacks",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "+458 Resistance to All Elements",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "+220 Life Regeneration",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+2 459",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "Scroll Down",
+   "bullet": "greater",
+   "h": 23
+  },
+  {
+   "text": "* Legendai",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Equip",
+   "bullet": "greater",
+   "h": 24
+  },
+  {
+   "text": "+ Link",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "CTRL",
+   "bullet": "normal",
+   "h": 13
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Mark as Junk",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "Resolve increases your Armor by 25%",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "while active. Resolve stores up to 8",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "charges, or 30 with additional bonuses.",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Taking direct damage removes a charge.",
+   "bullet": "normal",
+   "h": 25
+  }
+ ]
+}

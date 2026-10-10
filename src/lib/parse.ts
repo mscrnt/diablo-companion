@@ -5,6 +5,7 @@
 // Stat → build-target matching is done locally against the game's stat names.
 import { chatJson, imagePart, type LlmConfig } from "./llm";
 import { identifyAspect, normStat, similarity } from "./names";
+import { snapLine } from "./ocrfix";
 import type { BuildVariant, ParsedAffix, ParsedItem } from "./types";
 
 export const ROLES = ["name", "type", "ip", "implicit", "affix", "tempered", "cont", "power", "socket", "flavor", "other"] as const;
@@ -121,7 +122,10 @@ export function buildTargetNames(variant: BuildVariant | undefined): string[] {
 
 export async function parseTooltipText(cfg: LlmConfig, tip: TooltipText, variant: BuildVariant | undefined): Promise<{ item: ParsedItem | null; debug: ParseDebug }> {
   const t0 = performance.now();
-  const ocr = tip.lines.map((l) => l.trim()).filter(Boolean);
+  // misread words fixed against the game's own text first, so the model labels clean lines
+  // (the log keeps what OCR really read, so replays can measure the snapping)
+  const ocrRaw = tip.lines.map((l) => l.trim()).filter(Boolean);
+  const ocr = ocrRaw.map(snapLine);
   const numbered = ocr.map((l, i) => `${i}: ${l}`).join("\n");
   const raw = await chatJson<{ found: boolean; name: string; rarity: string; slot: string; lines: { i: number; r: Role; g: boolean }[] }>(
     cfg,
@@ -131,7 +135,7 @@ export async function parseTooltipText(cfg: LlmConfig, tip: TooltipText, variant
     ],
     { jsonSchema: { name: "d4_lines", schema: SCHEMA }, maxTokens: 1600, timeoutMs: 45000 },
   );
-  const debug: ParseDebug = { ocr, raw, ms: Math.round(performance.now() - t0) };
+  const debug: ParseDebug = { ocr: ocrRaw, raw, ms: Math.round(performance.now() - t0) };
   if (!raw.found) return { item: null, debug };
 
   const role = new Map<number, { r: Role; g: boolean }>();

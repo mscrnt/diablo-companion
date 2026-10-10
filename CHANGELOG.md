@@ -13,9 +13,13 @@ The release workflow publishes each version's section as its GitHub release note
 ### Changed
 - Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.
 - Licensed under the PolyForm Noncommercial License 1.0.0: free for personal and other noncommercial use.
+- The loot judge checks what it reads against the game's own text before judging. Misread words are corrected ("Arit10r" becomes "Armor", "Thoms" becomes "Thorns"), while the numbers are kept exactly as read. Anything it isn't sure about is left as it was.
 
 ### Fixed
 - Link-style buttons no longer show an underline.
+- Item names no longer pick up your character's name when the tooltip opens over the Character panel.
+- Text from the panel behind a tooltip no longer sticks to the end of a stat ("+100 Intelligence Damage").
+- A legendary's power text is no longer mistaken for an affix, so it can't count as a wanted stat by accident. The aspect is now recognised on more items.
 
 ## [0.1.1] - 2026-10-10
 

@@ -1,0 +1,193 @@
+{
+ "source": "2026-10-10T04-29-11-374Z_cfb51b.json",
+ "ocr": [
+  "ANQUISHING",
+  "GRAVE BULWARK",
+  "Legendary Shield",
+  "850 Item Power",
+  "956 Armor (-6.9% Toughness)",
+  "20.0% Block Chance (+20.0%)",
+  "+100% Main Hand Weapon Damage (",
+  "+100%)",
+  "+139 IntelligenceÄ(-239)",
+  "Acrurqed Abbot",
+  "(+1,744)",
+  "7.4% Damage",
+  "5.0% Cooldown Reduc!ion (+5.0%)",
+  "You deal 70% more damage to",
+  "Incapacitated enemies.",
+  "Properties lost when equipped:",
+  "+4 to Darkness Skills",
+  "+476 Weapon Damage",
+  "+11.0% Critical Strike Chance",
+  "+4,825 Maximum Life",
+  "Unique Power",
+  "Socket (28' Scroll Down",
+  "Equip",
+  "s111V•r",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison",
+  "Mark as Favorite",
+  "Incapaéltated enemies cannot perform",
+  "actions due to Daze, Fear, Frozen,",
+  "Knockdown or Stun."
+ ],
+ "lines": [
+  {
+   "text": "ANQUISHING",
+   "bullet": "normal",
+   "h": 27
+  },
+  {
+   "text": "GRAVE BULWARK",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Legendary Shield",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "850 Item Power",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "956 Armor (-6.9% Toughness)",
+   "bullet": "normal",
+   "h": 28
+  },
+  {
+   "text": "20.0% Block Chance (+20.0%)",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "+100% Main Hand Weapon Damage (",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "+100%)",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "+139 IntelligenceÄ(-239)",
+   "bullet": "none",
+   "h": 28
+  },
+  {
+   "text": "Acrurqed Abbot",
+   "bullet": "none",
+   "h": 13
+  },
+  {
+   "text": "(+1,744)",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "7.4% Damage",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "5.0% Cooldown Reduc!ion (+5.0%)",
+   "bullet": "tempered",
+   "h": 29
+  },
+  {
+   "text": "You deal 70% more damage to",
+   "bullet": "tempered",
+   "h": 25
+  },
+  {
+   "text": "Incapacitated enemies.",
+   "bullet": "tempered",
+   "h": 24
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+4 to Darkness Skills",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "+476 Weapon Damage",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+11.0% Critical Strike Chance",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "+4,825 Maximum Life",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Socket (28' Scroll Down",
+   "bullet": "normal",
+   "h": 29
+  },
+  {
+   "text": "Equip",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "s111V•r",
+   "bullet": "none",
+   "h": 9
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "greater",
+   "h": 23
+  },
+  {
+   "text": "CTRL",
+   "bullet": "none",
+   "h": 13
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Mark as Favorite",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "Incapaéltated enemies cannot perform",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "actions due to Daze, Fear, Frozen,",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "Knockdown or Stun.",
+   "bullet": "normal",
+   "h": 20
+  }
+ ]
+}

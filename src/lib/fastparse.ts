@@ -2,6 +2,7 @@
 // Returns null (→ fall back to the LLM labeller) when it isn't confident.
 import { buildTargetNames, cleanStat, matchTarget } from "./parse";
 import { canonicalUnique, identifyAspect, similarity, table, trigramSim } from "./names";
+import { knownStat, knownWord, ocrVocabReady, snapLines } from "./ocrfix";
 import type { Bullet } from "./vision";
 import type { BuildVariant, CompareRow, ParsedAffix, ParsedItem } from "./types";
 
@@ -66,9 +67,10 @@ function finalNameFor(name: string, rarity: string) {
   return rarity === "unique" || rarity === "mythic" ? canonicalUnique(name) ?? name : name;
 }
 
-export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: BuildVariant | undefined): ParsedItem | null {
-  // OCR reads the bullet icons as letters ("o +9.8% Crit…", "0 +4,375 Armor") — strip them
-  const L = lines
+export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: BuildVariant | undefined, opts: { snap?: boolean } = {}): ParsedItem | null {
+  // OCR reads the bullet icons as letters ("o +9.8% Crit…", "0 +4,375 Armor") — strip them;
+  // then fix misread words against the game's own text ("ARIT10R" → "ARMOR")
+  const L = (opts.snap === false ? lines : snapLines(lines))
     .map((l) => ({ ...l, text: l.text.trim().replace(/^(?:[oO0•*◆◇¤✸✷·°]\s*)+(?=[+x\-]?\s*\d)/, "") }))
     .filter((l) => l.text.length > 0);
   const hs = L.map((l) => l.h ?? 0).filter(Boolean).sort((a, b) => a - b);
@@ -120,6 +122,14 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     if (bodyH && L[i].h && L[i].h! < bodyH * 0.85) break;
     nameParts.unshift(L[i].text);
   }
+  // a smaller top line with no game word at all is the character name above the tooltip ("BAZAQ")
+  const words = (t: string) => t.match(/[A-Za-z][A-Za-z'’\-]+/g) ?? [];
+  const nameLines = L.slice(ti - nameParts.length, ti);
+  const titleH = Math.max(...nameLines.map((l) => l.h ?? 0));
+  while (ocrVocabReady() && opts.snap !== false && nameParts.length > 1 && titleH && (nameLines[0].h ?? titleH) < titleH * 0.9 && !words(nameParts[0]).some(knownWord)) {
+    nameParts.shift();
+    nameLines.shift();
+  }
   const rawName = nameParts.join(" ");
   const starMarks = (rawName.match(/[*✸✹✺❋✷]/g) ?? []).length;
   const name = titleCase(rawName.replace(/[*✸✹✺❋✷]/g, ""));
@@ -128,6 +138,7 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   // 3) walk the body. A line WITH a bullet icon starts a new entry; lines without one
   //    (or obvious wraps like "Multiplier", "+22%)", "6 seconds.") continue it.
   const lostStart = L.findIndex((l) => /properties lost when equipped/i.test(l.text));
+  const vocab = opts.snap !== false && ocrVocabReady();
   type Entry = { text: string; bullet: Bullet; lost: boolean };
   const entries: Entry[] = [];
   let lostPower = false;
@@ -167,8 +178,13 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
       /^(multiplier|speed|chance|damage|skills?|seconds?|resistance|generation|reduction)\b/i.test(text) ||
       /^\d+(\.\d+)?\s*(seconds?|second)\b/i.test(text) ||
       (!!prev && /[(,]\s*$/.test(prev.text));
+    // a finished stat line doesn't run on into a fragment that makes it unknown: "+100 Intelligence"
+    // + "Damage" / "ess" (text of the panel behind the tooltip) or + an unbulleted power paragraph
+    const finished =
+      vocab && !deltaTail && /^[+x\-]?\s*\d/.test(prev?.text ?? "") && knownStat(prev!.text) && !knownStat(prev!.text + " " + clean);
+    if (finished && !/\d/.test(clean) && !/\s/.test(clean.trim()) && !knownWord(clean)) continue; // stray fragment: drop it, keep the stat open for its delta
     // a number-led line is always a new stat (icon detection can miss on bright backgrounds)
-    if (prev && !closed && prev.lost === inLost && !numStart && !iconLead && (bullet === "none" || looksWrapped)) {
+    if (prev && !closed && !finished && prev.lost === inLost && !numStart && !iconLead && (bullet === "none" || looksWrapped)) {
       prev.text += " " + clean;
       continue;
     }
@@ -189,7 +205,11 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
       continue;
     }
     const sentence = /\b(deal|deals|grant|grants|gain|gains|your|when|while|chance to|increased|after|every)\b/i.test(t) && t.length > 45;
-    const isPower = /^\W*imprinted:/i.test(t) || (!numStart && (e.bullet === "greater" || sentence || t.length > 70));
+    // no game word at all: text of the panel behind the tooltip ("terials", "Acrurqed Abbot")
+    if (vocab && !numStart && !(t.match(/[A-Za-z][A-Za-z'’\-]+/g) ?? []).some(knownWord)) continue;
+    // with the game's stat lines at hand, prose that isn't one is part of the power paragraph
+    const prose = vocab && !knownStat(t) && (!numStart || /[.,]\s*$/.test(t) || t.split(" ").length > 8);
+    const isPower = /^\W*imprinted:/i.test(t) || (!numStart && (e.bullet === "greater" || sentence || t.length > 70)) || prose;
     if (isPower) {
       if (/^\W*imprinted:/i.test(t)) imprinted = true;
       power.push(t.replace(/^\W*imprinted:\s*/i, ""));

@@ -1,6 +1,7 @@
 // Slug → display-name resolution backed by src/generated/static-slim.json
 // (built from Mobalytics static data by scripts/slim-static.mjs). Falls back to
 // humanising the slug when an entry is missing.
+import { setOcrVocab, type OcrVocabData } from "./ocrfix";
 
 export interface SlimEntry {
   n: string; // name
@@ -41,15 +42,20 @@ type Slim = Record<Category, Record<string, SlimEntry>> & { meta?: Record<string
 let data: Slim | null = null;
 let loading: Promise<void> | null = null;
 
-/** Lazy-load the tables (≈1.7 MB) once; safe to call repeatedly. */
+/** Lazy-load the tables (≈1.7 MB) and the OCR vocabulary once; safe to call repeatedly. */
 export function loadStaticData(): Promise<void> {
-  loading ??= import("../generated/static-slim.json")
-    .then((m) => {
-      data = (m as any).default as Slim;
-    })
-    .catch(() => {
-      data = null;
-    });
+  loading ??= Promise.all([
+    import("../generated/static-slim.json")
+      .then((m) => {
+        data = (m as any).default as Slim;
+      })
+      .catch(() => {
+        data = null;
+      }),
+    import("../generated/ocr-vocab.json")
+      .then((m) => setOcrVocab((m as any).default as OcrVocabData))
+      .catch(() => setOcrVocab(null)),
+  ]).then(() => {});
   return loading;
 }
 

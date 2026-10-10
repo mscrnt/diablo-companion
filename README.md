@@ -62,6 +62,7 @@ Add notes under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) as you go. The ve
 ```
 node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs   # game data tables
 node tools/datamine/extract.mjs --update-defs                             # strings from local game files (after a patch)
+node scripts/gen-ocr-vocab.mjs                                            # OCR vocabulary (needs both of the above)
 ```
 `research/` holds the S15 farming knowledge and timer source notes used by the app.
 
