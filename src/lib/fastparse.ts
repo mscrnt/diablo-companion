@@ -1,8 +1,8 @@
 // Instant tooltip parser: OCR lines + bullet-icon colours + rules. No LLM.
 // Returns null (→ fall back to the LLM labeller) when it isn't confident.
 import { buildTargetNames, cleanStat, matchTarget } from "./parse";
-import { canonicalUnique, identifyAspect, similarity, table, trigramSim } from "./names";
-import { knownStat, knownWord, ocrVocabReady, snapLines } from "./ocrfix";
+import { aspectFromItemName, canonicalUnique, identifyAspect, similarity, table, trigramSim } from "./names";
+import { confusionKey, editDistance, knownStat, knownWord, ocrVocabReady, sheetLabel, snapLines } from "./ocrfix";
 import type { Bullet } from "./vision";
 import type { BuildVariant, CompareRow, ParsedAffix, ParsedItem } from "./types";
 
@@ -11,11 +11,31 @@ export interface FastLine {
   bullet: Bullet;
   /** OCR line height (px) — the item name uses a bigger font */
   h?: number;
+  /** OCR line box (capture px), when known: text of a panel behind the tooltip sits in another column */
+  x?: number;
+  y?: number;
+  w?: number;
 }
 
 const JUNK = /^(equipped|slot transmog.*|n slot|character|scroll down|.{0,2})$/i;
 const FOOTER =
-  /item power|^\d+\s*\(.*\)\s*quality|quality$|requires level|account bound|sell value|durability|tempers:|^equip$|^drop$|^\+?\s*drop$|^\+?\s*link$|ctrl|shift|hide comparison|mark as|scroll down|lord of hatred item|^legendary power$|^unique power$|^\W*legendary power|^\W*unique power|^socket|empty socket|^!?\s*[\d,]{6,}$/i;
+  /item power|^\d+\s*\(.*\)\s*quality|quality$|requires level|account bound|sell value|durability|tempers:|^equip$|^drop$|^\+?\s*drop$|^\+?\s*link$|^\W*link$|^\W*unequip$|^\W*unmark\b|ctrl|shift|hide comparison|mark as|scroll down|lord of hatred item|^legendary power$|^unique power$|^\W*legendary power|^\W*unique power|^socket|empty socket|^!?\s*[\d,]{6,}$/i;
+/** The bottom of the tooltip: nothing after these is part of the item (key hints, glossary popups). */
+const END = /requires level|sell value|tempers:|account bound/i;
+/** A number on its own: a Character panel value ("4,574", "V 977,620", "2,7Q"), never an item line. */
+const BARE_NUMBER = /^[A-WYZa-wyz]?\s*\d[\d,.]*\s*[A-Za-z]?$/;
+
+const UNEQUIP_KEY = confusionKey("unequip");
+/**
+ * The footer hint "Unequip": the game only offers it on an item you're wearing, which is how
+ * a tooltip opened from the Character panel shows (it has no EQUIPPED header). Items in your
+ * bags say "Equip"; ground, vendor and stash items show neither.
+ */
+export function isUnequipLine(text: string): boolean {
+  const t = text.trim().replace(/^[^A-Za-z]+/, "").replace(/[^A-Za-z0-9|!]+$/, "");
+  if (!/^u/i.test(t) || /\s\S*\s/.test(t)) return false;
+  return editDistance(confusionKey(t.replace(/\s+/g, "")), UNEQUIP_KEY, 1) <= 1;
+}
 const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b/i;
 const SLOT_NOUN =
   /\b(helm|headgear|head|chest armor|chest|gloves|pants|boots|amulet|ring|scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|charm|seal|two-handed|one-handed)\b/i;
@@ -112,19 +132,39 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     typeLine += " " + L[ti + 1].text;
     after = ti + 2;
   }
+  const vocab = opts.snap !== false && ocrVocabReady();
+
+  // Text of the panel behind the tooltip (the Character panel's stats, its section headers)
+  // gets mixed into the lines. With line boxes it sits outside the tooltip's own column:
+  // left of its text margin (cut off by the tooltip's edge) or right of it.
+  const panel = new Set<number>();
+  const anchors = L.filter((l, i) => l.x != null && l.w != null && (i === ti || /item power|requires level|sell value|tempers:/i.test(l.text) || (STAT_START.test(l.text) && (!vocab || knownStat(l.text)))));
+  if (anchors.length >= 2) {
+    const left = Math.min(...anchors.map((l) => l.x!));
+    const right = Math.max(...anchors.map((l) => l.x! + l.w!));
+    const slack = (bodyH || 20) / 2;
+    L.forEach((l, i) => {
+      if (l.x != null && l.w != null && (l.x + l.w < left + slack || l.x > right - slack)) panel.add(i);
+    });
+  }
+  // without boxes (or as well): its labels on their own line are known words ("Toughness", "Stats & Material")
+  if (vocab) L.forEach((l, i) => i !== ti && sheetLabel(l.text) && panel.add(i));
 
   // 2) name: the lines just above the type line (skip header junk); trailing ✸ marks = greater-affix count
   const nameParts: string[] = [];
+  const nameLines: FastLine[] = [];
   for (let i = ti - 1; i >= 0 && nameParts.length < 3; i--) {
     if (JUNK.test(L[i].text) || /slot|transmog|equipped|character/i.test(L[i].text)) break;
+    // a panel label between the two lines of a long title ("OCELOT'S EYE OF" / "Stats & Material" / "REANIMATION")
+    if (panel.has(i)) continue;
     // the title font is clearly bigger than body text; small lines above it are UI (character name…)
     // all-caps title lines measure about body height; small UI text (character name) is clearly shorter
     if (bodyH && L[i].h && L[i].h! < bodyH * 0.85) break;
     nameParts.unshift(L[i].text);
+    nameLines.unshift(L[i]);
   }
   // a smaller top line with no game word at all is the character name above the tooltip ("BAZAQ")
   const words = (t: string) => t.match(/[A-Za-z][A-Za-z'’\-]+/g) ?? [];
-  const nameLines = L.slice(ti - nameParts.length, ti);
   const titleH = Math.max(...nameLines.map((l) => l.h ?? 0));
   while (ocrVocabReady() && opts.snap !== false && nameParts.length > 1 && titleH && (nameLines[0].h ?? titleH) < titleH * 0.9 && !words(nameParts[0]).some(knownWord)) {
     nameParts.shift();
@@ -138,7 +178,6 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   // 3) walk the body. A line WITH a bullet icon starts a new entry; lines without one
   //    (or obvious wraps like "Multiplier", "+22%)", "6 seconds.") continue it.
   const lostStart = L.findIndex((l) => /properties lost when equipped/i.test(l.text));
-  const vocab = opts.snap !== false && ocrVocabReady();
   type Entry = { text: string; bullet: Bullet; lost: boolean };
   const entries: Entry[] = [];
   let lostPower = false;
@@ -152,6 +191,8 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
       closed = true;
       continue;
     }
+    // the panel behind the tooltip: its labels and values, and specks of icon text ("S111vr")
+    if (panel.has(i) || BARE_NUMBER.test(text) || (bodyH && L[i].h && L[i].h! < bodyH * 0.55)) continue;
     // weapon base lines (DPS / damage per hit / attacks per second) aren't affixes
     if (/damage per second|damage per hit|attacks per second/i.test(text)) {
       closed = true;
@@ -163,6 +204,8 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
         lostPowerKind = /unique/i.test(text) ? "unique" : "legendary";
       }
       if (inLost) break; // footer ends the "lost" block and the useful part of the tooltip
+      // below "Requires Level" / "Sell Value" come key hints ("Unequip", "Unmark Item") and keyword popups
+      if (END.test(text)) break;
       closed = true;
       continue;
     }
@@ -245,9 +288,12 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   const rarity0 = /mythic/.test(tl) ? "mythic" : /unique/.test(tl) ? "unique" : /legendary/.test(tl) ? "legendary" : /\brare\b/.test(tl) ? "rare" : /magic/.test(tl) ? "magic" : "common";
   const rarity = rarity0;
   const powerText = power.join(" ").replace(/\s+/g, " ").trim();
+  // the power text names the aspect; when it's garbled or cut short, the item's name does
+  // ("Ocelot's Eye of Reanimation" → Aspect of Reanimation)
+  const nameAspect = rarity === "legendary" ? aspectFromItemName(name) : null;
   const legendaryName =
     rarity === "legendary"
-      ? identifyAspect(powerText) ?? (/ of /i.test(name) ? `Aspect ${name.slice(name.toLowerCase().lastIndexOf(" of ")).trim()}` : "")
+      ? identifyAspect(powerText) ?? nameAspect ?? (/ of /i.test(name) ? `Aspect ${name.slice(name.toLowerCase().lastIndexOf(" of ")).trim()}` : "")
       : "";
   const all = L.map((l) => l.text).join(" ");
   const tempers = all.match(/tempers:\s*(\d)\s*\/\s*(\d)/i);
@@ -303,10 +349,11 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     itemPower: Number(all.match(/(\d{3,4})\s*item power/i)?.[1] ?? 0) || null,
     ancestral: /ancestral/i.test(typeLine),
     affixes,
-    aspect: power.length ? { name: legendaryName, text: powerText, imprinted } : null,
+    aspect: power.length ? { name: legendaryName, text: powerText, imprinted } : nameAspect ? { name: nameAspect, text: "" } : null,
     sockets: L.filter((l) => /socket/i.test(l.text)).length,
     rawText: L.map((l) => l.text).join("\n"),
-    equipped: equippedLabel,
+    // opened from the Character panel there's no EQUIPPED header, but the footer offers "Unequip"
+    equipped: equippedLabel || L.some((l, i) => i > ti && isUnequipLine(l.text)),
     truncated: L.some((l) => /scroll down/i.test(l.text)),
     category,
     tempersUsed: tempers ? Number(tempers[1]) : undefined,

@@ -60,10 +60,10 @@ export interface TooltipText {
   lines: string[];
   /** cropped image of this tooltip (base64 jpeg) */
   image: string;
-  /** deterministic: the tooltip says "Equipped" */
+  /** deterministic: the tooltip says "Equipped" (or its footer offers "Unequip") */
   equipped: boolean;
-  /** OCR lines + bullet icon class, for the instant (no-LLM) parser */
-  fast?: { text: string; bullet: import("./vision").Bullet }[];
+  /** OCR lines + bullet icon class (+ height and box), for the instant (no-LLM) parser */
+  fast?: import("./fastparse").FastLine[];
 }
 
 export interface ParseDebug {

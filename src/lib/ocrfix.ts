@@ -165,6 +165,10 @@ function fixWord(w: string): string | null {
   // 1) only OCR confusions differ ("Thoms" = thorns, "ARIT10R" = armor): safe
   const k = confusionKey(w);
   let hit = V.byKey.get(k) ?? null;
+  // small-caps M can also come back as "IITI" ("DOIITIINANCE"); when an I precedes the M,
+  // "REANIITIATION" is I + "ITI" and the key above already matches
+  const iiti = /[il1|]{2}t[il1|]/gi;
+  if (!hit && !V.byKey.has(k) && iiti.test(w)) hit = V.byKey.get(confusionKey(w.replace(iiti, "m"))) ?? null;
   // 2) clearly garbled words may also be one real edit away ("Reduc!ion", "IntelligenceÄ")
   if (!hit && !V.byKey.has(k) && garbled(w) && k.length >= 5) {
     let n = 0;
@@ -303,6 +307,28 @@ export function snapLines<T extends { text: string }>(lines: T[]): T[] {
     const text = snapLine(l.text);
     return text === l.text ? l : { ...l, text };
   });
+}
+
+/**
+ * Is this line a label of the Character panel showing behind a tooltip ("Toughness",
+ * "Stats & Material", "Weapon Dama" cut off by the tooltip's edge)? Only whole lines
+ * without numbers in Title Case count: power text that wraps reads like a sentence.
+ */
+export function sheetLabel(text: string): boolean {
+  if (!V) return false;
+  const t = text.trim();
+  if (/\d/.test(t) || /[.,:;!?)]$/.test(t)) return false;
+  const ws = t.match(/[A-Za-z][A-Za-z'’\-]*/g) ?? [];
+  if (!ws.length || ws.length > 5 || !ws.every((w) => /^[A-Z]/.test(w) || SMALL.has(w.toLowerCase()))) return false;
+  // item titles are ALL CAPS ("ARMOR", "OF HEAVENLY STRENGTH"); panel labels are Title Case
+  if (!ws.some((w) => /[a-z]/.test(w.slice(1)))) return false;
+  if (sheetName(t)) return true;
+  // the start of a label, its last word cut short ("Weapon Dama" for Weapon Damage)
+  const sk = skeleton(t);
+  const last = sk.split(" ").pop() ?? "";
+  if (sk.length < 6 || last.length < 3 || V.words.has(last)) return false;
+  for (const k of V.sheet.keys()) if (k.length > sk.length && k.startsWith(sk)) return true;
+  return false;
 }
 
 /** Character sheet: the stat / currency / header a label names, matched strictly. */

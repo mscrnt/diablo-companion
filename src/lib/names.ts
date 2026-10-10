@@ -162,6 +162,40 @@ export function identifyAspect(powerText: string, className?: string): string | 
   return bestS >= 0.55 ? best : null;
 }
 
+/**
+ * The aspect a legendary's name points to: "Ocelot's Eye of Reanimation" → Aspect of
+ * Reanimation, "Skullbreaker's Helm" → Skullbreaker's Aspect. Only real aspects from the
+ * game data count (a name suffix with no aspect behind it returns null), and only one
+ * clear best match: used when the power text is too garbled to identify.
+ */
+export function aspectFromItemName(itemName: string, className?: string): string | null {
+  const name = normName(itemName);
+  if (name.split(" ").length < 2) return null;
+  const cut = name.lastIndexOf(" of ");
+  const suffix = cut >= 0 ? name.slice(cut + 4) : "";
+  let best: string | null = null;
+  let bestS = 0;
+  let tie = false;
+  for (const a of Object.values(table("aspects"))) {
+    if (a.x) continue;
+    if (className && a.c && a.c !== className.toLowerCase()) continue;
+    const an = normName(a.n);
+    let s = 0;
+    if (an.startsWith("aspect of ")) {
+      if (suffix) s = trigramSim(suffix, an.slice(10));
+    } else if (an.endsWith(" aspect")) {
+      const pre = an.slice(0, -7);
+      if (name.startsWith(pre + " ")) s = 0.8 + pre.length / 1000; // longest prefix wins
+    }
+    if (s > bestS + 1e-9) {
+      bestS = s;
+      best = a.n;
+      tie = false;
+    } else if (Math.abs(s - bestS) < 1e-9 && a.n !== best) tie = true;
+  }
+  return best && !tie && bestS >= 0.8 ? best : null;
+}
+
 /** Character-trigram Dice similarity — robust to OCR letter swaps ("Reaniitiation"). */
 export function trigramSim(a: string, b: string): number {
   const grams = (s: string) => {

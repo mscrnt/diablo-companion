@@ -1,0 +1,313 @@
+{
+ "source": "2026-10-10T22-05-45-759Z_f5f5fd.json",
+ "ocr": [
+  "ZORVAK",
+  "LION'S EYE OF",
+  "REANITTIATION",
+  "Legendary Amulet",
+  "850 Item Power",
+  "25 • +25 Quality",
+  "196 All Resist (-6.9% Toughness)",
+  "+180 Intelligence (-39)",
+  "+2,056 Maximum Life (-1,521)",
+  "+12.5% Critical Strike Chance (+3.5%)",
+  "+3 to Darkness Skills (+3)",
+  "* Imprinted: Your Summons gain",
+  "increased damage while alive, up to",
+  "113% after 10 seconds.",
+  "+250 Resistance to All Elements",
+  "Properties lost when equipped:",
+  "x44% Critical Strike Damage",
+  "Multiplier",
+  "+33.8% Summon Damage",
+  "Requires Level 70",
+  "Account Bound",
+  "Sell Value: 60,142 •",
+  "Tempers: 3/3",
+  "Equip",
+  "s111V•r",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison",
+  "Unmark Item"
+ ],
+ "lines": [
+  {
+   "text": "ZORVAK",
+   "bullet": "none",
+   "h": 21
+  },
+  {
+   "text": "LION'S EYE OF",
+   "bullet": "greater",
+   "h": 25
+  },
+  {
+   "text": "REANITTIATION",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Legendary Amulet",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "850 Item Power",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "25 • +25 Quality",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "196 All Resist (-6.9% Toughness)",
+   "bullet": "normal",
+   "h": 29
+  },
+  {
+   "text": "+180 Intelligence (-39)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+2,056 Maximum Life (-1,521)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+12.5% Critical Strike Chance (+3.5%)",
+   "bullet": "masterwork",
+   "h": 24
+  },
+  {
+   "text": "+3 to Darkness Skills (+3)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "* Imprinted: Your Summons gain",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "increased damage while alive, up to",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "113% after 10 seconds.",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "+250 Resistance to All Elements",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "x44% Critical Strike Damage",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Multiplier",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "+33.8% Summon Damage",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "Account Bound",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Sell Value: 60,142 •",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Tempers: 3/3",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "Equip",
+   "bullet": "greater",
+   "h": 24
+  },
+  {
+   "text": "s111V•r",
+   "bullet": "normal",
+   "h": 9
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "CTRL",
+   "bullet": "normal",
+   "h": 13
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Unmark Item",
+   "bullet": "normal",
+   "h": 20
+  }
+ ],
+ "equipped": {
+  "ocr": [
+   "EQUIPPED",
+   "OCELOT'S EYE OF",
+   "REANIITIATION",
+   "Ancestral Legendary Amulet",
+   "900 Item Power",
+   "25 • +25 Quality",
+   "288 All Resist",
+   "+219 Intelligence",
+   "+3,577 Maximum Life",
+   "+9.0% Critical Strike Chance",
+   "x44% Critical Strike Damage",
+   "Multiplier",
+   "+33.8% Summon Damage",
+   "Imprinted: Your Summons gain",
+   "increased damage while alive, up to",
+   "122% after 10 seconds.",
+   "+250 Resistance to All Elements",
+   "Requires Level 70",
+   "Account Bound",
+   "Sell Value: 64,366 •",
+   "Tempers: 3/3"
+  ],
+  "lines": [
+   {
+    "text": "EQUIPPED",
+    "bullet": "normal",
+    "h": 24
+   },
+   {
+    "text": "OCELOT'S EYE OF",
+    "bullet": "greater",
+    "h": 25
+   },
+   {
+    "text": "REANIITIATION",
+    "bullet": "normal",
+    "h": 25
+   },
+   {
+    "text": "Ancestral Legendary Amulet",
+    "bullet": "normal",
+    "h": 25
+   },
+   {
+    "text": "900 Item Power",
+    "bullet": "normal",
+    "h": 19
+   },
+   {
+    "text": "25 • +25 Quality",
+    "bullet": "normal",
+    "h": 25
+   },
+   {
+    "text": "288 All Resist",
+    "bullet": "normal",
+    "h": 23
+   },
+   {
+    "text": "+219 Intelligence",
+    "bullet": "normal",
+    "h": 25
+   },
+   {
+    "text": "+3,577 Maximum Life",
+    "bullet": "masterwork",
+    "h": 24
+   },
+   {
+    "text": "+9.0% Critical Strike Chance",
+    "bullet": "normal",
+    "h": 20
+   },
+   {
+    "text": "x44% Critical Strike Damage",
+    "bullet": "enchanted",
+    "h": 25
+   },
+   {
+    "text": "Multiplier",
+    "bullet": "none",
+    "h": 24
+   },
+   {
+    "text": "+33.8% Summon Damage",
+    "bullet": "normal",
+    "h": 24
+   },
+   {
+    "text": "Imprinted: Your Summons gain",
+    "bullet": "normal",
+    "h": 25
+   },
+   {
+    "text": "increased damage while alive, up to",
+    "bullet": "none",
+    "h": 25
+   },
+   {
+    "text": "122% after 10 seconds.",
+    "bullet": "none",
+    "h": 20
+   },
+   {
+    "text": "+250 Resistance to All Elements",
+    "bullet": "normal",
+    "h": 20
+   },
+   {
+    "text": "Requires Level 70",
+    "bullet": "none",
+    "h": 23
+   },
+   {
+    "text": "Account Bound",
+    "bullet": "none",
+    "h": 18
+   },
+   {
+    "text": "Sell Value: 64,366 •",
+    "bullet": "none",
+    "h": 24
+   },
+   {
+    "text": "Tempers: 3/3",
+    "bullet": "none",
+    "h": 23
+   }
+  ]
+ }
+}

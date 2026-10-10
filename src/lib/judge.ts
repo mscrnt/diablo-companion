@@ -2,6 +2,7 @@
 // for the active build variant.
 import { Archive, Box, CircleHelp, Coins, Gem, Hammer, ShieldCheck, Shirt, Sparkles, ThumbsUp, type LucideIcon } from "lucide-react";
 import { normName, similarity, trigramSim } from "./names";
+import { knownWord, ocrVocabReady } from "./ocrfix";
 import type { BuildVariant, GearSlot, JudgeResult, ParsedItem, SlotProgress, Verdict } from "./types";
 
 // ---- decision -------------------------------------------------------------------
@@ -86,9 +87,48 @@ export interface Ctx {
   worn?: (slot: string) => ParsedItem | undefined;
   /** Horadric Cube recipe that can turn a white base into a build unique */
   cubeHint?: (slot: GearSlot) => { recipe: string; baseType: string; pool: string[] } | undefined;
+  /** the aspect (by slug) is already in your Codex of Power (Collection page) */
+  inCodex?: (slug: string) => boolean;
 }
 
 type Out = Omit<JudgeResult, "id" | "at" | "ms" | "thumb">;
+
+/** "a", "a and b", "a, b and c" */
+const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+/** How to call a worn item: its name, or its aspect when OCR garbled the name ("Eceues S Ef"). */
+function itemLabel(it: ParsedItem): string {
+  const ws = it.name.match(/[A-Za-z][A-Za-z'’\-]+/g) ?? [];
+  const readable = ws.length > 0 && (!ocrVocabReady() || ws.filter(knownWord).length >= Math.ceil(ws.length / 2));
+  return readable || !it.aspect?.name ? it.name : it.aspect.name;
+}
+
+/** The first number of each affix ("+3,577 Maximum Life" → "3577"), for telling two copies apart. */
+const affixNumbers = (it: ParsedItem) =>
+  it.affixes.map((a) => a.text.match(/\d[\d,]*(\.\d+)?/)?.[0].replace(/,/g, "").replace(/\.0+$/, "")).filter((n): n is string => !!n);
+
+/**
+ * Is this unequipped tooltip the item you wear in that slot? Same name or aspect, same
+ * item power and (nearly) the same affix values: the Character panel's tooltip, read once
+ * without its "EQUIPPED" header / "Unequip" hint. OCR may drop or garble a line or two.
+ */
+export function sameAsWorn(item: ParsedItem, worn: ParsedItem): boolean {
+  const named = (!!normName(item.name) && normName(item.name) === normName(worn.name)) || (!!item.aspect?.name && !!worn.aspect?.name && normName(item.aspect.name) === normName(worn.aspect.name));
+  if (!named || item.slot !== worn.slot) return false;
+  if (item.itemPower && worn.itemPower && item.itemPower !== worn.itemPower) return false;
+  const a = affixNumbers(item);
+  const b = affixNumbers(worn);
+  let common = 0;
+  const rest = [...b];
+  for (const n of a) {
+    const k = rest.indexOf(n);
+    if (k >= 0) {
+      common++;
+      rest.splice(k, 1);
+    }
+  }
+  return common >= 3 && common >= 0.7 * Math.max(a.length, b.length);
+}
 
 /**
  * The to-do list for an item you wear (or are about to): Occultist imprint/enchant,
@@ -140,26 +180,64 @@ function out(item: ParsedItem, verdict: Verdict, action: string, reasons: string
 
 const rarityOf = (i: ParsedItem) => (i.rarity ?? "").toLowerCase();
 
-/** What to do with an item you're NOT going to wear. */
-function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSlot | null, q?: Quality): Out {
+/**
+ * What makes yours better, in words: "Yours (Ocelot's Eye of Reanimation) has Crit Chance and
+ * Summon Damage; this has neither." With nothing on record for the slot: what the build wants there.
+ */
+function betterLine(item: ParsedItem, slot: GearSlot, q: Quality, worn: ParsedItem | null, wornQ: Quality | null): string {
+  if (worn && wornQ) {
+    // an item rebuilt from the comparison view (rarity "unknown") has no name of its own;
+    // a worn piece you hovered (or the EQUIPPED column) has its real name
+    const named = worn.rarity === "unknown" || /^your equipped item$/i.test(worn.name) ? "" : ` (${itemLabel(worn)})`;
+    const yours = `Yours${named}`;
+    const extra = wornQ.matched.filter((m) => !q.matched.includes(m)).map(shortStat);
+    if (extra.length) return `${yours} has ${list(extra)}; this ${extra.length === 1 ? "doesn't" : extra.length === 2 ? "has neither" : "has none of them"}.`;
+    if (wornQ.isTarget && !q.isTarget)
+      return slot.kind === "aspect"
+        ? `${yours} has ${slot.itemName}, the power your build wants on your ${slot.slotLabel}; this doesn't.`
+        : `Yours is ${slot.itemName}, the unique your build wants on your ${slot.slotLabel}.`;
+    if (wornQ.greater > q.greater) return `${yours} has ${wornQ.greater}★ greater affixes on wanted stats; this has ${q.greater || "none"}.`;
+    if (worn.itemPower && item.itemPower && worn.itemPower > item.itemPower) return `${yours} has higher item power (${worn.itemPower} vs ${item.itemPower}).`;
+    const same = q.matched.map(shortStat);
+    return same.length ? `Same wanted stats as yours${named}: ${list(same)} — nothing to gain by swapping.` : `Neither has the stats your build wants on your ${slot.slotLabel}; keep yours${named}.`;
+  }
+  const want = [...slot.implicits, ...slot.affixes].map((t) => shortStat(t.name));
+  if (!want.length) return `Your ${slot.slotLabel} should be ${slot.itemName}.`;
+  const have = q.matched.map(shortStat);
+  return `For your ${slot.slotLabel} your build wants ${list(want)}; this has ${have.length ? "only " + list(have) : "none of them"}.`;
+}
+
+/**
+ * What to do with an item you're NOT going to wear. `better` says what beats it (any scrap/sell
+ * verdict for a slot the build uses must say why and what's better).
+ */
+function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSlot | null, q?: Quality, ctx?: Ctx, better?: string): Out {
   const r = rarityOf(item);
-  // an imprinted power came from your Codex already — salvaging it adds nothing new
-  const buildAspect =
-    !item.aspect?.imprinted &&
-    item.aspect?.name &&
-    gear.find((g) => g.kind === "aspect" && (sameItem(item.aspect!.name, g.itemName) || similarity(item.aspect!.name, g.itemName) > 0.75));
+  const reasons = better && !why.includes(better) ? [...why, better] : why;
+  const buildAspect = item.aspect?.name
+    ? gear.find((g) => g.kind === "aspect" && (sameItem(item.aspect!.name, g.itemName) || similarity(item.aspect!.name, g.itemName) > 0.75))
+    : undefined;
   if (r === "mythic") return out(item, "STASH", "Stash it — mythics are rare; keep it for other builds.", why, slot, q);
-  if (buildAspect)
-    return out(
-      item,
-      "EXTRACT",
-      `Salvage it at the Blacksmith — that saves "${buildAspect.itemName}" to your Codex (keeps the bigger roll). Imprint it later at the Occultist.`,
-      [...why, `Your build uses this power on your ${buildAspect.slotLabel}.`],
-      slot,
-      q,
-    );
-  if (r === "legendary" || r === "unique") return out(item, "SCRAP", "Scrap it at the Blacksmith (Salvage) for materials.", why, slot, q);
-  return out(item, "SELL", "Sell it to any vendor (or scrap it).", why, slot, q);
+  const notes: string[] = [];
+  if (buildAspect && item.aspect?.imprinted) {
+    // an imprinted power came from your Codex already — salvaging it adds nothing new
+    notes.push(`Its ${buildAspect.itemName} is imprinted (it came from your Codex), so salvaging it saves nothing new.`);
+  } else if (buildAspect) {
+    // already in the Codex: salvaging only helps when the game says it would upgrade it
+    const upgrades = /upgrades an aspect/i.test(item.rawText ?? "");
+    if (!ctx?.inCodex?.(buildAspect.itemSlug) || upgrades)
+      return out(
+        item,
+        "EXTRACT",
+        `Salvage it at the Blacksmith — that saves "${buildAspect.itemName}" to your Codex (keeps the bigger roll). Imprint it later at the Occultist.`,
+        [...why, `Your build uses this power on your ${buildAspect.slotLabel}.`],
+        slot,
+        q,
+      );
+    notes.push(`Your Codex already has ${buildAspect.itemName}, and this roll doesn't upgrade it.`);
+  }
+  if (r === "legendary" || r === "unique") return out(item, "SCRAP", "Scrap it at the Blacksmith (Salvage) for materials.", [...reasons, ...notes], slot, q);
+  return out(item, "SELL", "Sell it to any vendor (or scrap it).", [...reasons, ...notes], slot, q);
 }
 
 export function decide(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ctx, compareTo?: ParsedItem | null): Out {
@@ -198,6 +276,17 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined): Out
   return out(item, "STASH", "Not gear — use it or keep it; nothing to judge here.", [], null);
 }
 
+/** An item you wear in a build slot: how it measures up and its to-do list (never a scrap verdict). */
+function wearing(item: ParsedItem, slot: GearSlot, ctx: Ctx, lead?: string): Out {
+  const q = quality(item, slot);
+  const tips: string[] = lead ? [lead] : [];
+  if (!q.isTarget) tips.push(`Your build wants ${slot.itemName} here — this is a stand-in.`);
+  tips.push(`${q.matched.length} of ${q.total} stats your build wants${q.greater ? `, ${q.greater} are ★ greater` : ""}.`);
+  const steps = upkeep(item, slot, q, ctx.prog(slot.slot), true);
+  const action = steps.length ? steps[0] : "Fully done — nothing left to improve here.";
+  return { ...out(item, "WEARING", action, tips, slot, q), steps };
+}
+
 function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ctx, compareTo?: ParsedItem | null): Out {
   if (item.category && item.category !== "gear") return decideNonGear(item, variant);
   if (!variant) return out(item, "UNKNOWN", "Import your build first (Build page).", [], null);
@@ -212,22 +301,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
       (SLOT_MAP[item.slot] ?? []).map((k) => gear.find((g) => g.slot === k)).find(Boolean) ??
       null;
     if (!slot) return out(item, "WEARING", "You're wearing this — this slot isn't part of your build.", [], null);
-    const q = quality(item, slot);
-    const tips: string[] = [];
-    if (!q.isTarget) tips.push(`Your build wants ${slot.itemName} here — this is a stand-in.`);
-    tips.push(`${q.matched.length} of ${q.total} stats your build wants${q.greater ? `, ${q.greater} are ★ greater` : ""}.`);
-    let action = "Good as is.";
-    if (q.missing.length) {
-      const bad = item.affixes.find((a) => !a.match && !/armor|all resist/i.test(a.text));
-      action = bad ? `Occultist: change "${cleanAffix(bad.text)}" into ${shortStat(q.missing[0])}.` : `Occultist: enchant one stat into ${shortStat(q.missing[0])}.`;
-    } else {
-      const mw = slot.affixes.find((a) => a.masterwork);
-      if (mw) action = `Masterwork it — aim the crits at ${shortStat(mw.name)}.`;
-    }
-    const steps = upkeep(item, slot, q, ctx.prog(slot.slot), true);
-    if (steps.length) action = steps[0];
-    else action = "Fully done — nothing left to improve here.";
-    return { ...out(item, "WEARING", action, tips, slot, q), steps };
+    return wearing(item, slot, ctx);
   }
 
   // ---- white base that the cube turns into a build unique ----
@@ -260,18 +334,27 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     const want = candidates.filter((g) => (item.compareKind === "unique") === (g.kind === "unique" || g.kind === "mythic"));
     if (want.length) candidates = want;
   }
-  if (!candidates.length) return dispose(item, gear, ["Your build doesn't use this kind of item."], null);
+  if (!candidates.length) return dispose(item, gear, ["Your build doesn't use this kind of item."], null, undefined, ctx);
+
+  // the same name/aspect and stat values as what you wear there: it IS your item, opened from the
+  // Character panel without its "EQUIPPED" header (the game never compares an item with itself)
+  if (!compareTo && !item.compareRows?.length)
+    for (const c of candidates) {
+      const w = ctx.worn?.(c.slot);
+      if (w && sameAsWorn(item, w)) return wearing(item, c, ctx, `This looks like the one you're wearing (your ${c.slotLabel}).`);
+    }
 
   // pick the slot where it would help most (matters for rings)
-  let best: { slot: GearSlot; q: Quality; gain: number; wornQ: Quality | null } | null = null;
+  let best: { slot: GearSlot; q: Quality; gain: number; w: ParsedItem | null; wornQ: Quality | null } | null = null;
   for (const c of candidates) {
     const q = quality(item, c);
     const w = (compareTo && compareTo.slot === item.slot ? compareTo : null) ?? ctx.worn?.(c.slot) ?? null;
     const wornQ = w ? quality(w, c) : null;
     const gain = q.q - (wornQ?.q ?? -1);
-    if (!best || gain > best.gain) best = { slot: c, q, gain, wornQ };
+    if (!best || gain > best.gain) best = { slot: c, q, gain, w, wornQ };
   }
-  const { slot, q, wornQ } = best!;
+  const { slot, q, w, wornQ } = best!;
+  const better = betterLine(item, slot, q, w, wornQ);
   const p = ctx.prog(slot.slot);
   const hasStr = (x: Quality) => `${x.matched.length} of ${x.total} wanted stats${x.greater ? ` (${x.greater}★)` : ""}`;
 
@@ -284,7 +367,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   if (slotIsUnique && !q.isTarget) {
     if (wornQ && !wornQ.isTarget && q.q > wornQ.q + 0.4)
       return out(item, "WEAR", `Wear this for now — better than your current ${slot.slotLabel} until you find ${slot.itemName}.`, [`This: ${hasStr(q)}. Yours: ${hasStr(wornQ)}.`], slot, q);
-    return dispose(item, gear, [`Your ${slot.slotLabel} should be ${slot.itemName}.`], slot, q);
+    return dispose(item, gear, [`Your ${slot.slotLabel} should be ${slot.itemName}.`], slot, q, ctx, w ? better : undefined);
   }
 
   // The game showed a comparison: use the real numbers, stat by stat (only this slot's wanted stats count)
@@ -319,12 +402,13 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
       const extra = slot.kind === "aspect" && !q.isTarget ? ` Then put "${slot.itemName}" on it at the Occultist.` : "";
       return out(item, "WEAR", `Wear this — better than yours for your build.${extra}`, top.length ? top : [`This: ${hasStr(q)}.`], slot, q);
     }
-    return dispose(item, gear, [score <= -0.5 ? "Yours is better:" : "About the same as yours — not worth swapping:", ...top], slot, q);
+    if (!top.length) return dispose(item, gear, ["About the same as yours — not worth swapping."], slot, q, ctx, better);
+    return dispose(item, gear, [score <= -0.5 ? "Yours is better:" : "About the same as yours — not worth swapping:", ...top], slot, q, ctx);
   }
 
   // compare against what you're wearing
   if (wornQ) {
-    const wornItem = ctx.worn?.(slot.slot);
+    const wornItem = ctx.worn?.(slot.slot) ?? w;
     const myIp = item.itemPower ?? 0;
     const theirIp = wornItem?.itemPower ?? 0;
     const lowerIp = myIp > 0 && theirIp > 0 && theirIp - myIp >= 25;
@@ -338,9 +422,9 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
       if (lowerIp) why.push(`Lower item power than yours (${myIp} vs ${theirIp}).`);
       return out(item, "WEAR", `Wear this — it's better than yours.${extra}`, why, slot, q);
     }
-    const why = [`Keep yours — it's as good or better (${hasStr(wornQ)} vs ${hasStr(q)}).`];
-    if (lowerIp) why.push(`It also has lower item power (${myIp} vs ${theirIp}).`);
-    return dispose(item, gear, why, slot, q);
+    const why = [better, `Wanted stats: yours ${hasStr(wornQ)}, this ${hasStr(q)}.`];
+    if (lowerIp && !/item power/.test(better)) why.push(`It also has lower item power (${myIp} vs ${theirIp}).`);
+    return dispose(item, gear, why, slot, q, ctx);
   }
 
   // no idea what you're wearing yet: judge on its own
@@ -348,7 +432,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     const extra = slot.kind === "aspect" && !q.isTarget ? ` Put "${slot.itemName}" on it at the Occultist.` : "";
     return out(item, "WEAR", `Probably wear this — great stats for your ${slot.slotLabel}.${extra}`, [`Has ${hasStr(q)}.`, "Hover your equipped piece once so I can compare exactly."], slot, q);
   }
-  return dispose(item, gear, [`Only ${hasStr(q)} for your ${slot.slotLabel}.`], slot, q);
+  return dispose(item, gear, [`Only ${hasStr(q)} for your ${slot.slotLabel}.`], slot, q, ctx, better);
 }
 
 /** Back-compat wrapper. */

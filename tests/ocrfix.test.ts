@@ -16,6 +16,8 @@ describe("snapLine fixes misreads from the judge log", () => {
     ["ARIT10R", "ARMOR"],
     ["DOTTIINANCE", "DOMINANCE"],
     ["REANITTIATION", "REANIMATION"],
+    ["REANIITIATION", "REANIMATION"],
+    ["DOIITIINANCE", "DOMINANCE"],
     ["COTTIPOUND", "COMPOUND"],
     ["SHAmANlSTlC", "SHAMANISTIC"],
     ["+1,145 Thoms", "+1,145 Thorns"],

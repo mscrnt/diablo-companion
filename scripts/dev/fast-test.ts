@@ -10,8 +10,9 @@ import raw from "../../src/seed/necromancer-mages-necro-guide.json";
 await loadStaticData();
 const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
 const dir = process.env.LOCALAPPDATA + "/com.kenneth.d4companion/logs/judge-log";
-for (const f of readdirSync(dir).filter((f) => f.endsWith(".json") && !f.includes("_equipped") && f > "2026-10-10T05-15")) {
+for (const f of readdirSync(dir).filter((f) => /^20\d\d-.*\.json$/.test(f) && !f.includes("_equipped") && f > "2026-10-10T05-15")) {
   const j = JSON.parse(readFileSync(dir + "/" + f, "utf8"));
+  if (!j.hovered?.ocr) continue;
   const ocr: string[] = j.hovered.ocr;
   const llm = j.hovered.llm ?? {};
   // replay exactly when the log has fast lines; older logs: bullets array or LLM labels

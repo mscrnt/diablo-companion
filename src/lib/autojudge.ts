@@ -6,6 +6,7 @@
 // Same idea as Mobalytics' autotracker, minus the DLL injection and the upload.
 import { emitOverlay } from "./bus";
 import { cachedVerdict, judgeTooltips, type JudgeDebug } from "./judgeRunner";
+import { isUnequipLine } from "./fastparse";
 import { testLog, testModeOn } from "./testmode";
 import { normName, similarity } from "./names";
 import { captureAtCursor, captureRegion, cursorPosition, type CaptureResult, type OcrLine } from "./native";
@@ -208,8 +209,9 @@ export async function tooltipText(col: TooltipColumn, cap: CaptureResult): Promi
   return {
     image: crop?.image ?? cap.image,
     lines: col.lines.map((l) => l.text),
-    equipped: col.equipped,
-    fast: col.lines.map((l) => ({ text: l.text, bullet: l.bullet ?? "none", h: l.h })),
+    // opened from the Character panel, your own item has no EQUIPPED header but offers "Unequip"
+    equipped: col.equipped || col.lines.some((l) => isUnequipLine(l.text)),
+    fast: col.lines.map((l) => ({ text: l.text, bullet: l.bullet ?? "none", h: l.h, x: l.x, y: l.y, w: l.w })),
   };
 }
 
