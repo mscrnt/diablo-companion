@@ -56,6 +56,8 @@ CI (`.github/workflows/ci.yml`) runs the typecheck, tests, web build and `cargo 
 ## Release
 Add notes under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) as you go. The version bump turns them into the new version's section, and that section becomes the GitHub release notes. A release won't build without notes.
 
+Versions follow [semantic versioning](https://semver.org): `patch` for fixes only, `minor` when the release adds features (an **Added** section in the changelog means minor), `major` for breaking changes.
+
 - **From GitHub:** Actions → *Release* → *Run workflow*, enter `patch`, `minor`, `major` or an exact `x.y.z`. It bumps the version files, commits, tags `vX.Y.Z` on main, builds the installer and publishes a GitHub release with it attached.
 - **From a terminal:** `npm run version -- 0.2.0`, commit, `git tag v0.2.0`, `git push --follow-tags`. Pushing the tag triggers the same build.
 - **Local installer only:** `npx tauri build` → `src-tauri/target/release/bundle/nsis/Sanctuary Toolkit_<ver>_x64-setup.exe`.
