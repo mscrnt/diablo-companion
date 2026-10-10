@@ -209,7 +209,7 @@ function nmdTick() {
   if (i >= 0) {
     const marker = trackerLines[i];
     const above = trackerLines
-      .filter((l) => l.y < marker.y && marker.y - l.y < marker.h * 6 && !/torment|tab|\d{1,2}:\d{2}/i.test(l.text))
+      .filter((l) => l.y < marker.y && marker.y - l.y < marker.h * 6 && !/torment|\btab\b|\d{1,2}:\d{2}/i.test(l.text))
       .sort((a, b) => a.y - b.y);
     const dungeon = (above[0]?.text ?? "").replace(/[^A-Za-z' -]+$/, "").trim();
     const objective = above.slice(1).map((l) => l.text.trim()).join(" ").replace(/\s*[◆♦•]\s*$/, "").trim();
@@ -358,7 +358,7 @@ async function tick(rect: Rect) {
   // sync the run start to the in-game mastery countdown (starts at 15:00) — exact even if we noticed late
   const active = useRuns.getState().active;
   if (inPit && active && syncedRun !== active.id) {
-    const m = t.match(/(1[0-4]|[0-9]):([0-5]\d)/);
+    const m = t.match(/\b(1[0-4]|[0-9]):([0-5]\d)\b/);
     if (m) {
       const remaining = Number(m[1]) * 60 + Number(m[2]);
       const start = now - (15 * 60 - remaining) * 1000;

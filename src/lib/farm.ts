@@ -33,8 +33,8 @@ export interface FarmStep {
 
 function knowledgeFor(name: string): ObtainMethod[] {
   if (!knowledge?.items) return [];
-  const n = normName(name).replace(/aspect/g, "").trim();
-  const norm = (x: string) => normName(x).replace(/aspect/g, "").replace(/\(.*\)/, "").trim();
+  const n = normName(name).replace(/\baspect\b/g, "").trim();
+  const norm = (x: string) => normName(x).replace(/\baspect\b/g, "").replace(/\(.*\)/, "").trim();
   const hit =
     knowledge.items.find((i: any) => norm(i.name ?? "") === n || (i.slug && norm(i.slug.replace(/-/g, " ")) === n)) ??
     knowledge.items.find((i: any) => similarity(i.name ?? "", name) > 0.85);

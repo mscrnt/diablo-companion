@@ -17,6 +17,8 @@ The release workflow publishes each version's section as its GitHub release note
 - The loot judge checks what it reads against the game's own text before judging. Misread words are corrected ("Arit10r" becomes "Armor", "Thoms" becomes "Thorns"), while the numbers are kept exactly as read. Anything it isn't sure about is left as it was.
 
 ### Fixed
+- The Pit run timer now syncs to the in-game countdown. The pattern that reads it could never match before.
+- The farm planner matches aspect names whether or not they include the word "Aspect".
 - Link-style buttons no longer show an underline.
 - Item names no longer pick up your character's name when the tooltip opens over the Character panel.
 - Text from the panel behind a tooltip no longer sticks to the end of a stat ("+100 Intelligence Damage").
