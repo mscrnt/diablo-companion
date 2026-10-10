@@ -3,6 +3,14 @@
 Desktop companion for Diablo IV (Tauri 2 + React). Screen-reading only: capture,
 Windows OCR and a local vision LLM — no memory reading, no injection, no input sending.
 
+![Loot Judge: plain-language verdict next to the in-game tooltip it read](docs/screenshots/loot-judge.png)
+
+| | |
+|---|---|
+| ![Dashboard with world events, build progress and recent verdicts](docs/screenshots/dashboard.png) **Dashboard**: next world events, build progress, recent verdicts | ![Build page with gear slots, affix targets and masterwork goals](docs/screenshots/build.png) **Build**: your Mobalytics build, slot by slot, with progress |
+| ![Farm Planner with boss route and drop sources](docs/screenshots/farm-planner.png) **Farm Planner**: where each missing piece drops | ![War Plans tree with the recommended path in green](docs/screenshots/war-plans.png) **War Plans**: which nodes to unlock next |
+| ![Runs and splits with Pit and Nightmare Dungeon history](docs/screenshots/runs.png) **Runs & Splits**: Pit and Nightmare Dungeon runs tracked automatically | |
+
 ## For players (install & use)
 1. Run the installer (`D4 Companion_x.y.z_x64-setup.exe`). It's self-contained: the C runtime is linked into the exe and the WebView2 runtime installs offline if it's missing — no admin rights needed.
 2. On first start, paste your **Mobalytics build link** (featured guide or profile build). Add more builds any time on the **Build** page — the active one drives the loot judge; the others still get "stash it — great for your other build" advice. Builds show an **update** badge when the author changes the guide.
