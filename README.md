@@ -1,7 +1,17 @@
 # Diablo IV Companion
 
+[![Latest release](https://img.shields.io/github/v/release/mscrnt/diablo-companion?label=release&color=d4ad62)](https://github.com/mscrnt/diablo-companion/releases/latest)
+[![CI](https://github.com/mscrnt/diablo-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/mscrnt/diablo-companion/actions/workflows/ci.yml)
+[![Downloads](https://img.shields.io/github/downloads/mscrnt/diablo-companion/total?color=b3261e)](https://github.com/mscrnt/diablo-companion/releases)
+[![Platform: Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6)](#for-players-install--use)
+[![Code signed](https://img.shields.io/badge/code%20signed-Azure%20Artifact%20Signing-2ea44f)](https://github.com/mscrnt/diablo-companion/releases/latest)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-8a6a2e)](LICENSE.md)
+[![Built with Tauri 2](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
+
 Desktop companion for Diablo IV (Tauri 2 + React). Screen-reading only: capture,
 Windows OCR and a local vision LLM — no memory reading, no injection, no input sending.
+
+**[Download the latest installer](https://github.com/mscrnt/diablo-companion/releases/latest)**
 
 ![Loot Judge: plain-language verdict next to the in-game tooltip it read](docs/screenshots/loot-judge.png)
 
@@ -60,3 +70,10 @@ node tools/datamine/extract.mjs --update-defs                             # stri
 - `scripts/dev` — `node scripts/dev/run.mjs <name>` runs exploratory scripts against your local judge log and app state
 
 See `ROADMAP.md` for what's next.
+
+## License
+The code is released under the [PolyForm Noncommercial License 1.0.0](LICENSE.md): free to use, modify and share for personal, hobby, research and other noncommercial purposes. Commercial use is not permitted.
+
+Game data bundled in `src/generated` and `src/seed` (from Mobalytics and the Diablo IV game files) belongs to its respective owners and isn't covered by this license.
+
+Diablo® and Diablo IV are trademarks of Blizzard Entertainment, Inc. This project is a fan-made tool and is not affiliated with or endorsed by Blizzard Entertainment or Mobalytics.

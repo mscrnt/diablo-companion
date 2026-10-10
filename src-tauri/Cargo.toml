@@ -2,7 +2,9 @@
 name = "d4c"
 version = "0.1.1"
 description = "Diablo IV Companion"
-authors = ["Kenneth"]
+authors = ["Kenneth Blossom"]
+license = "PolyForm-Noncommercial-1.0.0"
+repository = "https://github.com/mscrnt/diablo-companion"
 edition = "2021"
 
 [lib]
