@@ -34,7 +34,8 @@ Everything on this roadmap uses one of these sources:
 
 | Feature | How | Source | Effort |
 |---|---|---|---|
-| **Loot filter generator** | Turn the active build into the game's native loot-filter import code (25 rules): keep the build's uniques, aspects, wanted affixes, greater affixes and item power thresholds; hide the rest. Profiles for leveling, Torment farming and greater-affix hunting. Format worked out from codes the player exports in game; item categories from `LootFilterItemTypeGroup`. | 🎮📦 | M |
+| **Loot filter generator** | Turn the active build into the game's native loot-filter import code (25 rules): keep the build's uniques, aspects, wanted affixes, greater affixes and item power thresholds; hide the rest. Profiles for leveling, Torment farming and greater-affix hunting. Codes are base64-encoded protobuf; the format is worked out from codes the player exports in game, and item categories come from `LootFilterItemTypeGroup`. | 🎮📦 | M |
+| **Filter decoder and diablofilter.com** | Paste any filter code (from diablofilter.com or a friend) and see each rule in plain language, or merge it with build-generated rules. A "Browse filters" button opens diablofilter.com in the browser. Their terms forbid automated access without written permission, so in-app browsing waits on their OK. | 🎮🌐 | S |
 | **Snap OCR to the game's own text** | Match every OCR'd line against the datamined affix, aspect, unique and item-type strings (fuzzy plus number-aware), so "Arit10r" becomes "Armor" and garbled item names get corrected. Removes most misreads at the source. | 📦 | S |
 | **Fix Character page reading** | Skill ranks read as "31/15" (base vs gear bonus) and stats get mixed up ("Toughness 1,241,124", "Kyldirril"). Parse the character sheet against the datamined stat names, and split base and bonus ranks. | 🖥📦 | S |
 | **Roll quality on every affix** | Show "87% of max" next to each affix and greater affix using datamined affix ranges by item power, so "is this a good roll?" gets an exact answer. | 📦🖥 | M |
@@ -54,6 +55,17 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 | **Play grading** | Grade each session from what the screen shows: Pit and Nightmare clear times by tier, time per floor, deaths and what killed you (death screen), potion use, how long elites and bosses take, resource starvation. Trends over time, with "you're ready for tier N" calls. | 🖥 | L |
 | **Adaptive build tuning** | Turn the grades into build changes: dying to the same thing suggests specific defensive swaps; slow boss kills suggest a damage-focused swap; resource issues suggest the right affix or aspect. The build doctor applies them, and you can accept, reject or bookmark them as a variant. | 🖥📦 | L |
 | **Session recap** | End-of-session card: runs, best times, drops worth keeping, glyph progress, and what to do next session. | 🖥 | S |
+| **DPS check at the training dummy** | Set the dummy to Boss and measure how fast its health bar drains, which counts every hit including minions with no floating numbers to read. Gives exact A/B comparisons ("this ring is +12% damage") right away; absolute DPS once the dummy's max health is mined from the game files. | 🖥📦 | M |
+
+## Map and collectibles
+
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| **Pins on the in-game map** | When the map is open, find the waypoint icons on screen, fit them to the waypoints' known world positions to learn the map's pan and zoom, then draw pins in the overlay. No map art is shipped; the game's own map is the picture. | 🖥📦 `MarkerSet`, `Scene`, `World` | L |
+| **Lilith altars still needed** | The game only shows altars you've found (per character). Compare the altar icons on screen with all ~160 known positions and pin the missing ones. | 🖥📦 | M |
+| **Seasonal collectibles** | Deckard's Journal (Season 15) and each new season's collectibles, mined automatically after each patch, with pins and a "found" checklist. | 📦🖥 | S per season |
+| **Side quest helper** | Every side quest per region with its giver's location; done vs left from the quest log; pins for what's left. Feeds renown. | 📦🖥 `Quest` | M |
+| **Dungeons, cellars, strongholds** | Entrances pinned, with what each dungeon unlocks (aspects) and completion tracked | 📦🖥 | M |
 
 ## Next: be the best at each system
 
@@ -74,8 +86,8 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 |---|---|---|---|
 | Maxroll and d4builds import | Public planner data plus page scraping (Playwright / Patchright when needed) | 🌐 | M |
 | Build diff and patch impact | After each game patch, diff the datamined affixes, aspects and uniques and show "what changed for your build" | 📦 | M |
-| Skill tree reading | Guided: open the tree; vision model checks chosen nodes against the build | 🖥 | M |
-| Paragon board and node diff | Board order and rotation, then node-by-node against Mobalytics coordinates, highlighted on the overlay | 🖥📦 | L |
+| **Full skill tree** | Guided: open the tree; read every node and its rank (lit vs unlit nodes at known positions from the game's skill tree data, tooltips for ranks), panning where needed. Shows your whole tree next to the build's. | 🖥📦 | M |
+| **Full paragon** | Every board, its rotation and attachment, every allocated node and glyph, read from the paragon screen against the datamined board grids. Shown as your boards next to the build's, with nodes to (re)spend highlighted on the overlay. | 🖥📦 | L |
 | Stat breakpoints | Check key thresholds the guide calls for (attack speed, crit, resistances, armor cap) from the mapped stats | 🖥 | S |
 | Mercenaries | Read the active mercenary and reinforcement against the build's picks | 🖥 | S |
 
