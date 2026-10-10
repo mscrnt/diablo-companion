@@ -39,6 +39,8 @@ Everything on this roadmap uses one of these sources:
 | **Fix Character page reading** | Skill ranks read as "31/15" (base vs gear bonus) and stats get mixed up ("Toughness 1,241,124", "Kyldirril"). Parse the character sheet against the datamined stat names, and split base and bonus ranks. | 🖥📦 | S |
 | **Roll quality on every affix** | Show "87% of max" next to each affix and greater affix using datamined affix ranges by item power, so "is this a good roll?" gets an exact answer. | 📦🖥 | M |
 | **Re-check questionable verdicts** | Audit rules such as "wear this ring" when the swap would lose a unique power. Add these cases as test fixtures. | 🖥 | S |
+| **Test mode** | One toggle that records each scan (frame, tooltip box, OCR, verdict) along with window size, DPI scale and bar detection, so a play session doubles as a test run across resolutions and window modes. | 🖥 | S |
+| **Look-and-feel pass** | Consistent spacing, type and colour; overlay readability at 1080p, 1440p, 4K, ultrawide and windowed, and at 100–150% DPI; onboarding, empty and loading states; motion that never distracts mid-fight; full controller navigation. | 🖥 | M |
 
 ## Signature features: explain, improve, grade
 
