@@ -66,8 +66,19 @@ export async function openJudgeLog() {
   await openPath(dir);
 }
 
+export interface JudgeDebug {
+  hovered?: ParseDebug;
+  equipped?: ParseDebug;
+  hoveredItem: ParsedItem | null;
+  equippedItem: ParsedItem | null;
+}
+
 /** Parse the hovered tooltip (+ the game's EQUIPPED comparison tooltip, in parallel) and decide. */
-export async function judgeTooltips(hov: TooltipText, eq: TooltipText | null, meta?: { sig?: string; box?: TooltipBox; quiet?: boolean }): Promise<JudgeResult | null> {
+export async function judgeTooltips(
+  hov: TooltipText,
+  eq: TooltipText | null,
+  meta?: { sig?: string; box?: TooltipBox; quiet?: boolean; debug?: (d: JudgeDebug) => void },
+): Promise<JudgeResult | null> {
   const { settings } = useSettings.getState();
   const { variant, prog } = getActiveVariant();
   const t0 = performance.now();
@@ -91,6 +102,8 @@ export async function judgeTooltips(hov: TooltipText, eq: TooltipText | null, me
     if (e) dbg.equipped = e.debug;
     const hovered = h.item;
     const equipped = e?.item ?? null;
+    // test mode records both parses next to the frame
+    meta?.debug?.({ hovered: h.debug, equipped: e?.debug, hoveredItem: hovered, equippedItem: equipped });
     if (!hovered) {
       logJudgment(id, hov, eq, dbg, null, "no tooltip found by parser");
       return null;

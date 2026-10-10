@@ -9,6 +9,7 @@ The release workflow publishes each version's section as its GitHub release note
 - The app version now shows under the sidebar logo, in **Settings → About** and in the tray icon's tooltip.
 - The app checks GitHub for a newer release at start and every 6 hours. When one exists, the sidebar version turns into a link to it.
 - **Settings → About** card: check for updates, release notes, GitHub and "Report a problem" links.
+- **Test mode** (Setup & Guide, off by default): records every item scan with its screen capture, the tooltip boxes, the text read, the parse and the verdict, along with your game window size and mode, monitor DPI scale, overlay layout and black-bar detection. A new snapshot is saved whenever the window, mode or DPI changes. Recordings go to a test-mode folder next to the judge log (capped at 500 MB by default, oldest first) and open from the Loot page or the Test mode card.
 
 ### Changed
 - Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.

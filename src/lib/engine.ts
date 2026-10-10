@@ -19,6 +19,7 @@ import { startHordes } from "./hordesRunner";
 import { startActivityWatcher } from "./activity";
 import { toggleMapCharacter } from "./charmap";
 import { obsSaveReplay } from "./obs";
+import { noteBars, onGameStatus, watchTestContext } from "./testmode";
 import { getActiveVariant, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
 import { EVENT_META, fetchLive, fmtCountdown, localSchedule, mergeLive, type LiveInfo } from "./timers";
 import type { GameEvent, JudgeResult } from "./types";
@@ -396,6 +397,7 @@ async function autoDetectBars(rect: [number, number, number, number]) {
     if (!useRuntime.getState().game?.focused) return;
     const cap = await captureRegion({ x: rect[0], y: rect[1], w: rect[2], h: rect[3] }, { maxEdge: 1280, quality: 70 });
     const b = await detectPillarbox(cap.image);
+    noteBars(rect, b, cap.image);
     if (!b) return; // unusable frame (e.g. black loading screen) — retry on a later focus event
     barsSamples++;
     // keep the narrowest bars seen this session (a dark scene can only make bars look wider)
@@ -478,8 +480,10 @@ export async function startEngine() {
   gameStatus().then((game) => useRuntime.setState({ game })).catch(() => {});
   onGlobal<GameStatus>("game-status", (game) => {
     useRuntime.setState({ game });
+    onGameStatus(game);
     if (game.focused && game.rect) autoDetectBars(game.rect);
   });
+  watchTestContext();
   onGlobal<{ held: string[]; pressed: string[] }>("gamepad", onPad);
   onGlobal<string>("tray-action", (a) => {
     if (a === "edit-overlay") runAction("overlayEdit");

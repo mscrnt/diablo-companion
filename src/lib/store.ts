@@ -67,6 +67,8 @@ export interface Settings {
     worldBadgeSeconds: number;
     snoozeSeconds: number;
   };
+  /** record every auto-judge scan with its frame and display context (test-mode log folder, capped) */
+  testMode: { enabled: boolean; maxMB: number };
   hordes: { enabled: boolean; style: "safe" | "balanced" | "greedy" };
   /** start/split/finish runs automatically from the quest tracker */
   autoRuns: boolean;
@@ -138,6 +140,7 @@ export const defaultSettings: Settings = {
   hordes: { enabled: true, style: "balanced" },
   autoRuns: true,
   autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30 },
+  testMode: { enabled: false, maxMB: 500 },
   calibration: null,
   activities: ["The Pit", "Infernal Hordes", "The Tower", "Nightmare Dungeon", "Helltide", "World Boss", "Lair Boss", "Undercity", "Leveling"],
 };

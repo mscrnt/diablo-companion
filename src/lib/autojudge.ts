@@ -5,7 +5,8 @@
 //   3. decide what to do with the hovered item.
 // Same idea as Mobalytics' autotracker, minus the DLL injection and the upload.
 import { emitOverlay } from "./bus";
-import { cachedVerdict, judgeTooltips } from "./judgeRunner";
+import { cachedVerdict, judgeTooltips, type JudgeDebug } from "./judgeRunner";
+import { testLog, testModeOn } from "./testmode";
 import { normName, similarity } from "./names";
 import { captureAtCursor, captureRegion, cursorPosition, type CaptureResult, type OcrLine } from "./native";
 import { getActiveVariant, useSettings } from "./store";
@@ -226,6 +227,15 @@ export function snoozeJudge(seconds: number) {
 export const judgeSnoozed = () => Date.now() < snoozeUntil;
 let busy = false;
 const recent: string[] = [];
+let lastMissLog = 0;
+
+/** Where a capture came from and how it maps to the screen (the frame is downscaled). */
+const captureInfo = (cap: CaptureResult) => ({
+  region: cap.region,
+  monitor: cap.monitor,
+  cursor: cap.cursor,
+  frame: { w: cap.width, h: cap.height, scale: cap.region.w ? cap.width / cap.region.w : 1 },
+});
 
 export interface AutoJudgeStatus {
   running: boolean;
@@ -256,6 +266,11 @@ async function tick(isFocused: () => boolean) {
     onFrame(cap.ocr?.lines ?? [], cap.region);
     const det = detectTooltips(cap);
     autoStatus.tooltip = !!det;
+    // test mode: tooltip words on screen but no tooltip found = a detection miss worth a look
+    if (!det && testModeOn() && Date.now() - lastMissLog > 5000 && (cap.ocr?.lines ?? []).filter((l) => MARKERS.some((m) => m.test(l.text))).length >= 2) {
+      lastMissLog = Date.now();
+      testLog("miss", { ...captureInfo(cap), ocr: cap.ocr?.lines ?? [] }, cap.image);
+    }
     if (!det) {
       if (pendingSig || lastSig) emitOverlay("tooltip", null);
       pendingSig = "";
@@ -291,8 +306,27 @@ async function tick(isFocused: () => boolean) {
     recent.length = Math.min(recent.length, 40);
     if (!quiet) emitOverlay("tooltip", { box: det.hovered.box, state: "judging", prelim: prelimScore(det.hovered.lines, det.hovered.box) });
     const [hov, eq] = await Promise.all([tooltipText(det.hovered, cap), det.equipped ? tooltipText(det.equipped, cap) : Promise.resolve(null)]);
-    const result = await judgeTooltips(hov, eq, { sig, box: det.hovered.box, quiet });
+    let parsed: JudgeDebug | null = null;
+    const result = await judgeTooltips(hov, eq, { sig, box: det.hovered.box, quiet, debug: (d) => void (parsed = d) });
     autoStatus.judged++;
+    if (testModeOn()) {
+      const p = parsed as JudgeDebug | null;
+      testLog(
+        "scan",
+        {
+          ...captureInfo(cap),
+          sig,
+          quiet,
+          scanMs: Math.round(performance.now() - t0),
+          boxes: { hovered: det.hovered.box, equipped: det.equipped?.box ?? null },
+          tooltip: { hovered: det.hovered.lines, equipped: det.equipped?.lines ?? null },
+          ocr: cap.ocr?.lines ?? [],
+          parse: p && { hovered: p.hoveredItem, equipped: p.equippedItem, path: { hovered: p.hovered?.raw, equipped: p.equipped?.raw }, ms: { hovered: p.hovered?.ms, equipped: p.equipped?.ms } },
+          verdict: result && { ...result, thumb: undefined, item: undefined },
+        },
+        cap.image,
+      );
+    }
     if (result) emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: result, sig, quiet });
     else emitOverlay("tooltip", null);
   } catch (e) {

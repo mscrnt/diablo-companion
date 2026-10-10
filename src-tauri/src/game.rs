@@ -98,6 +98,38 @@ pub fn current() -> GameStatus {
     STATUS.lock().unwrap().clone().unwrap_or_else(poll)
 }
 
+/// Window mode facts for test mode: outer rect, client size and frame style.
+/// Window-manager queries only (same as above): no process handle, nothing in the game.
+#[derive(Serialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GameWindow {
+    pub rect: (i32, i32, u32, u32),
+    pub client: (u32, u32),
+    /// has a title bar (windowed mode)
+    pub caption: bool,
+    pub maximized: bool,
+}
+
+#[cfg(windows)]
+pub fn window_details() -> Option<GameWindow> {
+    use windows::core::w;
+    use windows::Win32::Foundation::RECT;
+    use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, GetClientRect, GetWindowLongPtrW, IsZoomed, GWL_STYLE, WS_CAPTION};
+    unsafe {
+        let hwnd = FindWindowW(None, w!("Diablo IV")).ok().filter(|h| !h.is_invalid())?;
+        let rect = window_info(hwnd).2?;
+        let mut c = RECT::default();
+        let client = if GetClientRect(hwnd, &mut c).is_ok() { ((c.right - c.left).max(0) as u32, (c.bottom - c.top).max(0) as u32) } else { (rect.2, rect.3) };
+        let style = GetWindowLongPtrW(hwnd, GWL_STYLE) as u32;
+        Some(GameWindow { rect, client, caption: style & WS_CAPTION.0 == WS_CAPTION.0, maximized: IsZoomed(hwnd).as_bool() })
+    }
+}
+
+#[cfg(not(windows))]
+pub fn window_details() -> Option<GameWindow> {
+    None
+}
+
 fn fit_overlay(app: &AppHandle, rect: (i32, i32, u32, u32)) {
     if let Some(ov) = app.get_webview_window("overlay") {
         let (x, y, w, h) = rect;

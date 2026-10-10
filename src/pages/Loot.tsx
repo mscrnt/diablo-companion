@@ -3,6 +3,7 @@ import { Badge, Card, Check, Empty, PageHead, timeAgo } from "../components/ui";
 import { runAction, useRuntime } from "../lib/engine";
 import { VERDICT_STYLE } from "../lib/judge";
 import { judgeImage, openJudgeLog } from "../lib/judgeRunner";
+import { openTestLog } from "../lib/testmode";
 import { useLoot, useSettings } from "../lib/store";
 import type { JudgeResult } from "../lib/types";
 
@@ -45,6 +46,11 @@ export default function Loot() {
         <button className="btn" onClick={() => openJudgeLog().catch((e) => setErr(String(e)))} title="Every judgment: tooltip images, OCR text, AI labels and the decision">
           🗂 Open log folder
         </button>
+        {settings.testMode.enabled && (
+          <button className="btn" onClick={() => openTestLog().catch((e) => setErr(String(e)))} title="Test mode recordings: every scan with its screen capture and display details (Setup & Guide → Test mode)">
+            🧪 Test-mode folder
+          </button>
+        )}
         <button className="btn primary" disabled={judging} onClick={() => runAction("judge")}>
           {judging ? <span className="loader" /> : "⚖"} Judge now <span className="kbd">{settings.hotkeys.judge}</span>
         </button>

@@ -84,30 +84,54 @@ fn set_overlay_capturable(app: AppHandle, capturable: bool) -> Result<(), String
     ov.set_content_protected(!capturable).map_err(err)
 }
 
-/// Judge debug log: <app log dir>/judge-log/<name>.jpg|.json, pruned to the newest ~400 files.
-fn judge_log_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
-    let dir = app.path().app_log_dir().map_err(err)?.join("judge-log");
+fn safe_name(s: &str) -> String {
+    s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect()
+}
+
+/// Debug logs live in <app log dir>/<folder>: "judge-log" (every judgment, newest ~400 files)
+/// or a sibling such as "test-mode" (a recorded play session, capped by the caller).
+fn judge_log_dir(app: &AppHandle, folder: Option<&str>) -> Result<std::path::PathBuf, String> {
+    let dir = app.path().app_log_dir().map_err(err)?.join(safe_name(folder.unwrap_or("judge-log")));
     std::fs::create_dir_all(&dir).map_err(err)?;
     Ok(dir)
 }
 
 #[tauri::command]
-fn debug_log_write(app: AppHandle, name: String, image: Option<String>, json: String) -> Result<String, String> {
-    let safe: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' }).collect();
-    let dir = judge_log_dir(&app)?;
+fn debug_log_write(
+    app: AppHandle,
+    name: String,
+    image: Option<String>,
+    json: String,
+    folder: Option<String>,
+    max_files: Option<usize>,
+    max_mb: Option<u64>,
+) -> Result<String, String> {
+    let safe = safe_name(&name);
+    let dir = judge_log_dir(&app, folder.as_deref())?;
     if let Some(img) = image {
         let b64 = img.split_once(',').map(|(_, b)| b).unwrap_or(&img);
         let bytes = STANDARD.decode(b64.trim()).map_err(err)?;
         std::fs::write(dir.join(format!("{safe}.jpg")), bytes).map_err(err)?;
     }
     std::fs::write(dir.join(format!("{safe}.json")), json).map_err(err)?;
-    // prune oldest
+    // prune oldest: by file count, then by total size
+    let max_files = max_files.unwrap_or(400);
+    let max_bytes = max_mb.map(|mb| mb * 1024 * 1024).unwrap_or(u64::MAX);
     if let Ok(rd) = std::fs::read_dir(&dir) {
-        let mut files: Vec<_> = rd.filter_map(|e| e.ok()).collect();
-        if files.len() > 400 {
-            files.sort_by_key(|e| e.metadata().and_then(|m| m.modified()).ok());
-            for e in files.iter().take(files.len() - 400) {
-                let _ = std::fs::remove_file(e.path());
+        let mut files: Vec<_> = rd
+            .filter_map(|e| e.ok())
+            .filter_map(|e| e.metadata().ok().filter(|m| m.is_file()).map(|m| (e.path(), m.len(), m.modified().ok())))
+            .collect();
+        files.sort_by_key(|f| f.2);
+        let mut total: u64 = files.iter().map(|f| f.1).sum();
+        let mut count = files.len();
+        for (path, len, _) in &files {
+            if count <= max_files && total <= max_bytes {
+                break;
+            }
+            if std::fs::remove_file(path).is_ok() {
+                count -= 1;
+                total = total.saturating_sub(*len);
             }
         }
     }
@@ -115,8 +139,40 @@ fn debug_log_write(app: AppHandle, name: String, image: Option<String>, json: St
 }
 
 #[tauri::command]
-fn debug_log_dir(app: AppHandle) -> Result<String, String> {
-    Ok(judge_log_dir(&app)?.to_string_lossy().to_string())
+fn debug_log_dir(app: AppHandle, folder: Option<String>) -> Result<String, String> {
+    Ok(judge_log_dir(&app, folder.as_deref())?.to_string_lossy().to_string())
+}
+
+#[derive(serde::Serialize)]
+struct MonitorInfo {
+    name: String,
+    rect: (i32, i32, u32, u32),
+    scale: f64,
+    primary: bool,
+}
+
+#[derive(serde::Serialize)]
+struct DisplayInfo {
+    monitors: Vec<MonitorInfo>,
+    game: Option<game::GameWindow>,
+}
+
+/// Monitors (with their DPI scale) and the game window's frame, for test-mode context.
+#[tauri::command]
+fn display_info(app: AppHandle) -> Result<DisplayInfo, String> {
+    let primary = app.primary_monitor().map_err(err)?.map(|m| *m.position());
+    let monitors = app
+        .available_monitors()
+        .map_err(err)?
+        .iter()
+        .map(|m| MonitorInfo {
+            name: m.name().cloned().unwrap_or_default(),
+            rect: (m.position().x, m.position().y, m.size().width, m.size().height),
+            scale: m.scale_factor(),
+            primary: primary == Some(*m.position()),
+        })
+        .collect();
+    Ok(DisplayInfo { monitors, game: game::window_details() })
 }
 
 fn show_main(app: &AppHandle) {
@@ -148,6 +204,7 @@ pub fn run() {
             set_overlay_capturable,
             debug_log_write,
             debug_log_dir,
+            display_info,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
