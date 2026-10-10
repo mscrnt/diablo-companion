@@ -1,6 +1,6 @@
 [package]
 name = "d4c"
-version = "0.1.0"
+version = "0.1.1"
 description = "Diablo IV Companion"
 authors = ["Kenneth"]
 edition = "2021"
