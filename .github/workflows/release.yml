@@ -135,8 +135,13 @@ jobs:
       - name: Verify signatures
         if: env.SIGN == 'true'
         shell: pwsh
+        # check the installer and the app exe packed inside it (Tauri swaps the
+        # copy left in target/release after bundling, so that one isn't what ships)
         run: |
-          $files = @(Get-ChildItem src-tauri/target/release/bundle/nsis -Filter *-setup.exe) + @(Get-Item src-tauri/target/release/d4c.exe)
-          $bad = $files | Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' }
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis -Filter *-setup.exe | Select-Object -First 1
+          $out = Join-Path $env:RUNNER_TEMP "installer"
+          7z x -y "-o$out" $setup.FullName d4c.exe | Out-Null
+          $files = @($setup, (Get-Item (Join-Path $out "d4c.exe")))
           $files | ForEach-Object { $s = Get-AuthenticodeSignature $_.FullName; "{0}: {1} ({2})" -f $_.Name, $s.Status, $s.SignerCertificate.Subject }
+          $bad = $files | Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' }
           if ($bad) { throw "unsigned or invalid: $($bad.Name -join ', ')" }
