@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Card, Check, PageHead } from "../components/ui";
 import { runAction, setOverlayEdit, useRuntime } from "../lib/engine";
 import { captureMonitor, gameStatus, setOverlayCapturable } from "../lib/native";
-import { defaultSettings, useSettings } from "../lib/store";
+import { useMapPins } from "../lib/mapPinsRunner";
+import { defaultSettings, useSettings, type MapPinGroup } from "../lib/store";
 import { detectPillarbox } from "../lib/vision";
 
 const WIDGETS: { id: keyof typeof defaultSettings.overlay.widgets; label: string; desc: string }[] = [
@@ -14,6 +15,66 @@ const WIDGETS: { id: keyof typeof defaultSettings.overlay.widgets; label: string
   { id: "build", label: "Build card", desc: "Skill bar & key reminders." },
   { id: "toasts", label: "Toasts", desc: "Event alerts, clips, errors." },
 ];
+
+const PIN_GROUPS: { id: MapPinGroup; label: string; desc: string }[] = [
+  { id: "journal", label: "Deckard's journals", desc: "The season's journal pages, labelled with their part number." },
+  { id: "collectible", label: "Altars of Lilith & regional collectibles", desc: "Altars, Tenets of Akarat (Nahantu) and Chronicles of Creation (Skovos), found or not." },
+  { id: "dungeon", label: "Dungeons", desc: "Dungeon entrances." },
+  { id: "cellar", label: "Cellars", desc: "Cellar entrances (the map hides these until you find them)." },
+  { id: "stronghold", label: "Strongholds", desc: "Where each stronghold starts." },
+  { id: "side_quest", label: "Side quests", desc: "Approximate start points, drawn dimmer." },
+  { id: "helltide_chest", label: "Helltide chests", desc: "Possible Tortured Gift spots, only during a Helltide and only in its zone." },
+  { id: "boss_dungeon", label: "Boss lairs", desc: "Lair boss dungeons." },
+  { id: "undercity", label: "Undercity", desc: "Undercity entrances." },
+];
+
+function MapPinsCard() {
+  const { settings, update } = useSettings();
+  const status = useMapPins((s) => s.status);
+  const mp = settings.mapPins;
+  const ms = (v?: number) => (v == null ? "–" : `${Math.round(v)} ms`);
+  const state = !mp.enabled
+    ? "Off"
+    : {
+        off: "Waiting for the game",
+        idle: "Waiting for the map",
+        menu: "A menu is open, but the map isn't recognised (yet)",
+        paused: "Paused: the overlay is set to show in screenshots, so the pins would read themselves. Turn that off above.",
+        tracking: `Map found: ${status.pins ?? 0} pins (${status.waypoints ?? 0} waypoints and ${status.icons ?? 0} dungeon icons matched${status.how === "pan" ? ", following the pan" : ""})`,
+      }[status.state];
+  return (
+    <Card title="Map pins" style={{ marginTop: 14 }}>
+      <div className="col">
+        <Check checked={mp.enabled} onChange={(v) => update((s) => void (s.mapPins.enabled = v))} label="Draw pins on the in-game map when you open it" />
+        <div className="small muted">
+          Finds the map from its waypoint icons (screen capture only) and pins what you pick below at its real place. Pins disappear while you zoom and come back when the map
+          settles. Zoomed all the way in, it needs a couple of waypoints or dungeons in view. Nothing is drawn unless the map is recognised for sure.
+        </div>
+        <div className="table-wrap" style={{ opacity: mp.enabled ? 1 : 0.5 }}>
+          <table className="table">
+            <tbody>
+              {PIN_GROUPS.map((g) => (
+                <tr key={g.id}>
+                  <td style={{ width: 30 }}>
+                    <input type="checkbox" disabled={!mp.enabled} checked={mp.groups[g.id]} onChange={(e) => update((s) => void (s.mapPins.groups[g.id] = e.target.checked))} />
+                  </td>
+                  <td>
+                    <b>{g.label}</b>
+                    <div className="small muted">{g.desc}</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="small dim">
+          {state}
+          {status.captureMs != null && <> · capture {ms(status.captureMs)} · decode {ms(status.decodeMs)} · fit {ms(status.fitMs)}</>}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 export default function OverlayPage() {
   const { settings, update } = useSettings();
@@ -174,6 +235,7 @@ export default function OverlayPage() {
           </button>
         </div>
       </Card>
+      <MapPinsCard />
     </>
   );
 }

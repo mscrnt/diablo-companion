@@ -6,6 +6,7 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
+- **Map pins:** open the in-game map and the overlay pins Deckard's journals, Altars of Lilith and the regional collectibles, dungeons, cellars, strongholds and side quests (dimmer, as their spots are approximate) at their real places, at every zoom level. Helltide chest spots show during a Helltide in its zone. The app finds the map from its waypoint icons by screen capture only, and draws nothing when it isn't sure. Pick the kinds on the **Overlay** page.
 - **In-app updates:** when a new version is out, **Settings → About** shows an "Update to vX" button. It downloads the update, checks its signature, installs it and restarts the app. (This version still needs the new installer once; updates are automatic from here on.)
 - The app version now shows under the sidebar logo, in **Settings → About** and in the tray icon's tooltip.
 - The app checks GitHub for a newer release at start and every 6 hours. When one exists, the sidebar version turns into a link to it.

@@ -17,11 +17,13 @@ import { detectPillarbox, hamming, sceneSignature } from "./vision";
 import { scanSkillBar, useSkillBar } from "./skillbar";
 import { startHordes } from "./hordesRunner";
 import { startActivityWatcher } from "./activity";
+import { startMapPins } from "./mapPinsRunner";
+import { regionKey } from "./mappins";
 import { toggleMapCharacter } from "./charmap";
 import { obsSaveReplay } from "./obs";
 import { noteBars, onGameStatus, watchTestContext } from "./testmode";
 import { getActiveVariant, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
-import { EVENT_META, fetchLive, fmtCountdown, localSchedule, mergeLive, type LiveInfo } from "./timers";
+import { EVENT_META, fetchLive, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
 import type { GameEvent, JudgeResult } from "./types";
 
 interface Runtime {
@@ -519,6 +521,19 @@ export async function startEngine() {
   startActivityWatcher(
     () => !!useRuntime.getState().game?.visible,
     () => useRuntime.getState().game?.rect ?? null,
+  );
+  // pins on the in-game map: only while the overlay is showing over the game
+  startMapPins(
+    () => {
+      const rt = useRuntime.getState();
+      const o = useSettings.getState().settings.overlay;
+      return !!rt.game?.visible && o.enabled && !rt.overlayHidden && !rt.overlayEdit;
+    },
+    () => useRuntime.getState().game?.rect ?? null,
+    () => {
+      const ht = useRuntime.getState().events.find((e) => e.kind === "helltide" && isActive(e));
+      return ht?.zone ? regionKey(ht.zone) : null;
+    },
   );
 
   // skill bar check: every 60s while playing; toast when something changes

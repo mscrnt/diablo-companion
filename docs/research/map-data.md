@@ -123,6 +123,8 @@ u = 2560/4096 + (y - x) / (6144·√2)      v = 2212/4096 + (x + y) / (6144·√
 
 **Validation.** `tZoneMapParams.arFogOfWar[]` (430 entries) gives each fog-of-war texture's `vecWorldOffset` and `vecWorldSize` in the same 0..1 space. For every overworld global marker that names a fog-of-war tile, its (u, v) falls inside that tile: **3,109 / 3,109**. A free affine fit converges to the same thing: 45.0° rotation and 6,150 / 6,133 units per map side. `u` and `v` are written per entry in `map.json`.
 
+**Settled (in-game captures, `src/lib/mappins.ts`):** the map UI draws the art unrotated and unmirrored: screen-right is +u, screen-down is +v, screen px = s·(u, v) + t. The zoom levels are discrete; at 1440p s ≈ 2793, 4530, 8490 and about 13450 and 20300 (s / image height 1.94, 3.15, 5.90, 9.34, 14.1). The note below is the pre-capture reasoning.
+
 **Not settled: screen orientation.** Geography says screen-right is about +(x+y) (that is, +v) and screen-up is about +(y−x) (+u). Scosglen comes out west, Fractured Peaks north, Hawezar north-east and Kehjistan south-east. The map UI may therefore draw the art rotated or flipped relative to texture UV. The overlay should not assume it: an affine fit against detected waypoints absorbs it.
 
 No map texture was read. The `snoMagMaxBoxMap` texture SNO is named in the data, but its meta is not under `base:meta` and we don't need it.

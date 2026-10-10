@@ -3,7 +3,7 @@
 import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { isTauri } from "./http";
 
-export type OverlayEvent = "state" | "verdict" | "toast" | "judging" | "tooltip" | "guide" | "hordes" | "advisor" | "helltide" | "boss";
+export type OverlayEvent = "state" | "verdict" | "toast" | "judging" | "tooltip" | "guide" | "hordes" | "advisor" | "helltide" | "boss" | "mappins";
 export type MainEvent = "layout" | "overlay-ready" | "overlay-action";
 
 export function emitOverlay(ev: OverlayEvent, payload: unknown) {

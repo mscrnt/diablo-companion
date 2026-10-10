@@ -23,6 +23,9 @@ export interface Calibration {
   statsPanel?: { x: number; y: number; w: number; h: number };
 }
 
+/** Kinds of map pins, each with its own checkbox (see src/lib/mappins.ts). */
+export type MapPinGroup = "journal" | "collectible" | "dungeon" | "cellar" | "stronghold" | "side_quest" | "helltide_chest" | "undercity" | "boss_dungeon";
+
 export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdit" | "coachSnap" | "overlayToggle" | "mapCharacter" | "snoozeJudge";
 
 export interface Settings {
@@ -69,6 +72,8 @@ export interface Settings {
   };
   /** record every auto-judge scan with its frame and display context (test-mode log folder, capped) */
   testMode: { enabled: boolean; maxMB: number };
+  /** pins on the in-game map: which kinds to draw */
+  mapPins: { enabled: boolean; groups: Record<MapPinGroup, boolean> };
   hordes: { enabled: boolean; style: "safe" | "balanced" | "greedy" };
   /** start/split/finish runs automatically from the quest tracker */
   autoRuns: boolean;
@@ -141,6 +146,20 @@ export const defaultSettings: Settings = {
   autoRuns: true,
   autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30 },
   testMode: { enabled: false, maxMB: 500 },
+  mapPins: {
+    enabled: true,
+    groups: {
+      journal: true,
+      collectible: true,
+      dungeon: true,
+      cellar: true,
+      stronghold: true,
+      side_quest: true,
+      helltide_chest: true,
+      undercity: false,
+      boss_dungeon: false,
+    },
+  },
   calibration: null,
   activities: ["The Pit", "Infernal Hordes", "The Tower", "Nightmare Dungeon", "Helltide", "World Boss", "Lair Boss", "Undercity", "Leveling"],
 };
@@ -178,6 +197,7 @@ export const useSettings = create<SettingsState>()(
       merge: (persisted: any, current) => ({
         ...current,
         settings: (() => {
+          // keys added later (e.g. mapPins) come from the defaults
           const m = deepMerge(defaultSettings, persisted?.settings);
           // v0.1 used a 1800×1300 box, which cut the top off tall tooltips
           if (m.capture.height === 1300 || m.capture.width === 2200) m.capture = { ...m.capture, width: 2800, height: 0 };

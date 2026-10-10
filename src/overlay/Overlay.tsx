@@ -8,7 +8,9 @@ import type { HordesState } from "../lib/hordesRunner";
 import type { AdvisorState } from "../lib/activity";
 import type { HelltideInfo } from "../lib/helltide";
 import type { BossInfo } from "../lib/boss";
-import { CircleCheck, Eye, Flame, Skull, Star, TreeDeciduous, type LucideIcon } from "lucide-react";
+import type { MapPinsFrame } from "../lib/mapPinsRunner";
+import type { PoiKind } from "../lib/mappins";
+import { BookOpen, Castle, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, Package, ScrollText, Skull, Sparkles, Star, TreeDeciduous, Warehouse, type LucideIcon } from "lucide-react";
 import { VERDICT_STYLE } from "../lib/judge";
 import { EVENT_META, fmtCountdown, isActive } from "../lib/timers";
 import type { JudgeResult } from "../lib/types";
@@ -42,6 +44,7 @@ export default function Overlay() {
   const [advisor, setAdvisor] = useState<AdvisorState | null>(null);
   const [helltide, setHelltide] = useState<HelltideInfo | null>(null);
   const [boss, setBoss] = useState<BossInfo | null>(null);
+  const [mapPins, setMapPins] = useState<MapPinsFrame | null>(null);
   const [now, setNow] = useState(Date.now());
   const vTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const tipTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -74,6 +77,7 @@ export default function Overlay() {
       onOverlay<AdvisorState | null>("advisor", setAdvisor),
       onOverlay<HelltideInfo>("helltide", setHelltide),
       onOverlay<BossInfo | null>("boss", setBoss),
+      onOverlay<MapPinsFrame | null>("mappins", setMapPins),
     ];
     emitMain("overlay-ready", true);
     return () => {
@@ -206,6 +210,8 @@ export default function Overlay() {
       )}
 
       {guideOn && guide && <GuidePanel g={guide} toCss={toCss} />}
+
+      {mapPins && st.visible && !guideOn && <MapPinsLayer m={mapPins} toCss={toCss} />}
     </div>
   );
 }
@@ -692,6 +698,54 @@ function GuidePanel({ g, toCss }: { g: GuideState; toCss: (b: { x: number; y: nu
         )}
       </div>
     </>
+  );
+}
+
+// ---- map pins ------------------------------------------------------------------
+
+const PIN_STYLE: Record<PoiKind, { icon: LucideIcon; color: string; minor?: boolean }> = {
+  journal: { icon: BookOpen, color: "#f6e2a8" },
+  altar: { icon: Gem, color: "#e978ff" },
+  tenet_of_akarat: { icon: Sparkles, color: "#e978ff" },
+  chronicle_of_creation: { icon: Sparkles, color: "#e978ff" },
+  stronghold: { icon: Castle, color: "#ff6a55" },
+  dungeon: { icon: DoorOpen, color: "#ffd25a" },
+  cellar: { icon: Warehouse, color: "#ffa25a", minor: true },
+  boss_dungeon: { icon: Skull, color: "#ff4a4a" },
+  undercity: { icon: Landmark, color: "#6fb2ff" },
+  side_quest: { icon: ScrollText, color: "#8fe07a", minor: true },
+  helltide_chest: { icon: Package, color: "#ff5a2f", minor: true },
+  waypoint: { icon: CircleCheck, color: "#5fe6ff" },
+};
+
+/**
+ * Pins over the open in-game map. Positions arrive in absolute physical screen px (frame px
+ * mapped through the capture region) and go through the same toCss as every other badge,
+ * inside a box clipped to the visible map area (between the nav bar and the hint bar).
+ */
+function MapPinsLayer({ m, toCss }: { m: MapPinsFrame; toCss: (b: { x: number; y: number; w: number; h: number }) => CSSProperties }) {
+  const clip = toCss(m.clip);
+  const ox = Number(clip.left), oy = Number(clip.top);
+  // zoomed out, the minor kinds (cellars, side quests, chests) shrink to dots so the map stays readable
+  const far = m.zoom < 2.5;
+  return (
+    <div style={{ position: "absolute", ...clip, overflow: "hidden", pointerEvents: "none" }}>
+      {m.pins.map((p, i) => {
+        const sty = PIN_STYLE[p.k] ?? PIN_STYLE.waypoint;
+        const at = toCss({ x: p.x, y: p.y, w: 0, h: 0 });
+        const left = Number(at.left) - ox, top = Number(at.top) - oy;
+        if (far && sty.minor) {
+          return <div key={i} className="ov-pin-dot" style={{ left, top, background: sty.color, opacity: p.approx ? 0.5 : 0.85 }} />;
+        }
+        const size = sty.minor ? 20 : 24;
+        return (
+          <div key={i} className="ov-pin" style={{ left, top, width: size, height: size, borderColor: sty.color, color: sty.color, opacity: p.approx ? 0.6 : 1 }}>
+            <Ico icon={sty.icon} size={sty.minor ? 11 : 13} />
+            {p.label && <span className="ov-pin-label" style={{ color: sty.color }}>{p.label}</span>}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
