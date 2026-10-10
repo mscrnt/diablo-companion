@@ -1,8 +1,9 @@
 // Set the app version everywhere it lives: package.json, package-lock.json,
-// src-tauri/Cargo.toml, src-tauri/Cargo.lock and src-tauri/tauri.conf.json.
+// src-tauri/Cargo.toml, src-tauri/Cargo.lock and src-tauri/tauri.conf.json,
+// and turn CHANGELOG.md's Unreleased section into the new version's section.
 //   node scripts/bump-version.mjs 0.2.0
 //   node scripts/bump-version.mjs patch|minor|major
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,5 +38,18 @@ edit("package-lock.json", /("name":\s*"d4-companion",\s*"version":\s*")[^"]+(")/
 edit("src-tauri/Cargo.toml", /(\[package\][^\[]*?\nversion\s*=\s*")[^"]+(")/);
 edit("src-tauri/Cargo.lock", /(\[\[package\]\]\r?\nname = "d4c"\r?\nversion = ")[^"]+(")/);
 edit("src-tauri/tauri.conf.json", /("version":\s*")[^"]+(")/);
+
+// CHANGELOG.md: the Unreleased notes become this version's section
+const changelog = p("CHANGELOG.md");
+if (next !== pkg.version && existsSync(changelog)) {
+  const repo = "https://github.com/mscrnt/diablo-companion";
+  const today = new Date().toISOString().slice(0, 10);
+  let s = readFileSync(changelog, "utf8");
+  if (!/^## \[Unreleased\]/m.test(s)) throw new Error("CHANGELOG.md: no ## [Unreleased] section");
+  if (new RegExp(`^## \\[${next.replace(/\./g, "\\.")}\\]`, "m").test(s)) throw new Error(`CHANGELOG.md already has ${next}`);
+  s = s.replace(/^## \[Unreleased\]\r?\n/m, `## [Unreleased]\n\n## [${next}] - ${today}\n`);
+  s = s.replace(/^\[Unreleased\]: .*$/m, `[Unreleased]: ${repo}/compare/v${next}...HEAD\n[${next}]: ${repo}/compare/v${pkg.version}...v${next}`);
+  writeFileSync(changelog, s);
+}
 
 console.log(`${pkg.version} -> ${next}`);

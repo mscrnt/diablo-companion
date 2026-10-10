@@ -77,6 +77,13 @@ jobs:
           v=$(node -p "require('./package.json').version")
           [ "v$v" = "$TAG" ] || { echo "::error::tag $TAG but package.json says $v — run scripts/bump-version.mjs first"; exit 1; }
 
+      - name: Release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          notes=$(node scripts/release-notes.mjs "$TAG") || { echo "::error::add a $TAG section to CHANGELOG.md (or notes under Unreleased before bumping)"; exit 1; }
+          { echo "body<<CHANGELOG_EOF"; echo "$notes"; echo "CHANGELOG_EOF"; } >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -126,6 +133,9 @@ jobs:
           tagName: ${{ env.TAG }}
           releaseName: D4 Companion ${{ env.TAG }}
           releaseBody: |
+            ${{ steps.notes.outputs.body }}
+
+            ## Install
             Download **D4 Companion_*_x64-setup.exe** below and run it. It installs for your user only (no admin needed) and includes everything it needs, including the WebView2 runtime.
 
             ${{ env.SIGN == 'true' && 'The installer is code-signed. A brand-new signing identity can still trigger a SmartScreen prompt for the first releases while it builds reputation: click *More info → Run anyway*.' || 'Windows may show a SmartScreen warning because the installer isn''t code-signed yet: click *More info → Run anyway*.' }}
