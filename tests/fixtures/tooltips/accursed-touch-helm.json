@@ -1,0 +1,182 @@
+{
+ "source": "2026-10-10T05-15-03-877Z_c5e25d.json",
+ "ocr": [
+  "SPECTACLE'S",
+  "COWL OF",
+  "ACCURSED TOUCH",
+  "Ancestral Legendary Helm",
+  "900 Item Power",
+  "1,603 Armor (-4.5% Toughness)",
+  "+109 Intelligence (+1)",
+  "+183 Life Regeneration (+183)",
+  "+2,666 Shadow Resistance (+2,666)",
+  "+1 to Curse Skills (+1)",
+  "* Lucky Hit: Up to a 37.0% chance for",
+  "your Skills to inflict Vampiric Curse",
+  "on enemies. Enemies afflicted with",
+  "Vampiric Curse are also Vulnerable.",
+  "Vampiric Curse's stored souls deal",
+  "54.0% increased damage.",
+  "Properties lost when equipped:",
+  "+4 to M' Scroll Down",
+  "Equip",
+  "Sl llF'r",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison",
+  "Mark as Junk",
+  "Vulnerable enemies take 20% increased",
+  "damage.",
+  "Vampiric Cursed enemies grant a soul on",
+  "death, up to 8 stacks. Casting a Defensive,",
+  "Macabre, or Agility Skill unleashes all souls."
+ ],
+ "lines": [
+  {
+   "text": "SPECTACLE'S",
+   "bullet": "greater",
+   "h": 25
+  },
+  {
+   "text": "COWL OF",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "ACCURSED TOUCH",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Ancestral Legendary Helm",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "900 Item Power",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "1,603 Armor (-4.5% Toughness)",
+   "bullet": "normal",
+   "h": 29
+  },
+  {
+   "text": "+109 Intelligence (+1)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+183 Life Regeneration (+183)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+2,666 Shadow Resistance (+2,666)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+1 to Curse Skills (+1)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "* Lucky Hit: Up to a 37.0% chance for",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "your Skills to inflict Vampiric Curse",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "on enemies. Enemies afflicted with",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "Vampiric Curse are also Vulnerable.",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Vampiric Curse's stored souls deal",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "54.0% increased damage.",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "+4 to M' Scroll Down",
+   "bullet": "none",
+   "h": 27
+  },
+  {
+   "text": "Equip",
+   "bullet": "greater",
+   "h": 24
+  },
+  {
+   "text": "Sl llF'r",
+   "bullet": "normal",
+   "h": 9
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "CTRL",
+   "bullet": "normal",
+   "h": 13
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Mark as Junk",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "Vulnerable enemies take 20% increased",
+   "bullet": "tempered",
+   "h": 20
+  },
+  {
+   "text": "damage.",
+   "bullet": "tempered",
+   "h": 25
+  },
+  {
+   "text": "Vampiric Cursed enemies grant a soul on",
+   "bullet": "tempered",
+   "h": 25
+  },
+  {
+   "text": "death, up to 8 stacks. Casting a Defensive,",
+   "bullet": "tempered",
+   "h": 25
+  },
+  {
+   "text": "Macabre, or Agility Skill unleashes all souls.",
+   "bullet": "tempered",
+   "h": 25
+  }
+ ],
+ "bullets": null
+}

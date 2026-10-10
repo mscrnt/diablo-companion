@@ -35,3 +35,12 @@ tools/vendor
 tools/datamine/bin
 tools/datamine/cascx/obj
 release
+
+# Raw dumps — regenerate with the scripts in scripts/ and tools/datamine.
+# The app only ships the slimmed copies in src/generated/.
+data/builds
+data/static
+data/gamedata/*
+!data/gamedata/README.md
+research/samples
+*.tsbuildinfo

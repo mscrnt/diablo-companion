@@ -24,11 +24,17 @@ Game: Display Mode **Windowed Fullscreen** so the overlay can draw.
 - **FlareSolverr** (optional): only needed if the Mobalytics GraphQL API is unavailable
 - Hotkeys / controller chords, OBS websocket, Discord webhook
 
+## Tests
+```
+npm test            # Vitest: loot judge on logged tooltips, build import, timers, activity helpers
+npm run typecheck
+```
+CI (`.github/workflows/ci.yml`) runs the typecheck, tests, web build and `cargo check` on every push and PR.
+
 ## Release
-```
-npx tauri build   # → src-tauri/target/release/bundle/nsis/D4 Companion_<ver>_x64-setup.exe
-```
-Bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json` together.
+- **From GitHub:** Actions → *Release* → *Run workflow*, enter `patch`, `minor`, `major` or an exact `x.y.z`. It bumps the version files, commits, tags `vX.Y.Z` on main, builds the installer and publishes a GitHub release with it attached.
+- **From a terminal:** `npm run version -- 0.2.0`, commit, `git tag v0.2.0`, `git push --follow-tags`. Pushing the tag triggers the same build.
+- **Local installer only:** `npx tauri build` → `src-tauri/target/release/bundle/nsis/D4 Companion_<ver>_x64-setup.exe`.
 
 ## Data refresh
 ```
@@ -42,6 +48,7 @@ node tools/datamine/extract.mjs --update-defs                             # stri
 - `src/lib` — engine (timers, hotkeys, watchers), loot judge, guide, farm planner, importers
 - `src/overlay` — transparent click-through overlay (docks into the black pillarbox bars)
 - `src/pages` — dashboard UI
-- `scripts/dev` — `node scripts/dev/run.mjs <name>` runs TS test harnesses (judge, decide, farm, build)
+- `tests` — Vitest suite; `tests/fixtures/tooltips` are real OCR'd tooltips from the judge log
+- `scripts/dev` — `node scripts/dev/run.mjs <name>` runs exploratory scripts against your local judge log and app state
 
 See `ROADMAP.md` for what's next.

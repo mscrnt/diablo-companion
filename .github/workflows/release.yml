@@ -1,0 +1,100 @@
+name: Release
+
+# Two ways to cut a release:
+#  - Actions → Release → Run workflow, with a version (x.y.z) or patch / minor / major.
+#    It bumps the version files, commits, tags vX.Y.Z on main and builds.
+#  - Or locally: `npm run version -- 0.2.0`, commit, `git tag v0.2.0`, push the tag.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version: x.y.z, or patch / minor / major"
+        required: true
+        default: patch
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - id: bump
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node scripts/bump-version.mjs "$VERSION"
+          v=$(node -p "require('./package.json').version")
+          if git rev-parse -q --verify "refs/tags/v$v" >/dev/null; then
+            echo "::error::tag v$v already exists"; exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Release v$v"
+          git tag -a "v$v" -m "D4 Companion $v"
+          git push origin HEAD:main "v$v"
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: tag
+    # runs after the tag job, or on its own when a tag was pushed
+    if: ${{ !cancelled() && (needs.tag.result == 'success' || needs.tag.result == 'skipped') }}
+    runs-on: windows-latest
+    env:
+      TAG: ${{ needs.tag.outputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Tag matches the app version
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          [ "v$v" = "$TAG" ] || { echo "::error::tag $TAG but package.json says $v — run scripts/bump-version.mjs first"; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+
+      - run: rustup toolchain install
+        working-directory: src-tauri
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # builds the NSIS installer (static CRT + offline WebView2) and attaches it to the release
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ env.TAG }}
+          releaseName: D4 Companion ${{ env.TAG }}
+          releaseBody: |
+            Download **D4 Companion_*_x64-setup.exe** below and run it. It installs for your user only (no admin needed) and includes everything it needs, including the WebView2 runtime.
+
+            Windows may show a SmartScreen warning because the installer isn't code-signed yet: click *More info → Run anyway*.
+          releaseDraft: false
+          prerelease: ${{ contains(env.TAG, '-') }}

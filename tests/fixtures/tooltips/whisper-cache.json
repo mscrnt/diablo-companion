@@ -1,0 +1,110 @@
+{
+ "source": "2026-10-10T05-44-56-894Z_a0b12c.json",
+ "ocr": [
+  "ANCESTRAL",
+  "COLLECTION OF",
+  "CHESTPLATES *",
+  "Legendary Whisper Cache",
+  "A collection of items as a reward for",
+  "your efforts. Contains gear with a focus",
+  "on chest armors, gems, gold, and",
+  "crafting materials.",
+  "Use this cache to receive your rewards.",
+  "The Tree leaves no debt unsettled. Some of the",
+  "items inside smell faintly of decay, but the",
+  "whispers assure you their value is",
+  "undiminished.",
+  "Account Bound",
+  "Cannot Salvage",
+  "Sell Value.",
+  "• Cannot Be Sold"
+ ],
+ "lines": [
+  {
+   "text": "ANCESTRAL",
+   "bullet": "greater",
+   "h": 25
+  },
+  {
+   "text": "COLLECTION OF",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "CHESTPLATES *",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Legendary Whisper Cache",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "A collection of items as a reward for",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "your efforts. Contains gear with a focus",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "on chest armors, gems, gold, and",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "crafting materials.",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Use this cache to receive your rewards.",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "The Tree leaves no debt unsettled. Some of the",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "items inside smell faintly of decay, but the",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "whispers assure you their value is",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "undiminished.",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Account Bound",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Cannot Salvage",
+   "bullet": "none",
+   "h": 22
+  },
+  {
+   "text": "Sell Value.",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "• Cannot Be Sold",
+   "bullet": "greater",
+   "h": 20
+  }
+ ],
+ "bullets": null
+}

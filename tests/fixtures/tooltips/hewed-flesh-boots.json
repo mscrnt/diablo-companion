@@ -1,0 +1,182 @@
+{
+ "source": "2026-10-10T05-15-38-265Z_c419fd.json",
+ "ocr": [
+  "PRITTIAL SABATONS",
+  "OF HEWED FLESH",
+  "Ancestral Legendary Boots",
+  "900 Item Power",
+  "801 Armor (-10% Toughness)",
+  "+103 Intelligence (-29)",
+  "+275 Life on Kill (+275)",
+  "+12.5% Barrier Generation (+12.5%)",
+  "+2,386 Poison Resistance (+2,386)",
+  "Lucky Hit: Up to a 25% chance to",
+  "*",
+  "form a Corpse at the target's",
+  "location. Your Corpse Skills deal",
+  "20.0% increased damage.",
+  "Properties lost when equipped:",
+  "+1,295 Armor",
+  "+65% Movement Speed",
+  "+1,685 Maximum Life",
+  "Requires Level 70",
+  "Account Bound",
+  "Sell Value: 20,704 •",
+  "Durability: 100/100",
+  "Tempers: 3/3",
+  "Equip",
+  "S111F'r",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison",
+  "Mark as Junk"
+ ],
+ "lines": [
+  {
+   "text": "PRITTIAL SABATONS",
+   "bullet": "greater",
+   "h": 25
+  },
+  {
+   "text": "OF HEWED FLESH",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Ancestral Legendary Boots",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "900 Item Power",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "801 Armor (-10% Toughness)",
+   "bullet": "normal",
+   "h": 28
+  },
+  {
+   "text": "+103 Intelligence (-29)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+275 Life on Kill (+275)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+12.5% Barrier Generation (+12.5%)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+2,386 Poison Resistance (+2,386)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Lucky Hit: Up to a 25% chance to",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "*",
+   "bullet": "normal",
+   "h": 14
+  },
+  {
+   "text": "form a Corpse at the target's",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "location. Your Corpse Skills deal",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "20.0% increased damage.",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "+1,295 Armor",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+65% Movement Speed",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+1,685 Maximum Life",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "Account Bound",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Sell Value: 20,704 •",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Durability: 100/100",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "Tempers: 3/3",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "Equip",
+   "bullet": "greater",
+   "h": 24
+  },
+  {
+   "text": "S111F'r",
+   "bullet": "normal",
+   "h": 9
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "CTRL",
+   "bullet": "normal",
+   "h": 13
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Mark as Junk",
+   "bullet": "normal",
+   "h": 23
+  }
+ ],
+ "bullets": null
+}

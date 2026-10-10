@@ -1,0 +1,176 @@
+{
+ "source": "2026-10-10T05-15-08-184Z_7950d2.json",
+ "ocr": [
+  "STICKER-",
+  "THOUGHT",
+  "ARCHON FAULDS",
+  "Legendary Pants",
+  "850 Item Power",
+  "1,594 Armor (-26.6% Toughness)",
+  "+88 Intelligence (-94)",
+  "+1,116 Maximum Life (-2,934)",
+  "+2,078 Physical Resistance (+2,078)",
+  "+3 to Reap (+3)",
+  "* Gain 2,137 Thoms while Channeling",
+  "and for 3 seconds afterwards.",
+  "Properties lost when equipped:",
+  "+4,375 Armor",
+  "x31% Critical Strike Damage",
+  "Multiplier",
+  "Unique Power",
+  "Socket (2)",
+  "Requires Level 70",
+  "Sell Value: 24,085 •",
+  "Durability: 100/100",
+  "Tempers: 3/3",
+  "Equip",
+  "SHIFT",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison",
+  "Mark as Junk"
+ ],
+ "lines": [
+  {
+   "text": "STICKER-",
+   "bullet": "greater",
+   "h": 25
+  },
+  {
+   "text": "THOUGHT",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "ARCHON FAULDS",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Legendary Pants",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "850 Item Power",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "1,594 Armor (-26.6% Toughness)",
+   "bullet": "normal",
+   "h": 29
+  },
+  {
+   "text": "+88 Intelligence (-94)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+1,116 Maximum Life (-2,934)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "+2,078 Physical Resistance (+2,078)",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "+3 to Reap (+3)",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "* Gain 2,137 Thoms while Channeling",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "and for 3 seconds afterwards.",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "+4,375 Armor",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "x31% Critical Strike Damage",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "Multiplier",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Socket (2)",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 22
+  },
+  {
+   "text": "Sell Value: 24,085 •",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Durability: 100/100",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "Tempers: 3/3",
+   "bullet": "none",
+   "h": 23
+  },
+  {
+   "text": "Equip",
+   "bullet": "greater",
+   "h": 24
+  },
+  {
+   "text": "SHIFT",
+   "bullet": "normal",
+   "h": 9
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "normal",
+   "h": 23
+  },
+  {
+   "text": "CTRL",
+   "bullet": "normal",
+   "h": 13
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Mark as Junk",
+   "bullet": "normal",
+   "h": 23
+  }
+ ],
+ "bullets": null
+}

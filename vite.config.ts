@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -9,6 +10,7 @@ export default defineConfig(async () => ({
   plugins: [react()],
   // static-slim.json (game data tables) is a deliberate ~1.7 MB lazy chunk
   build: { chunkSizeWarningLimit: 2000 },
+  test: { include: ["tests/**/*.test.ts"], environment: "node" },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

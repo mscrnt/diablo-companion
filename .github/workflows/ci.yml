@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # the app is Windows-only (Windows OCR, XInput, Win32 window APIs)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      # also produces dist/, which the Rust build embeds
+      - run: npm run build
+
+      # installs the toolchain pinned in rust-toolchain.toml
+      - run: rustup toolchain install
+        working-directory: src-tauri
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: cargo check --locked --all-targets
+        working-directory: src-tauri
