@@ -20,6 +20,9 @@ The release workflow publishes each version's section as its GitHub release note
 - Item names no longer pick up your character's name when the tooltip opens over the Character panel.
 - Text from the panel behind a tooltip no longer sticks to the end of a stat ("+100 Intelligence Damage").
 - A legendary's power text is no longer mistaken for an affix, so it can't count as a wanted stat by accident. The aspect is now recognised on more items.
+- **Character** page, skills: the tooltip's rank includes ranks from your gear, so "34/15" showed up for a skill with 15 points. Skills now show the points you spent and the gear ranks apart ("15 +19"), and only your points are compared with the build. Skills read by an earlier version show their old rank with a "?" until you hover them again.
+- **Character** page, stats: the sheet is read against the game's own stat names. Currency, other players' names, section headers and tooltip text no longer show up as stats, and each value goes with the stat on its own row and column. Stats saved by an earlier version are cleaned up once.
+- Glyph levels are read when the glyph's name shares a line with other text, and a skill tooltip on the Paragon screen is no longer read as a glyph.
 
 ## [0.1.1] - 2026-10-10
 

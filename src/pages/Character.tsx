@@ -14,7 +14,7 @@ export default function Character() {
   // build plan vs what we read in game
   const planned = variant ? Object.entries(variant.skillRanks).filter(([slug]) => variant.skillBar.some((b) => b.slug === slug)) : [];
   const stats = Object.entries(c.stats).filter(([k]) => !q || k.toLowerCase().includes(q.toLowerCase()));
-  const watch = [/minion attack speed/i, /critical strike chance/i, /critical strike damage/i, /maximum life/i, /armor/i, /resist/i, /movement speed/i];
+  const watch = [/summon attack speed/i, /critical strike chance/i, /critical strike damage/i, /maximum life/i, /armor/i, /resist/i, /movement speed/i];
 
   return (
     <>
@@ -54,8 +54,13 @@ export default function Character() {
                       <tr key={slug}>
                         <td>{name}</td>
                         <td className="mono">{n}</td>
-                        <td className="mono" style={{ color: mine ? (mine.rank >= n ? "var(--green)" : "var(--gold)") : "var(--dim)" }}>
-                          {mine ? `${mine.rank}${mine.max ? "/" + mine.max : ""}` : "—"}
+                        {/* points you spent vs the build's points; gear ranks shown apart */}
+                        <td
+                          className="mono"
+                          style={{ color: mine?.rank != null ? (mine.rank >= n ? "var(--green)" : "var(--gold)") : "var(--dim)" }}
+                          title={mine ? `Tooltip rank ${mine.total}${mine.max ? "/" + mine.max : ""}${mine.bonus ? ` = ${mine.rank} points + ${mine.bonus} from gear` : ""}` : undefined}
+                        >
+                          {!mine ? "—" : mine.rank != null ? `${mine.rank}${mine.bonus ? ` +${mine.bonus}` : ""}` : `${mine.total}?`}
                         </td>
                       </tr>
                     );
@@ -66,7 +71,10 @@ export default function Character() {
           ) : (
             <Empty icon="📜">Import a build first.</Empty>
           )}
-          <div className="small dim">Build column = points the guide puts into that skill.</div>
+          <div className="small dim">
+            Build = points the guide puts into that skill. Yours = points you spent, then ranks from gear (+N).
+            {planned.some(([slug]) => c.skills[slug] && c.skills[slug].rank == null) && " A ? means the gear ranks weren't read: hover that skill again."}
+          </div>
         </Card>
 
         <Card title="Paragon glyphs" right={<button className="btn sm" disabled={g.active} onClick={() => mapGlyphs()}>Read</button>}>

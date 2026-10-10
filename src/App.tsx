@@ -3,6 +3,7 @@ import { startEngine, useRuntime } from "./lib/engine";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Welcome from "./pages/Welcome";
 import { loadStaticData } from "./lib/names";
+import { tidyCharacter } from "./lib/charmap";
 import { APP_VERSION, RELEASES_URL } from "./lib/version";
 import { useBuilds, useCoach, useLoot } from "./lib/store";
 import Dashboard from "./pages/Dashboard";
@@ -64,6 +65,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       await loadStaticData();
+      tidyCharacter();
       // wait for persisted builds, then seed the user's build on first run
       if (!useBuilds.persist.hasHydrated()) await new Promise<void>((r) => useBuilds.persist.onFinishHydration(() => r()));
       if (!Object.keys(useBuilds.getState().builds).length) setWelcome(true);

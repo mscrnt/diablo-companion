@@ -6,7 +6,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { overlayToast, playTone } from "./alerts";
 import { beginFlow, cancelGuide, flowAlive, guideGameRect, guideSet, guideSleep, guideWait, useGuide, type GuideItem } from "./guide";
-import { normName, table, trigramSim } from "./names";
+import { normName, table } from "./names";
+import { ocrRows, parseGlyphHover, parseSkillHover, parseStatSheet, tidyStats } from "./charsheet";
+import { ocrVocabReady } from "./ocrfix";
 import { captureRegion, cursorPosition, type OcrLine } from "./native";
 import { persistStorage } from "./persist";
 import { invoke } from "@tauri-apps/api/core";
@@ -20,17 +22,31 @@ export interface MapSession {
   glyphs: string[];
 }
 
+export interface SkillRank {
+  name: string;
+  /** points you spent; null when the gear bonus couldn't be read (older reads too) */
+  rank: number | null;
+  /** ranks from gear and buffs ("Item Contribution"); null = unknown */
+  bonus: number | null;
+  /** the rank the tooltip shows: points + bonus */
+  total: number;
+  max: number | null;
+  at: number;
+}
+
 export interface CharacterProfile {
   session: MapSession | null;
   stats: Record<string, string>;
   statsAt: number;
-  skills: Record<string, { name: string; rank: number; max: number | null; at: number }>;
+  /** 1 = stats keyed by the game's stat names (older saves hold raw OCR labels) */
+  statsV?: number;
+  skills: Record<string, SkillRank>;
   glyphs: Record<string, { name: string; level: number; at: number }>;
 }
 
 interface CharState extends CharacterProfile {
   setStats: (s: Record<string, string>) => void;
-  setSkill: (slug: string, v: { name: string; rank: number; max: number | null }) => void;
+  setSkill: (slug: string, v: Omit<SkillRank, "at">) => void;
   setGlyph: (slug: string, v: { name: string; level: number }) => void;
   clear: () => void;
   patchSession: (p: Partial<MapSession> | null) => void;
@@ -48,28 +64,38 @@ export const useCharacter = create<CharState>()(
         set((s) => ({
           session: p === null ? null : { ...(s.session ?? { startedAt: Date.now(), stats: false, skills: [], glyphs: [] }), ...p },
         })),
-      setStats: (stats) => set({ stats, statsAt: Date.now() }),
+      setStats: (stats) => set({ stats, statsAt: Date.now(), statsV: 1 }),
       setSkill: (slug, v) => set((s) => ({ skills: { ...s.skills, [slug]: { ...v, at: Date.now() } } })),
       setGlyph: (slug, v) => set((s) => ({ glyphs: { ...s.glyphs, [slug]: { ...v, at: Date.now() } } })),
       clear: () => set({ stats: {}, statsAt: 0, skills: {}, glyphs: {}, session: null }),
     }),
-    { name: "character", storage: persistStorage },
+    {
+      name: "character",
+      storage: persistStorage,
+      version: 1,
+      migrate: (old: any, version) => {
+        // v0 stored the tooltip's rank (points + gear ranks, e.g. 34/15) as "rank": keep it as the
+        // total; the points spent are unknown until the skill is hovered again
+        if (version < 1 && old?.skills) {
+          for (const [slug, s] of Object.entries<any>(old.skills)) old.skills[slug] = { name: s.name, rank: null, bonus: null, total: s.rank, max: s.max ?? null, at: s.at };
+          if (old.session) old.session.skills = [];
+        }
+        return old as CharState;
+      },
+    },
   ),
 );
 
-/** Join OCR lines that sit on the same row (label left, value right). */
-function rows(lines: OcrLine[]): string[] {
-  const sorted = [...lines].sort((a, b) => a.y - b.y);
-  const out: { y: number; h: number; parts: OcrLine[] }[] = [];
-  for (const l of sorted) {
-    const r = out.find((r) => Math.abs(r.y + r.h / 2 - (l.y + l.h / 2)) < Math.max(r.h, l.h) * 0.5);
-    if (r) r.parts.push(l);
-    else out.push({ y: l.y, h: l.h, parts: [l] });
-  }
-  return out.map((r) => r.parts.sort((a, b) => a.x - b.x).map((p) => p.text.trim()).join(" "));
+/** Older saves keyed stats by raw OCR labels ("Kyldirril", "Thoms"): tidy them once the game's stat names are loaded. */
+export async function tidyCharacter() {
+  if (!useCharacter.persist.hasHydrated()) await new Promise<void>((r) => useCharacter.persist.onFinishHydration(() => r()));
+  const c = useCharacter.getState();
+  if (c.statsV === 1 || !ocrVocabReady()) return;
+  useCharacter.setState({ stats: Object.keys(c.stats).length ? tidyStats(c.stats) : c.stats, statsV: 1 });
 }
 
-const STAT_ROW = /^([A-Za-z][A-Za-z '%&\-:()]{2,60}?)\s*[:.]?\s+([+\-x]?\s?[\d][\d.,]*\s?%?)$/;
+/** Join OCR lines that sit on the same row (label left, value right). */
+const rows = (lines: OcrLine[]): string[] => ocrRows(lines).map((r) => r.map((p) => p.text.trim()).join(" "));
 
 // ---- stats ---------------------------------------------------------------------------
 
@@ -79,8 +105,13 @@ export async function mapStats(my?: number, embedded = false) {
   const rect = await guideGameRect();
   if (!rect) return;
   const found: Record<string, string> = {};
+  // every frame votes; a stat keeps the value read most often (scrolling and overlapping
+  // tooltips cause the odd wrong pairing)
+  const votes: Record<string, Record<string, number>> = {};
   let lastNew = Date.now();
   let started = false;
+  let logged = 0;
+  let lastLog = 0;
   guideSet({
     instruction: "Open Character → Materials & Stats",
     detail: `Press C, then open the stats list. I'll read every line — scroll down slowly when I ask. Press ${key} when you reach the bottom · ${pauseKey()} pauses.`,
@@ -90,16 +121,20 @@ export async function mapStats(my?: number, embedded = false) {
   const res = await guideWait(
     async () => {
       const cap = await captureRegion(rect, { ocr: true, ocrMaxChannel: true, maxEdge: 64, quality: 50 });
+      const lines = cap.ocr?.lines ?? [];
       let added = 0;
-      for (const row of rows(cap.ocr?.lines ?? [])) {
-        const m = row.match(STAT_ROW);
-        if (!m) continue;
-        const label = m[1].replace(/\s+/g, " ").trim();
-        if (label.length < 4 || /item power|sell value|requires|durability/i.test(label)) continue;
-        if (found[label] !== m[2]) {
-          if (!(label in found)) added++;
-          found[label] = m[2].replace(/\s+/g, "");
-        }
+      for (const [name, value] of Object.entries(parseStatSheet(lines))) {
+        const v = (votes[name] ??= {});
+        v[value] = (v[value] ?? 0) + 1;
+        const best = Object.entries(v).sort((a, b) => b[1] - a[1])[0][0];
+        if (!(name in found)) added++;
+        found[name] = best;
+      }
+      // keep a few raw frames (text + positions) so the reader can be tuned on real sheets
+      if (lines.length && logged < 8 && Date.now() - lastLog > 6000) {
+        logged++;
+        lastLog = Date.now();
+        invoke("debug_log_write", { name: `statsheet_${new Date().toISOString().replace(/[:.]/g, "-")}`, image: null, json: JSON.stringify({ read: found, lines }, null, 1) }).catch(() => {});
       }
       const n = Object.keys(found).length;
       if (added) {
@@ -156,17 +191,6 @@ async function hoverText(): Promise<string[]> {
   return lines;
 }
 
-function bestName(lines: string[], names: { slug: string; name: string }[], min = 0.8) {
-  let best: { slug: string; name: string; score: number; i: number } | null = null;
-  lines.forEach((l, i) => {
-    for (const n of names) {
-      const s = trigramSim(l, n.name);
-      if (s >= min && (!best || s > best.score)) best = { ...n, score: s, i };
-    }
-  });
-  return best as { slug: string; name: string; score: number; i: number } | null;
-}
-
 export async function mapSkills(my?: number, embedded = false) {
   my ??= beginFlow("character", "Skill ranks", 1);
   const { variant } = getActiveVariant();
@@ -188,27 +212,26 @@ export async function mapSkills(my?: number, embedded = false) {
   const res = await guideWait(
     async () => {
       const lines = await hoverText();
-      // the skill's title sits just above its "Rank" line — look there first
-      const ri = lines.findIndex((l) => /rank/i.test(l));
-      const near = ri >= 0 ? lines.slice(Math.max(0, ri - 6), ri + 1) : lines;
-      const hit = bestName(near, names, 0.75) ?? (ri < 0 ? null : bestName(lines, names, 0.85));
+      // "Army of the Dead" / "RANK 9/15" / "(Item Contribution: 4)": 5 points + 4 from gear
+      const read = parseSkillHover(lines, names);
       const text = lines.join(" ");
-      const m =
-        text.match(/rank\s*(\d+)\s*\/\s*(\d+)/i) ??
-        text.match(/(\d+)\s*\/\s*(\d+)\s*rank/i) ??
-        text.match(/rank\s*:?\s*(\d+)/i) ??
-        text.match(/lv?l\.?\s*(\d+)/i);
-      // log misses so the reader can be tuned on your real tooltips
-      if ((!hit || !m) && /rank|cooldown|lucky hit|essence|skill/i.test(text) && Date.now() - lastSkillLog > 4000) {
+      // log misses (and reads whose gear bonus OCR lost) so the reader can be tuned on your real tooltips
+      if ((!read || read.base === null) && /rank|cooldown|lucky hit|essence|skill/i.test(text) && Date.now() - lastSkillLog > 4000) {
         lastSkillLog = Date.now();
-        invoke("debug_log_write", { name: `skillhover_${new Date().toISOString().replace(/[:.]/g, "-")}`, image: null, json: JSON.stringify({ hit, rank: m?.[0] ?? null, lines }, null, 1) }).catch(() => {});
+        invoke("debug_log_write", { name: `skillhover_${new Date().toISOString().replace(/[:.]/g, "-")}`, image: null, json: JSON.stringify({ read, lines }, null, 1) }).catch(() => {});
       }
-      if (!hit || !m) return false;
-      useCharacter.getState().setSkill(hit.slug, { name: hit.name, rank: Number(m[1]), max: m[2] ? Number(m[2]) : null });
+      if (!read) return false;
+      const { hit } = read;
+      const prev = useCharacter.getState().skills[hit.slug];
+      // a later hover that lost the contribution line doesn't overwrite a complete read of the same rank
+      if (read.base === null && prev?.rank != null && prev.total === read.total) return false;
+      useCharacter.getState().setSkill(hit.slug, { name: hit.name, rank: read.base, bonus: read.bonus, total: read.total, max: read.max });
+      // done once the points are known; without them, ask for another hover
+      if (read.base === null) return false;
       const it = items.find((i) => i.key === hit.slug || normName(i.label) === normName(hit.name));
       if (it && !it.done) {
         it.done = true;
-        it.note = `rank ${m[1]}${m[2] ? "/" + m[2] : ""}`;
+        it.note = `${read.base} point${read.base === 1 ? "" : "s"}${read.bonus ? ` +${read.bonus} from gear` : ""}`;
         useCharacter.getState().patchSession({ skills: [...(useCharacter.getState().session?.skills ?? []), it.key] });
         playTone("tick", useSettings.getState().settings.alerts.volume);
       }
@@ -241,18 +264,15 @@ export async function mapGlyphs(my?: number, embedded = false) {
   const res = await guideWait(
     async () => {
       const lines = await hoverText();
-      // the glyph's name sits right above its level / rank line; short names ("Essence") also
-      // appear in normal stats, so only look next to that line
-      const li = lines.findIndex((l) => /\b(level|rank)\s*:?\s*\d+/i.test(l) || /\bglyph\b/i.test(l));
-      const near = li >= 0 ? lines.slice(Math.max(0, li - 4), li + 2) : [];
-      const hit = near.length ? bestName(near, names, 0.8) : null;
-      const m = near.join(" ").match(/\b(?:level|rank)\s*:?\s*(\d+)/i) ?? lines.join(" ").match(/glyph[^\d]{0,20}(\d+)/i);
-      if ((!hit || !m) && li >= 0 && Date.now() - lastSkillLog > 4000) {
+      // the glyph's name sits right above its "LEVEL 85" line; short names ("Essence") also
+      // appear in normal stats, so only look next to that line. A skill's "RANK 9/15" isn't a glyph.
+      const read = parseGlyphHover(lines, names);
+      if (!read && lines.some((l) => /\bglyph\b|\blevel\s*\d+/i.test(l)) && Date.now() - lastSkillLog > 4000) {
         lastSkillLog = Date.now();
-        invoke("debug_log_write", { name: `glyphhover_${new Date().toISOString().replace(/[:.]/g, "-")}`, image: null, json: JSON.stringify({ hit, level: m?.[0] ?? null, near, lines: lines.slice(0, 60) }, null, 1) }).catch(() => {});
+        invoke("debug_log_write", { name: `glyphhover_${new Date().toISOString().replace(/[:.]/g, "-")}`, image: null, json: JSON.stringify({ read, lines: lines.slice(0, 60) }, null, 1) }).catch(() => {});
       }
-      if (!hit || !m) return false;
-      const level = Number(m[1]);
+      if (!read) return false;
+      const { hit, level } = read;
       useCharacter.getState().setGlyph(hit.slug, { name: hit.name, level });
       const it = items.find((i) => i.key === hit.slug);
       if (it && !it.done) {
@@ -326,7 +346,11 @@ export function characterContext(): string {
   const c = useCharacter.getState();
   const parts: string[] = [];
   if (Object.keys(c.stats).length) parts.push("CHARACTER SHEET:\n" + Object.entries(c.stats).map(([k, v]) => `- ${k}: ${v}`).join("\n"));
-  if (Object.keys(c.skills).length) parts.push("SKILL RANKS (read in game):\n" + Object.values(c.skills).map((s) => `- ${s.name}: rank ${s.rank}${s.max ? "/" + s.max : ""}`).join("\n"));
+  const skill = (s: SkillRank) =>
+    s.rank !== null
+      ? `- ${s.name}: ${s.rank} skill point${s.rank === 1 ? "" : "s"}${s.bonus ? ` + ${s.bonus} ranks from gear (rank ${s.total})` : ""}`
+      : `- ${s.name}: rank ${s.total} including gear ranks (points spent unknown)`;
+  if (Object.keys(c.skills).length) parts.push("SKILL RANKS (read in game):\n" + Object.values(c.skills).map(skill).join("\n"));
   if (Object.keys(c.glyphs).length) parts.push("GLYPHS (read in game):\n" + Object.values(c.glyphs).map((g) => `- ${g.name}: level ${g.level}`).join("\n"));
   return parts.join("\n\n");
 }

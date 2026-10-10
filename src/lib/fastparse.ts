@@ -171,7 +171,7 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     const iconLead = /^[*•◆◇o]\s+\S/.test(text);
     const clean = iconLead ? text.replace(/^[*•◆◇o]\s+/, "") : text;
     const deltaTail = /^[+\-]?\s*[\d.,]+%?\s*\)\s*$/.test(clean);
-    const numStart = /^[+x\-]?\s*\d/i.test(clean) && !deltaTail && !/^\d+(\.\d+)?\s*(seconds?)/i.test(clean);
+    const numStart = /^[+x\-]?\s*\d/i.test(clean) && !deltaTail && !/^\d+(\.\d+)?\s*(seconds?)\b/i.test(clean);
     const looksWrapped =
       deltaTail ||
       /^[a-z]/.test(text) || // continues mid-sentence
