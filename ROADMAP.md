@@ -10,7 +10,7 @@ Everything on this roadmap uses one of these sources:
 |---|---|
 | **Screen capture + OCR / local vision model** | tooltips, HUD, quest tracker, menus |
 | **Game files on disk, read-only** | CASC data from the local install: affixes, drop tables, map markers, schedules, recipes |
-| **Public web data** | Mobalytics, Maxroll, d4builds, helltides.com, Blizzard news |
+| **Public web data** | Mobalytics, Maxroll, d4builds, helltides.com, guides, tier lists, patch notes, Blizzard news (fetched politely, cached, credited) |
 | **The game's own features** | importing a loot filter code the app generates |
 | **Read-only controller input** | XInput chords for our own hotkeys |
 
@@ -39,6 +39,19 @@ Everything on this roadmap uses one of these sources:
 | **Fix Character page reading** | Skill ranks read as "31/15" (base vs gear bonus) and stats get mixed up ("Toughness 1,241,124", "Kyldirril"). Parse the character sheet against the datamined stat names, and split base and bonus ranks. | 🖥📦 | S |
 | **Roll quality on every affix** | Show "87% of max" next to each affix and greater affix using datamined affix ranges by item power, so "is this a good roll?" gets an exact answer. | 📦🖥 | M |
 | **Re-check questionable verdicts** | Audit rules such as "wear this ring" when the swap would lose a unique power. Add these cases as test fixtures. | 🖥 | S |
+
+## Signature features: explain, improve, grade
+
+What sets the app apart: it knows the game's actual data, your build, your character and how you play, and connects them.
+
+| Feature | How | Source | Effort |
+|---|---|---|---|
+| **Ask anything about Diablo IV** | The Coach answers from the datamined game data (drops, maps, recipes, affix ranges, bosses, activities), the active build and your mapped character, quoting real values instead of guessing. Points to the map or a page when the answer is a place or a list. | 📦🌐 | M |
+| **Build doctor** | Import a build from Mobalytics, Maxroll or d4builds and get concrete improvement suggestions: missing synergies, weak or outdated aspects and affixes (checked against the current patch's datamined values), better temper and masterwork targets, paragon and glyph order, gear you already own that fits. Each suggestion explains why. | 🌐📦 | L |
+| **Gear check against the build** | Compare what you actually wear (mapped gear and stats) with the build, ranked by impact: "your biggest upgrade is a greater-affix Crit Chance ring". | 🖥📦 | M |
+| **Play grading** | Grade each session from what the screen shows: Pit and Nightmare clear times by tier, time per floor, deaths and what killed you (death screen), potion use, how long elites and bosses take, resource starvation. Trends over time, with "you're ready for tier N" calls. | 🖥 | L |
+| **Adaptive build tuning** | Turn the grades into build changes: dying to the same thing suggests specific defensive swaps; slow boss kills suggest a damage-focused swap; resource issues suggest the right affix or aspect. The build doctor applies them, and you can accept, reject or bookmark them as a variant. | 🖥📦 | L |
+| **Session recap** | End-of-session card: runs, best times, drops worth keeping, glyph progress, and what to do next session. | 🖥 | S |
 
 ## Next: be the best at each system
 
