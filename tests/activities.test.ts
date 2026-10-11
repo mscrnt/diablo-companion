@@ -152,3 +152,14 @@ describe("War Plans", () => {
     expect(parseWarPlan([{ text: "Slay the Boss", y: 0 }])).toBeNull();
   });
 });
+
+describe("world bosses", () => {
+  it("are found from their health bar and get material notes", async () => {
+    const { findBoss, bossInfo, isWorldBoss } = await import("../src/lib/boss");
+    expect(findBoss([line("AVARICE, THE GOLD CURSED")])).toBe("Avarice, the Gold Cursed");
+    expect(findBoss([line("WANDERING DEATH, DEATH GIVEN LIFE")])).toBe("Wandering Death, Death Given Life");
+    expect(isWorldBoss("Ashava")).toBe(true);
+    const info = bossInfo("Avarice, the Gold Cursed", ctx.variant, ctx.prog);
+    expect(info.notes.join(" ")).toMatch(/Lair boss summoning materials/);
+  });
+});
