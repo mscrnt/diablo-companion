@@ -51,3 +51,7 @@ src-tauri/target-*/
 
 # Personal notes and drafts, never committed
 private/
+
+# Cloudflare Worker local state and dev secrets
+worker/.wrangler
+worker/.dev.vars

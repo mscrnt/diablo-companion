@@ -1,0 +1,21 @@
+{
+  "name": "sanctuary-reports-worker",
+  "private": true,
+  "type": "module",
+  "description": "Debug-report upload endpoint for Sanctuary Toolkit (Cloudflare Worker → MinIO)",
+  "scripts": {
+    "dev": "wrangler dev --remote",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "aws4fetch": "1.0.20"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261006.1",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4",
+    "wrangler": "4.149.0"
+  }
+}
