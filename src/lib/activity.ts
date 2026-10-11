@@ -64,9 +64,11 @@ export function onFrame(lines: OcrLine[], region?: { x: number; y: number }) {
   }
   const text = lines.map((l) => l.text).join("\n");
   // stylised "OBELISK" can OCR as "0BELISK" — "Select Tier" under the dropdown is a second anchor
-  if (/artificer|belisk|select tier/i.test(text)) {
+  // only the obelisk's own panel (not "Artificer's Pit" in a quest or another tier list), only between
+  // runs, and only a tier the Pit has
+  if (phase === "none" && /belisk|select tier/i.test(text)) {
     const m = text.match(/(?:pit\s*)?tier\s*(\d{1,3})/i) ?? text.match(/\blevel\s*(\d{1,3})\b/i);
-    if (m && pendingTier !== `T${m[1]}`) {
+    if (m && Number(m[1]) >= 1 && Number(m[1]) <= 200 && pendingTier !== `T${m[1]}`) {
       pendingTier = `T${m[1]}`;
       debugEvent("activity", "pit-tier", { tier: pendingTier });
     }

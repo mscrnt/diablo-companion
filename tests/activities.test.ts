@@ -101,6 +101,13 @@ describe("Tree of Whispers", () => {
 describe("Helltide", () => {
   it("reads cinders and the timer from the HUD", () => {
     expect(parseHelltideHud([line("Helltide", 100, 100), line("12:34", 100, 130), line("216", 100, 208)])).toEqual({ cinders: 216, secondsLeft: 754 });
+    expect(parseHelltideHud([line("Helltide: 51:37", 100, 100)])?.secondsLeft).toBe(3097);
+  });
+
+  it("isn't fooled by other text with the word in it", () => {
+    // seen in the Undercity: a ground label "Helltide Harv…" started a Helltide
+    expect(parseHelltideHud([line("FLOOR", 100, 20), line("4/3", 100, 50), line("Helltide Harv", 500, 347)])).toBeNull();
+    expect(parseHelltideHud([line("Helltide Kehjistan ends 24m", 100, 100)])).toBeNull();
   });
 
   it("spends cinders on the slot the build is missing", () => {

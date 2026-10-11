@@ -29,7 +29,9 @@ export interface HelltideInfo {
 
 /** Parse the HUD block: "Helltide: 51:37" with counters under the icons (cinders = the left one). */
 export function parseHelltideHud(lines: OcrLine[]): { cinders: number | null; secondsLeft: number | null } | null {
-  const label = lines.find((l) => /helltide/i.test(l.text));
+  // the HUD label is "Helltide" alone (maybe with ":" and its timer) — not an item or chest name
+  // that contains the word ("Helltide Harvest…", "Tortured Gift of…" lists)
+  const label = lines.find((l) => /^\W{0,3}helltide\s*:?\s*(\d{1,2}\s*:\s*\d{2})?\W{0,3}$/i.test(l.text.trim()));
   if (!label) return null;
   const tm = label.text.match(/(\d{1,2}):(\d{2})/) ?? lines.map((l) => l.text.match(/^\D{0,3}(\d{1,2}):(\d{2})\s*$/)).find(Boolean) ?? null;
   const secondsLeft = tm ? Number(tm[1]) * 60 + Number(tm[2]) : null;

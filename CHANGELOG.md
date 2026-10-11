@@ -36,6 +36,8 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- A Helltide no longer "starts" when other text on screen contains the word (an item label like "Helltide Harvest…" in the Undercity did); the app now looks for the Helltide HUD label itself.
+- The Pit tier is only picked up from the obelisk's own panel between runs, and only as a real tier number (stray "T10" and "T327" readings came from other text).
 - A verdict no longer waits several seconds when the game's EQUIPPED column can't be read instantly: the hovered tooltip's own comparison and what you were last seen wearing are enough, and the AI reads that column afterwards only to refresh the app's memory of your gear.
 - **Undercity tributes** are no longer judged as gear (one was taken for an amulet). The verdict says what the tribute earns, how much harder it makes the run (Monster Power, starting time, time bonus penalty) and whether it's one for your build: tributes that earn charms and a Seal are marked "use it" for builds that wear them.
 - A tooltip whose title is cut off at the top of the screen is read instantly by its type ("Legendary Sword") instead of waiting several seconds for the AI, which couldn't see the name either.
