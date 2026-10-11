@@ -27,6 +27,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Rings are weighed against both of your rings. The game compares a new ring with only one of yours (Alt switches); the judge now also checks your other ring, using what it last saw you wear there.
 - Gear you've masterworked and tempered no longer beats a fresh drop just because of that work. Your piece is compared without its masterwork bonus (estimated), and a temper the new item can get too doesn't count against it. The verdict says so.
 - **Top-tier items are saved for later** instead of scrapped, even when your build has no use for them: anything with 3★ or more greater affixes, uniques with 2★, and legendaries whose two ★ are on stats your class uses.
+- **Occultist steps say exactly what to change:** an imprint names the aspect it replaces, and an enchant names the stat to give up: the one worth least to your build, never a ★ greater affix, the temper or the item's base stat.
 - A copy with a cut-off tooltip isn't called better on stats your piece might also have; scroll down to see the full comparison.
 - The app is now called **Sanctuary Toolkit**, with a new flaming-sword icon for the window, taskbar, tray and installer. Your settings and data carry over.
 - Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.

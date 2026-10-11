@@ -61,8 +61,9 @@ export function statWeight(key: string, slot: GearSlot, prof: BuildProfile): num
   if (!key) return 0;
   const here = [...slot.implicits, ...slot.affixes].find((s) => base(s.name) === key || key.startsWith(base(s.name)));
   if (here) return here.masterwork ? 1.2 : 1;
+  // your main stat adds damage on every piece: a little more than a stat wanted on another slot
+  if (prof.mainStat && key === prof.mainStat) return 0.7;
   if (prof.wanted.has(key)) return 0.6;
-  if (prof.mainStat && key === prof.mainStat) return 0.6;
   if (key === "all stats") return 0.5;
   if (MAIN_STATS.includes(key)) return 0.05; // another class's main stat
   // "+3 to Corpse Explosion", "Ranks to Curse Skills": only your skills count

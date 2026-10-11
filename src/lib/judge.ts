@@ -137,24 +137,36 @@ export function sameAsWorn(item: ParsedItem, worn: ParsedItem): boolean {
  * The to-do list for an item you wear (or are about to): Occultist imprint/enchant,
  * Blacksmith temper & masterwork, sockets, and a Horadric Cube mythic upgrade later.
  */
-function upkeep(item: ParsedItem, slot: GearSlot, q: Quality, p: SlotProgress, wearing: boolean): string[] {
+function upkeep(item: ParsedItem, slot: GearSlot, q: Quality, p: SlotProgress, wearing: boolean, prof?: BuildProfile): string[] {
   const steps: string[] = [];
-  if (slot.kind === "aspect" && !q.isTarget) steps.push(`Occultist → Imprint "${slot.itemName}" onto it.`);
+  if (slot.kind === "aspect" && !q.isTarget) {
+    const current = item.aspect?.name && !sameItem(item.aspect.name, slot.itemName) ? ` (it replaces ${item.aspect.name})` : "";
+    steps.push(`Occultist → Imprint "${slot.itemName}" onto it${current}.`);
+  }
   // stats that are the build's temper target count as "tempered", never as reroll candidates
   const temperNames = slot.tempers.map((t) => t.name.replace(/\s*\(.*\)\s*$/, ""));
   const isTemperStat = (t: string) => temperNames.some((n) => similarity(t, n) >= 0.8);
   // the Occultist allows ONE enchant per item: if one stat is already enchanted, only that one can change
   const enchanted = item.affixes.find((a) => a.enchanted);
-  if (q.missing.length && enchanted) {
-    const usefulHere = !!enchanted.match && q.matched.some((m) => normName(m) === normName(enchanted.match!));
-    if (!usefulHere) steps.push(`Occultist → re-roll the enchanted "${cleanAffix(enchanted.text)}" into ${shortStat(q.missing[0])} (its one enchant is already on that stat).`);
-  } else if (q.missing.length) {
-    const bad = item.affixes.find((a) => !a.match && !a.tempered && !isTemperStat(a.text) && !/armor|all resist|resistance/i.test(a.text));
-    steps.push(
-      bad
-        ? `Occultist → Enchant: change "${cleanAffix(bad.text)}" into ${shortStat(q.missing[0])} (one stat per item).`
-        : `Occultist → Enchant one stat into ${shortStat(q.missing[0])} (one stat per item).`,
-    );
+  const want = q.missing[0];
+  // what a stat is worth here; without the build's weights, a wanted stat is worth 1 and anything else little
+  const worth = (a: ParsedItem["affixes"][number]) => (prof ? statWeight(statKey(a.match ?? a.text), slot, prof) : a.match ? 1 : 0.1);
+  const wantWorth = want ? (prof ? statWeight(normName(want), slot, prof) : 1) : 0;
+  // a misread line can still be the wanted stat ("x26% Critical St e Ramäge Multiplier"): never re-roll into what it already is
+  const isWant = (a: ParsedItem["affixes"][number]) =>
+    !!want && (a.match ? normName(a.match) === normName(want) : similarity(cleanAffix(a.text).replace(/^[+x\-\d.,%\s]+/i, ""), want) >= 0.75);
+  // the base stat above the line ("1,594 Armor", "288 All Resist") can't be enchanted
+  const implicit = (a: ParsedItem["affixes"][number]) => a === item.affixes[0] && /^\d[\d,.]*\s+(armor|all resist)/i.test(a.text);
+  if (want && enchanted) {
+    const usefulHere = (!!enchanted.match && q.matched.some((m) => normName(m) === normName(enchanted.match!))) || isWant(enchanted);
+    if (!usefulHere && worth(enchanted) < wantWorth)
+      steps.push(`Occultist → re-roll the enchanted "${cleanAffix(enchanted.text)}" into ${shortStat(want)} (an item takes one enchant, and it's already on that stat).`);
+  } else if (want && !item.affixes.some(isWant)) {
+    // give up the stat worth least to the build — never a ★ greater affix or the temper
+    const pool = item.affixes.filter((a) => !a.tempered && !a.greater && !implicit(a) && !isTemperStat(a.text)).sort((x, y) => worth(x) - worth(y));
+    const swap = pool[0];
+    if (swap && worth(swap) < wantWorth)
+      steps.push(`Occultist → Enchant: change "${cleanAffix(swap.text)}" into ${shortStat(want)} (one stat per item; it's the stat worth least to your build).`);
   }
   const tempered = item.affixes.some((a) => a.tempered || isTemperStat(a.text)) || (wearing && p.tempered);
   if (slot.tempers.length && !tempered)
@@ -266,7 +278,7 @@ export function decide(item: ParsedItem, variant: BuildVariant | undefined, ctx:
   if (item.truncated) res.reasons = [...res.reasons, "Part of this tooltip is hidden — scroll it down to let me see everything."];
   if (res.verdict === "WEAR" && variant && res.slot) {
     const slot = variant.gear.find((g) => g.slot === res.slot);
-    if (slot) res.steps = ["Equip it.", ...upkeep(item, slot, quality(item, slot), { ...ctx.prog(slot.slot), masterwork: 0, tempered: false }, false)];
+    if (slot) res.steps = ["Equip it.", ...upkeep(item, slot, quality(item, slot), { ...ctx.prog(slot.slot), masterwork: 0, tempered: false }, false, buildProfile(variant))];
   }
   return res;
 }
@@ -315,7 +327,7 @@ function wearing(item: ParsedItem, slot: GearSlot, ctx: Ctx, lead?: string): Out
   const tips: string[] = lead ? [lead] : [];
   if (!q.isTarget) tips.push(`Your build wants ${slot.itemName} here — this is a stand-in.`);
   tips.push(`${q.matched.length} of ${q.total} stats your build wants${q.greater ? `, ${q.greater} are ★ greater` : ""}.`);
-  const steps = upkeep(item, slot, q, ctx.prog(slot.slot), true);
+  const steps = upkeep(item, slot, q, ctx.prog(slot.slot), true, ctx.prof);
   const action = steps.length ? steps[0] : "Fully done — nothing left to improve here.";
   return { ...out(item, "WEARING", action, tips, slot, q), steps };
 }
