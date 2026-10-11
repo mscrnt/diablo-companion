@@ -2,7 +2,7 @@
 // active build (slot caches for missing pieces, Talismans for missing charms,
 // Primordial Dust for cube crafts…). Cache names come from the game files.
 import data from "../generated/hordes.json";
-import { trigramSim } from "./names";
+import { table, trigramSim } from "./names";
 import type { OcrLine } from "./native";
 import type { BuildVariant, SlotProgress } from "./types";
 
@@ -43,7 +43,8 @@ export function rankCache(c: WhisperCache, variant: BuildVariant | undefined, pr
   if (slots) {
     const mine = gear.filter((g) => g.group === "gear" && slots.includes(g.slot));
     // a 1H cache is useless for a two-handed build and vice versa
-    const twoHanded = gear.some((g) => g.slot === "weapon" && /two-?handed|2h/i.test(g.itemName + " " + (g.itemSlug ?? "")));
+    // the unique's own type says it ("Bloodless Scream" → "2h Scythe"); the name rarely does
+    const twoHanded = gear.some((g) => g.slot === "weapon" && /two-?handed|\b2h\b/i.test(`${g.itemName} ${g.itemSlug ?? ""} ${table("uniques")[g.itemSlug]?.t ?? ""}`));
     if (c.kind === "1HWeapons" && twoHanded && !gear.some((g) => g.slot === "offhand")) return { score: 0.2, why: "Your build uses a two-handed weapon." };
     if (!mine.length) return { score: 0.3, why: "Your build doesn't use this slot." };
     let best = { score: 0.5, why: `Your ${mine[0].slotLabel} is already done.` };

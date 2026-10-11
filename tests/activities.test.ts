@@ -84,6 +84,14 @@ describe("Tree of Whispers", () => {
     expect(r.at(-1)!.name).toBe("Collection of Chaos");
   });
 
+  it("knows a two-handed unique from its type, not its name", () => {
+    // Bloodless Scream is a 2h Scythe: a one-handed weapon cache is no use to this build
+    const W = (t: string, y: number) => line(t, 100, y, 400);
+    const r = findWhisperCaches([W("COLLECTION OF ONE-HANDED WEAPONS", 0), W("COLLECTION OF RINGS", 60), W("COLLECTION OF CHAOS", 120)], { x: 0, y: 0 }, ctx.variant, ctx.prog);
+    expect(r[0].name).toBe("Collection of Rings");
+    expect(r.find((c) => /one-handed/i.test(c.name))?.why).toMatch(/two-handed/);
+  });
+
   it("parses Grim Favors", () => {
     expect(parseGrimFavors("Grim Favors 7/10")).toEqual({ have: 7, max: 10 });
     expect(parseGrimFavors("nothing here")).toBeNull();

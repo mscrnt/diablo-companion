@@ -35,6 +35,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Tree of Whispers: a two-handed unique whose name doesn't say so (Bloodless Scream, a two-handed scythe) is recognised from its item type, so one-handed weapon caches are no longer ranked first for a two-handed build.
 - An item you hover again moves back to the top of the Loot history (it used to stay where it was first judged).
 - Charms (even the ones your build uses), seals and Whisper Caches could be told "scrap" when the AI read the tooltip. Your build's charms are kept, other pieces of its charm set are kept, other charms are stashed, and caches are never judged as gear.
 - Infernal Hordes offers: the pick no longer jumps between offers. It remembers every offer seen on the offer screen and ranks that set, reads only real offer titles (not description fragments or boss names), starts fresh each wave, and reads your Aether count from the tracker instead of "+2 Aether" in a description.
