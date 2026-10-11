@@ -37,6 +37,8 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Keys are never told to scrap: an Infernal Hordes compass ("it opens the Infernal Hordes"), Escalation sigils (an Escalating Nightmare) and Nightmare sigils (a Nightmare Dungeon) each say what they open, and the bottom half of a Chronicle tooltip is no longer taken for a ring. Hovering a compass in the bag no longer starts a Hordes run.
+- Tribute advice comes from what the tribute earns, not from other text on screen (a Tribute of Armaments was called a charm tribute).
 - Greater affixes (★) were missed on some items, so a 4★ legendary could be told to scrap: the starburst can be pale peach rather than orange, and OCR sometimes reads it as a "*" in front of the stat. Both now count.
 - Items in the bag's right-hand columns, and some tributes, were treated like loot on the ground (no verdict card, or only a late badge): their tooltip covers the CHARACTER header the app looked for. The tooltip's own footer (Equip, Mark as Junk, Hide Comparison, Take, Sell) now also tells it a menu is open.
 - Undercity: a run no longer ends or splits in two when the map, the inventory or a loading screen hides the quest tracker for a while. It ends when the game shows the run is complete ("FLOOR 4/3"), or after 90 s without the tracker if you leave. The end area after a clear no longer starts a phantom run, and a run's time stops when it was last seen, not when the app noticed.

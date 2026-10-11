@@ -188,3 +188,10 @@ describe("world bosses", () => {
     expect(info.notes.join(" ")).toMatch(/Lair boss summoning materials/);
   });
 });
+
+describe("Hordes compass", () => {
+  it("hovering the compass in the bag doesn't start a Hordes run", () => {
+    expect(looksLikeHordes("Pass through the Gates of Hell to face the Infernal Hordes.")).toBe(false);
+    expect(looksLikeHordes("Infernal Hordes | WAVE: 3/10 | Burning Aether 120")).toBe(true);
+  });
+});

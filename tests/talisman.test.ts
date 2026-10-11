@@ -70,3 +70,30 @@ describe("Chronicles of Nightmares", () => {
     expect(r.reasons.join(" ")).toMatch(/Dungeon Delve, Stormbane's Wrath/);
   });
 });
+
+describe("keys are never scrapped", () => {
+  const k = (name: string, raw: string, slot = "other") => decide({ name, slot, rarity: "legendary", itemType: "", affixes: [], rawText: raw } as any, ctx.variant, { prog: ctx.prog });
+  it("a Hordes compass opens the Infernal Hordes", () => {
+    // the AI read one as gear ("Your build doesn't use this kind of item → Scrap")
+    const r = k("Compass", "Pass through the Gates of Hell to face\nthe Infernal Hordes.", "offhand");
+    expect(r.verdict).toBe("STASH");
+    expect(r.action).toMatch(/Infernal Hordes/);
+  });
+  it("sigils say what they open", () => {
+    expect(k("Broken Bulwark Escalation Sigil", "Legendary Escalation Sigil\nBrave a series of dungeons, each one deadlier than the last").action).toMatch(/Escalating Nightmare/);
+    expect(k("Garan Hold Nightmare Sigil", "Nightmare Sigil\n0 Garan Hold in Kehjistan\nDUNGEON AFFIXES\nHoradric Strongroom\nVolcanic").action).toMatch(/Nightmare Dungeon \(Garan Hold\)/);
+  });
+  it("the bottom half of a Chronicle (no title) is still a Chronicle, not a ring", () => {
+    const r = k("Diamond Reserve", "Raging\nA vivid account of horrors long past, penned\nby a trembling hand.", "ring");
+    expect(r.verdict).toBe("STASH");
+    expect(r.action).toMatch(/Waking Nightmare/);
+  });
+});
+
+describe("tribute advice comes from what it earns", () => {
+  it("a Tribute of Armaments isn't called a charm tribute because a neighbouring item mentions a Seal", () => {
+    const raw = "Rare Tribute of Armaments\nOffer to the Undercity Spirit Brazier\nto enhance its rewards:\n• Complete with Attunement Rank 1 or higher for a chance to earn Legendary equipment.\nHoradric Seal of Glory";
+    const r = decide({ name: "Rare Tribute of Armaments", slot: "other", rarity: "rare", itemType: "Rare Tribute", affixes: [], rawText: raw, category: "tribute" } as any, ctx.variant, { prog: ctx.prog });
+    expect(r.action).not.toMatch(/charms and a Seal/);
+  });
+});

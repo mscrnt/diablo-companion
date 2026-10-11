@@ -213,6 +213,9 @@ export function chestAdvice(variant: BuildVariant | undefined, prog: (slot: stri
 
 /** "Infernal Hordes" / "Aether" / "Wave 3" in the quest tracker → we're in a Hordes run. */
 export function looksLikeHordes(text: string) {
+  // a Hordes compass tooltip in the bag says "Pass through the Gates of Hell to face the Infernal Hordes":
+  // that's the key, not the run
+  if (/gates of hell|\bcompass\b|pass through the/i.test(text) && !/wave[:\s]*\d+\s*\/\s*\d+/i.test(text)) return false;
   // tolerate OCR slips: "Infemal" (rn→m), "lnfernal", "WAVE: 10/10"
   return /[il1]nfe(?:rn|m|r)al\s*hordes|bu(?:rn|m)ing\s*aether|\baether\b|wave[:\s]*\d+\s*\/\s*\d+/i.test(text);
 }

@@ -285,6 +285,9 @@ export function decide(item: ParsedItem, variant: BuildVariant | undefined, ctx:
 
 const titleSet = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
+/** A key, not gear: a Hordes compass, a Nightmare or Escalation sigil, a Chronicle of Nightmares (even just its bottom half). */
+const isKeyText = (t: string) => /\bsigil\b|chronicle of nightmares|dungeon affixes|vivid account of horrors|\bcompass\b|gates of hell/i.test(t);
+
 /**
  * An Undercity tribute: offered at the Spirit Brazier before a run for better rewards. Says what it
  * earns, whether that's something your build still needs, and how much harder it makes the run.
@@ -305,9 +308,11 @@ function tributeAdvice(item: ParsedItem, variant: BuildVariant | undefined): Out
   if (harder.length) reasons.push(`The run is harder: ${harder.join(", ")}.`);
   const usesTalismans = gear.some((g) => g.group === "talisman");
   const missingUnique = gear.find((g) => g.group === "gear" && (g.kind === "unique" || g.kind === "mythic"));
-  if (/charm|seal|horadr/i.test(raw) && usesTalismans)
+  // decide from what it earns, not the whole capture (neighbouring stash items can mention seals)
+  const effect = earns ?? upgrade ?? "";
+  if (/charm|seal|horadr/i.test(effect) && usesTalismans)
     return out(item, "SOCKET", "Use it on an Undercity run: it earns charms and a Seal, which your build uses.", reasons, null);
-  if (/mythic|unique/i.test(raw) && missingUnique)
+  if (/mythic|unique/i.test(effect) && missingUnique)
     return out(item, "STASH", "Keep it for an Undercity run when you're chasing uniques or a Mythic.", reasons, null);
   return out(item, "STASH", "Keep it: offer it at the Undercity Spirit Brazier before a run.", reasons, null);
 }
@@ -338,14 +343,21 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined): Out
     if (/amalgam/i.test(all)) return out(item, "STASH", "Keep it for the Horadric Cube — amalgamate it with others into a stronger one.", ["Your build doesn't socket this one directly."], null);
     return out(item, "SELL", "Your build doesn't use this socketable — sell it or keep it for another build.", [], null);
   }
-  // a Chronicle of Nightmares (or sigil): consumed to modify a small one-room Waking Nightmare; its theme and affixes
-  if (/chronicle|sigil|dungeon affixes/i.test(`${item.name}\n${all}`)) {
+  // keys: Hordes compass, Escalation and Nightmare sigils, Chronicles of Nightmares (each opens something different)
+  const keyText = `${item.name}\n${item.itemType ?? ""}\n${all}`;
+  if (isKeyText(keyText)) {
     const lines = all.split("\n").map((l) => l.trim());
-    const dungeon = lines.find((l) => / in [A-Z][a-z]+/.test(l) && !/affix/i.test(l))?.replace(/\s+in\s+.*$/, "") ?? null;
+    const dungeon = lines.find((l) => / in [A-Z][a-z]+/.test(l) && !/affix|gates of hell|hordes/i.test(l))?.replace(/\s+in\s+.*$/, "").replace(/^[^A-Za-z]+/, "") ?? null;
     const ai = lines.findIndex((l) => /dungeon affixes/i.test(l));
     const affixes = ai >= 0 ? lines.slice(ai + 1, ai + 4).filter((l) => l.length > 3 && !/vivid account|account bound|seasonal|sell value/i.test(l)) : [];
-    return out(item, "STASH", `Keep it: use it on a Waking Nightmare${dungeon ? ` (${dungeon})` : ""} — it isn't gear.`, affixes.length ? [`Affixes: ${affixes.join(", ")}.`] : [], null);
+    const why = affixes.length ? [`Affixes: ${affixes.join(", ")}.`] : [];
+    const at = dungeon ? ` (${dungeon})` : "";
+    if (/compass|gates of hell|infernal hordes/i.test(keyText)) return out(item, "STASH", "Keep it: it opens the Infernal Hordes. It isn't gear.", why, null);
+    if (/escalation/i.test(keyText)) return out(item, "STASH", `Keep it: it opens an Escalating Nightmare, a series of dungeons${at}. It isn't gear.`, why, null);
+    if (/chronicle|vivid account of horrors/i.test(keyText)) return out(item, "STASH", `Keep it: use it on a Waking Nightmare${at}. It isn't gear.`, why, null);
+    return out(item, "STASH", `Keep it: it opens a Nightmare Dungeon${at}. It isn't gear.`, why, null);
   }
+  if (/horadric cube|cube material/i.test(keyText)) return out(item, "STASH", "Keep it: it's for the Horadric Cube, not gear.", [], null);
   if (item.category === "talisman") {
     // "Peace of the Black Shroud": another piece of a set your build wears
     const setOf = (n: string) => normName(n).match(/ of the (.+)$/)?.[1] ?? "";
@@ -374,7 +386,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   const category =
     /\btribute\b|undercity spirit brazier/i.test(text)
       ? "tribute"
-      : /chronicle of nightmares|nightmare sigil|dungeon affixes/i.test(text)
+      : isKeyText(text) || /horadric cube|cube material/i.test(text)
         ? "consumable"
         : (item.category ??
         (item.slot === "charm" || item.slot === "seal" ? "talisman" : item.slot === "other" && /\bcache\b|collection of/i.test(text) ? "consumable" : undefined));
