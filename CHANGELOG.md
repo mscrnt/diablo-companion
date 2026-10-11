@@ -6,6 +6,7 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
+- **Kurast Undercity helper:** a run starts on its own when you enter, with a split for each floor. A panel in the left bar shows the floor, the seconds left, the reward upgrades (N/4) and what fills the attunement bar and adds time. Toasts mark each new floor and each reward upgrade (and "Rewards maxed" at 4/4). When the countdown drops to 15 s you get a warning and a sound. When you leave, the run is saved in Runs & Splits with its time, counting as cleared if you reached the last floor.
 - Boss mode recognises the world bosses (Avarice, Ashava, Azmodan, Wandering Death), notes that they drop Lair boss summoning materials and Temper Manuals, and stops the timer as soon as "World Boss Defeated" shows.
 - **Debug page** (new in the sidebar): shows live what the app is doing and what it thinks is on your screen: the game window, the current activity, what the loot judge saw and why it did or didn't judge, map pins, the skill bar check, and what the overlay is drawing and where. A filterable list shows every decision as it happens.
 - **Mark this moment:** press **Ctrl+Alt+D** (or **View + RB** on a controller) when something looks wrong in game. The app saves a full screenshot of the game, what it believed at that moment and the last 90 seconds of what it did, and the overlay shows "Moment saved". Add a note to it afterwards on the Debug page. Works with test mode off; the newest 30 are kept. (Not Ctrl+Shift+D, which is Discord's deafen key.)

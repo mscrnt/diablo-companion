@@ -2,6 +2,8 @@
 //   The Pit — start on "Artificer's Pit / Slay enemies to summon a Guardian",
 //   split at "Slay the Boss", finish when the boss objective clears,
 //   death on "Survival Mastery Failed", tier read from the Artificer's Obelisk menu.
+// Kurast Undercity — start when the FLOOR block appears, split per floor, toast reward upgrades,
+//   warn when the countdown runs low, finish when the block is gone (cleared = reached the last floor).
 // Tracker strings come from the datamined game files (Quest_PIT_Logic).
 import { overlayToast, playTone } from "./alerts";
 import { useCharacter } from "./charmap";
@@ -15,6 +17,7 @@ import { bossInfo, findBoss } from "./boss";
 import { bestTrees, needs, parseWarPlan, useWarPlans } from "./warplans";
 import { getActiveVariant, useRuns, useSettings } from "./store";
 import { debugEvent } from "./debug";
+import { parseUndercity } from "./undercity";
 
 export interface AdvisorState {
   title: string;
@@ -273,6 +276,82 @@ function nmdTick() {
   }
 }
 
+// ---- Kurast Undercity: floors, countdown, reward upgrades ----
+export interface UndercityState {
+  floor: number;
+  floors: number;
+  upgrades: number;
+  upgradesMax: number;
+  secondsLeft: number | null;
+  attunement: string | null;
+  timeBonus: string | null;
+  torment: string | null;
+}
+let uc: (UndercityState & { lastSeen: number; lowRun: number; lowWarned: boolean }) | null = null;
+
+const mmss = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`;
+
+function undercityTick() {
+  const now = Date.now();
+  const hud = parseUndercity(trackerLines);
+  const runs = useRuns.getState();
+  if (hud) {
+    const torment = trackerLines.map((l) => l.text.match(/torment\s*([ivxl1]{1,5})\b/i)?.[1]).find(Boolean)?.toUpperCase().replace(/1/g, "I") ?? null;
+    if (!uc) {
+      endBoss("left");
+      uc = { floor: hud.floor ?? 1, floors: hud.floors, upgrades: hud.upgrades ?? 0, upgradesMax: hud.upgradesMax, secondsLeft: hud.secondsLeft, attunement: hud.attunement, timeBonus: hud.timeBonus, torment, lastSeen: now, lowRun: 0, lowWarned: false };
+      debugEvent("activity", "undercity-start", { floor: uc.floor, upgrades: uc.upgrades, torment, runStarted: !runs.active });
+      if (!runs.active) {
+        runs.setActivity("Undercity", torment ? `Torment ${torment}` : "");
+        runs.start();
+        overlayToast("Kurast Undercity", "Timer running — Afflicted monsters add time", "#c9a227", 3500);
+      }
+    } else {
+      uc.lastSeen = now;
+      if (torment) uc.torment = torment;
+      if (hud.floor != null && hud.floor > uc.floor) {
+        debugEvent("activity", "undercity-floor", { from: uc.floor, to: hud.floor, upgrades: uc.upgrades, secondsLeft: hud.secondsLeft });
+        if (runs.active?.activity === "Undercity") runs.split(`Floor ${uc.floor}`);
+        uc.floor = hud.floor;
+        uc.lowWarned = false;
+        overlayToast(`Floor ${hud.floor}/${uc.floors}`, hud.floor === uc.floors ? "Last floor" : `${uc.upgrades}/${uc.upgradesMax} reward upgrades so far`, "#c9a227", 3500);
+      }
+      if (hud.upgrades != null && hud.upgrades > uc.upgrades && hud.upgrades <= uc.upgradesMax) {
+        debugEvent("activity", "undercity-upgrade", { from: uc.upgrades, to: hud.upgrades, floor: uc.floor });
+        uc.upgrades = hud.upgrades;
+        const maxed = hud.upgrades === uc.upgradesMax;
+        overlayToast(maxed ? "Rewards maxed" : `Reward upgrade ${hud.upgrades}/${uc.upgradesMax}`, maxed ? "All upgrades done — head down when you're ready" : uc.attunement ? `Keep going: ${uc.attunement}` : "", "#5fd18a", 4000);
+      }
+    }
+    if (hud.secondsLeft != null) uc.secondsLeft = hud.secondsLeft;
+    if (hud.attunement) uc.attunement = hud.attunement;
+    if (hud.timeBonus) uc.timeBonus = hud.timeBonus;
+    // low on time: two reads in a row at 15 s or less (the digits OCR noisily), once per floor;
+    // the last floor's countdown stops for the boss, so no warning there
+    if (hud.secondsLeft != null && hud.secondsLeft > 0 && hud.secondsLeft <= 15 && uc.floor < uc.floors) {
+      if (++uc.lowRun >= 2 && !uc.lowWarned) {
+        uc.lowWarned = true;
+        debugEvent("activity", "undercity-low-time", { secondsLeft: hud.secondsLeft, floor: uc.floor });
+        overlayToast(`${hud.secondsLeft} s left`, uc.timeBonus ? `Time bonus: ${uc.timeBonus}` : "Find Afflicted monsters for more time", "#e0543c", 5000);
+        playTone("alert", useSettings.getState().settings.alerts.volume);
+      }
+    } else uc.lowRun = 0;
+    const { lastSeen: _l, lowRun: _r, lowWarned: _w, ...pub } = uc;
+    emitOverlay("undercity", pub);
+  } else if (uc && now - uc.lastSeen > 12000) {
+    const cleared = uc.floor >= uc.floors;
+    debugEvent("activity", "undercity-end", { floor: uc.floor, upgrades: uc.upgrades, cleared, why: "floor block gone for 12 s" });
+    const active = runs.active;
+    if (active?.activity === "Undercity") {
+      const dur = uc.lastSeen - active.start;
+      runs.stop(cleared);
+      overlayToast(cleared ? `Undercity done in ${mmss(dur)}` : "Undercity ended", `Floor ${uc.floor}/${uc.floors} · ${uc.upgrades}/${uc.upgradesMax} reward upgrades`, cleared ? "#5fd18a" : "#b8aa9a", 7000);
+    }
+    uc = null;
+    emitOverlay("undercity", null);
+  }
+}
+
 // ---- boss mode: health bar name at the top centre ----
 let boss: string | null = null;
 let bossSeen = 0;
@@ -374,6 +453,7 @@ async function tick(rect: Rect) {
   }
   if (phase === "none") {
     nmdTick();
+    undercityTick();
     if (!nmd) await bossTick(rect).catch(() => {}); // dungeon bosses are part of the NMD run
   }
   // Tree of Whispers reward dialog is centred; the tracker says "Choose your reward"
@@ -451,6 +531,7 @@ export function activityDebug() {
     run: a ? { activity: a.activity, tier: a.tier, elapsedS: Math.round((now - a.start) / 1000), splits: a.splits.map((s) => s.label), deaths: a.deaths } : null,
     pit: { phase, pendingTier: pendingTier || null, lastSeenAgoS: lastSeenPit ? Math.round((now - lastSeenPit) / 1000) : null, survivalFailed },
     nmd: nmd && { ...nmd, lastSeen: undefined, lastSeenAgoS: Math.round((now - nmd.lastSeen) / 1000) },
+    undercity: uc && { ...uc, lastSeen: undefined, lastSeenAgoS: Math.round((now - uc.lastSeen) / 1000) },
     boss: boss && { name: boss, lastSeenAgoS: Math.round((now - bossSeen) / 1000) },
     helltide: ht.active ? { ...ht, lastSeenAgoS: Math.round((now - htLastSeen) / 1000) } : { active: false },
     tree: advisorLast && { title: advisorLast.title, ranked: advisorLast.items.slice(0, 4).map((i) => `${i.rank}. ${i.name}`), shownAgoS: Math.round((now - advisorShownAt) / 1000) },

@@ -5,7 +5,7 @@ import { emitMain, onOverlay } from "../lib/bus";
 import type { OverlayState } from "../lib/engine";
 import type { GuideState } from "../lib/guide";
 import type { HordesState } from "../lib/hordesRunner";
-import type { AdvisorState } from "../lib/activity";
+import type { AdvisorState, UndercityState } from "../lib/activity";
 import type { HelltideInfo } from "../lib/helltide";
 import type { BossInfo } from "../lib/boss";
 import type { MapPinsFrame } from "../lib/mapPinsRunner";
@@ -54,6 +54,7 @@ interface RenderInputs {
   hordes: HordesState | null;
   advisor: AdvisorState | null;
   helltide: HelltideInfo | null;
+  undercity: UndercityState | null;
   boss: BossInfo | null;
   mapPins: MapPinsFrame | null;
 }
@@ -88,6 +89,7 @@ function collectRender(st: OverlayState, x: RenderInputs): OverlayRender {
     hordes: x.hordes?.active ? { aether: x.hordes.aether, offers: x.hordes.offers.map((o) => ({ title: o.title, rank: o.rank })), chests: x.hordes.chests.map((c) => ({ name: c.name, order: c.order })) } : null,
     advisor: x.advisor && { title: x.advisor.title, items: x.advisor.items.map((i) => ({ name: i.name, rank: i.rank })) },
     helltide: x.helltide?.active ? { cinders: x.helltide.cinders, secondsLeft: x.helltide.secondsLeft, best: x.helltide.best?.name ?? null } : null,
+    undercity: x.undercity && { floor: x.undercity.floor, upgrades: x.undercity.upgrades, secondsLeft: x.undercity.secondsLeft },
     boss: x.boss?.name ?? null,
     elements,
   };
@@ -121,6 +123,7 @@ export default function Overlay() {
   const [hordes, setHordes] = useState<HordesState | null>(null);
   const [advisor, setAdvisor] = useState<AdvisorState | null>(null);
   const [helltide, setHelltide] = useState<HelltideInfo | null>(null);
+  const [undercity, setUndercity] = useState<UndercityState | null>(null);
   const [boss, setBoss] = useState<BossInfo | null>(null);
   const [mapPins, setMapPins] = useState<(MapPinsFrame & { labelUntil?: number }) | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -156,6 +159,7 @@ export default function Overlay() {
       onOverlay<HordesState>("hordes", setHordes),
       onOverlay<AdvisorState | null>("advisor", setAdvisor),
       onOverlay<HelltideInfo>("helltide", setHelltide),
+      onOverlay<UndercityState | null>("undercity", setUndercity),
       onOverlay<BossInfo | null>("boss", setBoss),
       onOverlay<MapPinsFrame | null>("mappins", (m) => {
         // pins that aren't refreshed go by themselves (the map may have closed while the main window stalled)
@@ -183,7 +187,7 @@ export default function Overlay() {
     if (!st || (!st.debug && !dbgReq.current)) return;
     const t = Date.now();
     if (!dbgReq.current && t - dbgLast.current.at < 1000) return;
-    const rep = collectRender(st, { tip, verdict, toasts, judging, guide, hordes, advisor, helltide, boss, mapPins });
+    const rep = collectRender(st, { tip, verdict, toasts, judging, guide, hordes, advisor, helltide, undercity, boss, mapPins });
     const key = JSON.stringify({ ...rep, at: 0 });
     if (!dbgReq.current && key === dbgLast.current.key) return;
     dbgReq.current = false;
@@ -296,6 +300,7 @@ export default function Overlay() {
           <div className="ov-col" data-dbg="bar-left" style={{ left: 0, width: `${st.settings.gameBounds!.left * 100}%` }}>
             {hordes?.active && <HordesPanel h={hordes} />}
             {helltide?.active && <HelltidePanel h={helltide} />}
+            {undercity && <UndercityPanel u={undercity} />}
             {boss && <BossPanel b={boss} />}
             {panels.timers}
             {panels.run}
@@ -766,6 +771,24 @@ function HelltidePanel({ h }: { h: HelltideInfo }) {
       <div className="small dim" style={{ marginTop: 6 }}>
         Armour & rings 75 · amulets 125 · weapons 150
       </div>
+    </div>
+  );
+}
+
+function UndercityPanel({ u }: { u: UndercityState }) {
+  const low = u.secondsLeft != null && u.secondsLeft <= 15 && u.floor < u.floors;
+  return (
+    <div className="ov-panel" data-dbg="panel:undercity">
+      <div className="ov-title"><Ico icon={Castle} size={13} /> Undercity{u.torment ? ` · T${u.torment}` : ""}</div>
+      <div style={{ display: "flex", gap: 14, alignItems: "baseline" }}>
+        <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--display)" }}>Floor {u.floor}/{u.floors}</span>
+        {u.secondsLeft != null && u.floor < u.floors && <span style={{ fontSize: 18, fontWeight: 800, color: low ? "var(--red, #e0543c)" : "var(--gold)" }}>{u.secondsLeft}s</span>}
+      </div>
+      <div className="small" style={{ marginTop: 4, color: u.upgrades >= u.upgradesMax ? "var(--green)" : undefined }}>
+        Reward upgrades {u.upgrades}/{u.upgradesMax}{u.upgrades >= u.upgradesMax ? " — maxed" : ""}
+      </div>
+      {u.attunement && u.upgrades < u.upgradesMax && <div className="small dim">Attunement: {u.attunement}</div>}
+      {u.timeBonus && u.floor < u.floors && <div className="small dim">Time: {u.timeBonus}</div>}
     </div>
   );
 }

@@ -266,6 +266,7 @@ export interface OverlayRender {
   hordes: { aether: number | null; offers: { title: string; rank: number }[]; chests: { name: string; order: number }[] } | null;
   advisor: { title: string; items: { name: string; rank: number }[] } | null;
   helltide: { cinders: number | null; secondsLeft: number | null; best: string | null } | null;
+  undercity?: { floor: number; upgrades: number; secondsLeft: number | null } | null;
   boss: string | null;
   elements: RenderedElement[];
 }
