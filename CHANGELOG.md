@@ -36,6 +36,9 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- **Undercity tributes** are no longer judged as gear (one was taken for an amulet). The verdict says what the tribute earns, how much harder it makes the run (Monster Power, starting time, time bonus penalty) and whether it's one for your build: tributes that earn charms and a Seal are marked "use it" for builds that wear them.
+- A tooltip whose title is cut off at the top of the screen is read instantly by its type ("Legendary Sword") instead of waiting several seconds for the AI, which couldn't see the name either.
+- A stack count under an item's title ("(2)") no longer ends up in its name, and an item title that reads like a type line ("MYTHIC TRIBUTE") no longer stops the quick read.
 - A backpack item could be treated as one you're wearing ("Wearing — this is a stand-in") when an "Unequip" hint from a neighbouring panel was read along with its tooltip. A tooltip that compares itself with your gear is now never taken for your own.
 - Tree of Whispers: a two-handed unique whose name doesn't say so (Bloodless Scream, a two-handed scythe) is recognised from its item type, so one-handed weapon caches are no longer ranked first for a two-handed build.
 - An item you hover again moves back to the top of the Loot history (it used to stay where it was first judged).

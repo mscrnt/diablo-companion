@@ -40,10 +40,11 @@ const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b/i;
 const SLOT_NOUN =
   /\b(helm|headgear|head|chest armor|chest|gloves|pants|boots|amulet|ring|scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|charm|seal|two-handed|one-handed)\b/i;
 export const STAT_START = /^[+x\-]?\s*[\d][\d.,\s]*%?\s+\S/i;
-const NONGEAR = /\b(gem|rune|soul splinter|splinter|socketable|charm|seal|talisman|elixir|incense|potion|key|sigil|material|cache|scroll|consumable)\b/i;
+const NONGEAR = /\b(gem|rune|soul splinter|splinter|socketable|charm|seal|talisman|tribute|elixir|incense|potion|key|sigil|material|cache|scroll|consumable)\b/i;
 
 function categoryOf(type: string, all: string): ParsedItem["category"] {
   if (/\b(gem|rune|splinter|socketable)\b/i.test(type) || /can be inserted into|amalgamate|^weapon:|jewelry:/im.test(all)) return "socketable";
+  if (/\btribute\b/i.test(type) || /undercity spirit brazier/i.test(all)) return "tribute";
   if (/\b(charm|seal|talisman)\b/i.test(type)) return "talisman";
   if (NONGEAR.test(type)) return "consumable";
   return "gear";
@@ -96,7 +97,10 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   const hs = L.map((l) => l.h ?? 0).filter(Boolean).sort((a, b) => a - b);
   const bodyH = hs[Math.floor(hs.length / 2)] ?? 0;
   // 1) type line: has a rarity word (+ maybe the slot noun on the next line)
-  let ti = L.findIndex((l, i) => i < 8 && RARITY.test(l.text) && (SLOT_NOUN.test(l.text) || SLOT_NOUN.test(L[i + 1]?.text ?? "") || NONGEAR.test(l.text)));
+  const typeLike = (l: FastLine, i: number) => i < 8 && RARITY.test(l.text) && (SLOT_NOUN.test(l.text) || SLOT_NOUN.test(L[i + 1]?.text ?? "") || NONGEAR.test(l.text));
+  // the title can look like a type line too ("MYTHIC TRIBUTE"): prefer one with a name above it
+  let ti = L.findIndex((l, i) => i > 0 && typeLike(l, i));
+  if (ti < 0) ti = L.findIndex(typeLike);
   // gems show "Weapon: … / Armor: … / Jewelry: …" and often no rarity line at all
   if (ti < 0 && L.some((l) => /^(weapon|armor|jewelry):/i.test(l.text))) {
     const all = L.map((l) => l.text).join("\n");
@@ -157,6 +161,8 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     if (JUNK.test(L[i].text) || /slot|transmog|equipped|character/i.test(L[i].text)) break;
     // a panel label between the two lines of a long title ("OCELOT'S EYE OF" / "Stats & Material" / "REANIMATION")
     if (panel.has(i)) continue;
+    // a stack count under the title ("(2)") isn't part of the name
+    if (/^\(\d+\)$/.test(L[i].text.trim())) continue;
     // the title font is clearly bigger than body text; small lines above it are UI (character name…)
     // all-caps title lines measure about body height; small UI text (character name) is clearly shorter
     if (bodyH && L[i].h && L[i].h! < bodyH * 0.85) break;
@@ -172,7 +178,9 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   }
   const rawName = nameParts.join(" ");
   const starMarks = (rawName.match(/[*✸✹✺❋✷]/g) ?? []).length;
-  const name = titleCase(rawName.replace(/[*✸✹✺❋✷]/g, ""));
+  // the title scrolled or cut off above the capture: the type line names it ("Legendary Sword") — judging
+  // its stats here beats a slow AI read that can't see the name either
+  const name = titleCase(rawName.replace(/[*✸✹✺❋✷]/g, "")) || (ti === 0 ? titleCase(typeLine.replace(/^(ancestral|sacred)\s+/i, "")) : "");
   if (!name || name.length < 3) return null;
 
   // 3) walk the body. A line WITH a bullet icon starts a new entry; lines without one
@@ -357,6 +365,7 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     // the one you wear, whatever stray "Unequip" a neighbouring panel adds to the read
     equipped: equippedLabel || (lostStart < 0 && !stats.some((s) => s.delta) && L.some((l, i) => i > ti && isUnequipLine(l.text))),
     truncated: L.some((l) => /scroll down/i.test(l.text)),
+    untitled: !rawName.trim() || undefined,
     category,
     tempersUsed: tempers ? Number(tempers[1]) : undefined,
     compare,
@@ -368,7 +377,7 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
 /** Quick check used by tests: how sure are we the parse makes sense? */
 export function looksSane(p: ParsedItem): boolean {
   if (p.category && p.category !== "gear") return p.name.length >= 3;
-  return p.name.length >= 3 && p.affixes.length >= 2 && p.slot !== "other" && similarity(p.name, p.itemType) < 0.8;
+  return p.name.length >= 3 && p.affixes.length >= 2 && p.slot !== "other" && (!!p.untitled || similarity(p.name, p.itemType) < 0.8);
 }
 
 // background loops hold references to this module: reload the page instead of hot-swapping

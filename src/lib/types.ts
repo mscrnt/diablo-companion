@@ -167,9 +167,11 @@ export interface ParsedItem {
   /** the hovered tooltip is an item the character is wearing */
   equipped?: boolean;
   /** gear (default) or something you socket / slot into the talisman / consume */
-  category?: "gear" | "socketable" | "talisman" | "consumable";
+  category?: "gear" | "socketable" | "talisman" | "tribute" | "consumable";
   /** the game shows "Scroll Down": some lines are hidden below the fold */
   truncated?: boolean;
+  /** the title wasn't in the capture: `name` is the item type ("Legendary Sword") */
+  untitled?: boolean;
   /** "Tempers: n/m" from the tooltip */
   tempersUsed?: number;
   /** equipped item reconstructed from the game's comparison view (deltas + "Properties lost when equipped") */

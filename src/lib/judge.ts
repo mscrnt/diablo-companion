@@ -285,6 +285,33 @@ export function decide(item: ParsedItem, variant: BuildVariant | undefined, ctx:
 
 const titleSet = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
+/**
+ * An Undercity tribute: offered at the Spirit Brazier before a run for better rewards. Says what it
+ * earns, whether that's something your build still needs, and how much harder it makes the run.
+ */
+function tributeAdvice(item: ParsedItem, variant: BuildVariant | undefined): Out {
+  const raw = (item.rawText ?? "").replace(/\s*\n\s*/g, " ");
+  const gear = variant?.gear ?? [];
+  const earns = raw.match(/(?:chance to e[a-z]rn|e[a-z]rn)\s+(.+?)(?:\.|only usable|kurast undercity|$)/i)?.[1]?.trim();
+  const upgrade = raw.match(/reward upgrades?:\s*([a-z ]+?)(?=\s+[^a-z ]|\s+difficulty|\s+starting|$)/i)?.[1]?.trim();
+  const harder = [
+    raw.match(/\+(\d+)\s*monster power/i)?.[1] && `+${raw.match(/\+(\d+)\s*monster power/i)![1]} Monster Power`,
+    raw.match(/starting time:\s*(\d+)\s*seconds/i)?.[1] && `${raw.match(/starting time:\s*(\d+)\s*seconds/i)![1]} s to start`,
+    raw.match(/time bonus penalty:\s*-?(\d+)%/i)?.[1] && `time bonuses -${raw.match(/time bonus penalty:\s*-?(\d+)%/i)![1]}%`,
+  ].filter(Boolean) as string[];
+  const reasons: string[] = [];
+  if (earns) reasons.push(`It earns ${earns.replace(/\bEam\b/g, "earn")}.`);
+  else if (upgrade) reasons.push(`Reward upgrade: ${upgrade}.`);
+  if (harder.length) reasons.push(`The run is harder: ${harder.join(", ")}.`);
+  const usesTalismans = gear.some((g) => g.group === "talisman");
+  const missingUnique = gear.find((g) => g.group === "gear" && (g.kind === "unique" || g.kind === "mythic"));
+  if (/charm|seal|horadr/i.test(raw) && usesTalismans)
+    return out(item, "SOCKET", "Use it on an Undercity run: it earns charms and a Seal, which your build uses.", reasons, null);
+  if (/mythic|unique/i.test(raw) && missingUnique)
+    return out(item, "STASH", "Keep it for an Undercity run when you're chasing uniques or a Mythic.", reasons, null);
+  return out(item, "STASH", "Keep it: offer it at the Undercity Spirit Brazier before a run.", reasons, null);
+}
+
 /** Gems, runes, splinters, charms, consumables: never "scrap" them by gear rules. */
 function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined): Out {
   const gear = variant?.gear ?? [];
@@ -306,6 +333,7 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined): Out
     return out(item, "SOCKET", `Keep it — your build uses ${hit[0].name} (${where}).`, [], null);
   }
   const all = item.rawText ?? "";
+  if (item.category === "tribute") return tributeAdvice(item, variant);
   if (item.category === "socketable") {
     if (/amalgam/i.test(all)) return out(item, "STASH", "Keep it for the Horadric Cube — amalgamate it with others into a stronger one.", ["Your build doesn't socket this one directly."], null);
     return out(item, "SELL", "Your build doesn't use this socketable — sell it or keep it for another build.", [], null);
@@ -334,9 +362,12 @@ function wearing(item: ParsedItem, slot: GearSlot, ctx: Ctx, lead?: string): Out
 
 function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ctx, compareTo?: ParsedItem | null): Out {
   // the AI parse doesn't always say what kind of item it is: charms, seals and caches aren't gear
+  const text = `${item.name}\n${item.itemType ?? ""}\n${item.rawText ?? ""}`;
   const category =
-    item.category ??
-    (item.slot === "charm" || item.slot === "seal" ? "talisman" : item.slot === "other" && /\bcache\b|collection of/i.test(`${item.name}\n${item.rawText ?? ""}`) ? "consumable" : undefined);
+    /\btribute\b|undercity spirit brazier/i.test(text)
+      ? "tribute"
+      : (item.category ??
+        (item.slot === "charm" || item.slot === "seal" ? "talisman" : item.slot === "other" && /\bcache\b|collection of/i.test(text) ? "consumable" : undefined));
   if (category && category !== "gear") return decideNonGear({ ...item, category }, variant);
   if (!variant) return out(item, "UNKNOWN", "Import your build first (Build page).", [], null);
   const gear = variant.gear.filter((g) => g.group === "gear");

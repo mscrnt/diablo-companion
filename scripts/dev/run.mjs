@@ -33,6 +33,8 @@ await build({
   external: ["@tauri-apps/*"],
   logLevel: "error",
   plugins: [viteGlobShim],
+  // same constant vite.config.ts defines for the app
+  define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(here, "../../package.json"), "utf8")).version) },
   banner: { js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);" },
 });
 process.exit(spawnSync(process.execPath, [out, ...args], { stdio: "inherit" }).status ?? 1);

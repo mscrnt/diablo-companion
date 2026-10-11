@@ -32,3 +32,30 @@ describe("charms and caches", () => {
     expect(r.verdict).toBe("STASH");
   });
 });
+
+describe("Undercity tributes", () => {
+  it("are read as tributes, not gear, with what they earn and how much harder the run gets", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fastParse } = await import("../src/lib/fastparse");
+    const f = JSON.parse(readFileSync(new URL("./fixtures/tooltips/mythic-tribute.json", import.meta.url), "utf8"));
+    const item = fastParse(f.lines, false, ctx.variant)!;
+    expect(item.category).toBe("tribute");
+    const r = decide(item, ctx.variant, { prog: ctx.prog });
+    expect(r.verdict).toBe("STASH");
+    expect(r.reasons.join(" ")).toMatch(/Mythic Unique/);
+    expect(r.reasons.join(" ")).toMatch(/\+4 Monster Power.*45 s to start.*time bonuses -50%/);
+  });
+
+  it("even when the AI read it as an amulet", () => {
+    const r = decide({ name: "Mythic Tribute of Armaments", slot: "amulet", rarity: "mythic", itemType: "Mythic Tribute", affixes: [], rawText: "Offer to the Undercity Spirit Brazier" } as any, ctx.variant, { prog: ctx.prog });
+    expect(r.verdict).toBe("STASH");
+    expect(r.action).toMatch(/Undercity/);
+  });
+
+  it("the Horadrim tribute is one to use: it earns charms and a Seal, which this build uses", () => {
+    const raw = "GREATER TRIBUTE OF THE HORADRIM\nLegendary Greater Tribute of the Horadrim\nOffer to the Undercity Spirit Brazier to enhance its rewards:\n• Earn Horadric Charms and a Horadric Seal at Attunement Rank 1.\nOnly usable in Torment Difficulties.";
+    const r = decide({ name: "Greater Tribute of the Horadrim", slot: "other", rarity: "legendary", itemType: "Legendary Greater Tribute of the Horadrim", affixes: [], rawText: raw, category: "tribute" } as any, ctx.variant, { prog: ctx.prog });
+    expect(r.action).toMatch(/Use it on an Undercity run/);
+    expect(r.reasons.join(" ")).toMatch(/Horadric Charms and a Horadric Seal/);
+  });
+});

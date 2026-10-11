@@ -55,3 +55,16 @@ describe("a bag item is never 'worn'", () => {
     expect(decide(item, ctx.variant, { prog: ctx.prog }, item.compare).verdict).not.toBe("WEARING");
   });
 });
+
+describe("a tooltip whose title is cut off", () => {
+  it("is still read locally, named by its type, and judged on its stats", async () => {
+    const ctx = await exampleBuild();
+    const f = fixture("untitled-sword");
+    const item = fastParse(f.lines, false, ctx.variant)!;
+    expect(item.untitled).toBe(true);
+    expect(item.name).toBe("Legendary Sword");
+    expect(looksSane(item)).toBe(true);
+    expect(item.affixes.length).toBeGreaterThanOrEqual(3);
+    expect(decide(item, ctx.variant, { prog: ctx.prog }, item.compare).verdict).not.toBe("UNKNOWN");
+  });
+});
