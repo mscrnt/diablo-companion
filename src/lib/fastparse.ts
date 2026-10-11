@@ -128,6 +128,15 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
       category: "socketable",
     };
   }
+  // a garbled rarity word ("ii/ölakic Scythe" = Magic Scythe): a short Title-case line ending in the item
+  // kind, under an ALL-CAPS title
+  if (ti < 0)
+    ti = L.findIndex(
+      (l, i) =>
+        i > 0 && i < 8 && /^\S{1,12}\s+(two-handed |one-handed )?(scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|helm|gloves|pants|boots|amulet|ring)$/i.test(l.text.trim()) &&
+        /[a-z]/.test(l.text) && L[i - 1].text === L[i - 1].text.toUpperCase() && /[A-Z]{3}/.test(L[i - 1].text),
+    );
+  // a bare item kind ("Boots") — last, since the Character panel's slot labels look the same
   if (ti < 0) ti = L.findIndex((l, i) => i < 8 && /^(ancestral |sacred )?(two-handed |one-handed )?(scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|helm|gloves|pants|boots|amulet|ring)$/i.test(l.text));
   if (ti < 0) return null; // top of tooltip not visible → let the LLM try
   let typeLine = L[ti].text;
@@ -293,7 +302,7 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     // couldn't see icons (low res) — no guess about which; leave as is
   }
   const tl = typeLine.toLowerCase();
-  const rarity0 = /mythic/.test(tl) ? "mythic" : /unique/.test(tl) ? "unique" : /legendary/.test(tl) ? "legendary" : /\brare\b/.test(tl) ? "rare" : /magic/.test(tl) ? "magic" : "common";
+  const rarity0 = /mythic/.test(tl) ? "mythic" : /unique/.test(tl) ? "unique" : /legendary/.test(tl) ? "legendary" : /\brare\b/.test(tl) ? "rare" : /magic|[a-z]?[aä]k[il1]c\b|m[a-z]g[il1]c/.test(tl) ? "magic" : "common"; // "ii/ölakic" = Magic
   const rarity = rarity0;
   const powerText = power.join(" ").replace(/\s+/g, " ").trim();
   // the power text names the aspect; when it's garbled or cut short, the item's name does

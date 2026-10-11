@@ -68,3 +68,15 @@ describe("a tooltip whose title is cut off", () => {
     expect(decide(item, ctx.variant, { prog: ctx.prog }, item.compare).verdict).not.toBe("UNKNOWN");
   });
 });
+
+describe("type line misreads", () => {
+  it("a garbled rarity word doesn't end up in the name, and a panel label isn't the type line", async () => {
+    const ctx = await exampleBuild();
+    // seen on a Magic Scythe hovered over the Character panel ("Aged Boots" is the panel's slot label)
+    const L = (text: string, h = 25) => ({ text, bullet: "normal" as const, h });
+    const item = fastParse([L("YISE HAND SICKLE", 30), L("ii/ölakic Scythe"), L("Boots"), L("800 Item Power"), L("+90 Intelligence"), L("+5% Attack Speed")], false, ctx.variant)!;
+    expect(item.name).toBe("Yise Hand Sickle");
+    expect(item.slot).toBe("weapon");
+    expect(item.rarity).toBe("magic");
+  });
+});
