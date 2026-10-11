@@ -318,13 +318,14 @@ async function bossTick(rect: Rect) {
       const want = info.wanted[0];
       overlayToast(`☠ ${name.split(",")[0]}`, want ? `Look for: ${want.item} — ${want.lookFor}` : "Timer running", "#e0543c", 6000);
     }
-  } else if (boss && now - bossSeen > 10000) {
-    // health bar gone for 10 s → dead (or you left)
-    debugEvent("activity", "boss-end", { boss, reason: "health bar gone for 10 s" });
+  } else if (boss && (now - bossSeen > 10000 || cap.ocr?.lines.some((l) => /bo\S{0,3}\s*defeated/i.test(l.text)))) {
+    // health bar gone for 10 s → dead (or you left); the "WORLD BOSS DEFEATED" banner ends it at once
+    const banner = now - bossSeen <= 10000;
+    debugEvent("activity", "boss-end", { boss, reason: banner ? "defeated banner" : "health bar gone for 10 s" });
     const active = runs.active;
     const label = `Boss: ${boss.split(",")[0]}`;
     if (active && active.activity === label) {
-      const dur = now - 10000 - active.start;
+      const dur = (banner ? bossSeen : now - 10000) - active.start;
       runs.stop(true);
       const today = useRuns.getState().runs.filter((x) => x.activity === label && x.end && x.start > now - 86400_000);
       const avg = today.reduce((a, x) => a + (x.end! - x.start), 0) / Math.max(1, today.length);

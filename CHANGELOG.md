@@ -6,7 +6,7 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
-- Boss mode recognises the world bosses (Avarice, Ashava, Azmodan, Wandering Death) and notes that they drop Lair boss summoning materials and Temper Manuals.
+- Boss mode recognises the world bosses (Avarice, Ashava, Azmodan, Wandering Death), notes that they drop Lair boss summoning materials and Temper Manuals, and stops the timer as soon as "World Boss Defeated" shows.
 - **Debug page** (new in the sidebar): shows live what the app is doing and what it thinks is on your screen: the game window, the current activity, what the loot judge saw and why it did or didn't judge, map pins, the skill bar check, and what the overlay is drawing and where. A filterable list shows every decision as it happens.
 - **Mark this moment:** press **Ctrl+Alt+D** (or **View + RB** on a controller) when something looks wrong in game. The app saves a full screenshot of the game, what it believed at that moment and the last 90 seconds of what it did, and the overlay shows "Moment saved". Add a note to it afterwards on the Debug page. Works with test mode off; the newest 30 are kept. (Not Ctrl+Shift+D, which is Discord's deafen key.)
 - With **test mode** on, the app also keeps a live state file and a log of every decision in its debug folder, sharing test mode's size limit.
