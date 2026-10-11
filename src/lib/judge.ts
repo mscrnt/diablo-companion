@@ -321,7 +321,39 @@ function tributeAdvice(item: ParsedItem, variant: BuildVariant | undefined): Out
 }
 
 /** Gems, runes, splinters, charms, consumables: never "scrap" them by gear rules. */
-function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined): Out {
+/** "Unlocks 6 Charm Slots" → 6 */
+const charmSlots = (text?: string) => {
+  const m = text?.match(/unlocks\s+(\d+)\s+charm/i);
+  return m ? Number(m[1]) : null;
+};
+
+/**
+ * A seal against the one you wear (the game's comparison column): a mythic seal and more charm slots win.
+ * null when there's nothing to compare with.
+ */
+function sealVerdict(item: ParsedItem, worn: ParsedItem | null | undefined): Out | null {
+  if (!worn || worn.rarity === "unknown" || !/seal/i.test(`${worn.itemType} ${worn.name}`)) {
+    // no column for yours: the tooltip's "Properties lost when equipped" still says what yours has more of
+    // ("Unlocks 1 Charm Slots", "Seal Power" for each power this one lacks)
+    const lost = (item.rawText ?? "").split(/properties lost when equipped/i)[1];
+    if (!lost) return null;
+    const more = charmSlots(lost);
+    const powers = (lost.match(/seal power/gi) ?? []).length;
+    if (!more && !powers) return null;
+    const what = [more ? `${more} more charm slot${more > 1 ? "s" : ""}` : "", powers ? `${powers} seal power${powers > 1 ? "s" : ""} this one doesn't have` : ""].filter(Boolean).join(" and ");
+    return out(item, "SCRAP", `Salvage it: the seal you wear is better (${what}).`, [], null);
+  }
+  const mine = charmSlots(item.rawText);
+  const yours = charmSlots(worn.rawText);
+  const mythic = (x: ParsedItem) => /mythic/i.test(`${x.rarity} ${x.itemType}`);
+  const slots = mine != null && yours != null ? ` (${mine} charm slots vs your ${yours})` : "";
+  if ((mythic(worn) && !mythic(item)) || (mine != null && yours != null && yours > mine))
+    return out(item, "SCRAP", `Salvage it: your ${worn.name} is better${mythic(worn) && !mythic(item) ? ", a mythic seal" : ""}${slots}.`, [], null);
+  if (mine != null && yours != null && mine > yours) return out(item, "WEAR", `Wear this seal: it unlocks more charm slots${slots}.`, [], null);
+  return null;
+}
+
+function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, compareTo?: ParsedItem | null): Out {
   const gear = variant?.gear ?? [];
   const uses: { name: string; where: string }[] = [];
   for (const g of gear) {
@@ -336,6 +368,11 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined): Out
     if (item.category === "talisman") return un.length > 2 && (n === un || trigramSim(u.name, item.name) >= 0.92 || (un === "seal" && item.slot === "seal"));
     return un.length > 2 && (n.includes(un) || un.includes(n) || trigramSim(u.name, item.name) >= 0.75);
   });
+  // a spare seal: the one you wear may simply be better
+  if (item.category === "talisman" && /seal/i.test(`${item.itemType} ${item.slot}`)) {
+    const v = sealVerdict(item, compareTo);
+    if (v) return v;
+  }
   if (hit.length) {
     const where = [...new Set(hit.map((h) => h.where))].join(", ");
     return out(item, "SOCKET", `Keep it: your build uses ${hit[0].name} (${where}).`, [], null);
@@ -395,7 +432,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
         ? "consumable"
         : (item.category ??
         (item.slot === "charm" || item.slot === "seal" ? "talisman" : item.slot === "other" && /\bcache\b|collection of/i.test(text) ? "consumable" : undefined));
-  if (category && category !== "gear") return decideNonGear({ ...item, category }, variant);
+  if (category && category !== "gear") return decideNonGear({ ...item, category }, variant, compareTo);
   if (!variant) return out(item, "UNKNOWN", "Import your build first (Build page).", [], null);
   const gear = variant.gear.filter((g) => g.group === "gear");
   const r = rarityOf(item);

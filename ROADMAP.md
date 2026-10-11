@@ -82,6 +82,7 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 | Stash scanner | Guided tab-by-tab scan: dupes, upgrades for other builds, salvage list, material totals | 🖥 | M |
 | **Keys & socketables tab review** | Open the bag's **Dungeon Keys** or **Socketables** tab and press one key: the app hovers nothing, it reads the tab's tooltips as you sweep over them (or the item grid), then shows one list for the whole tab. Keys: which sigils/compasses/Chronicles to run first for your build (dangerous affixes flagged), which to combine or salvage. Socketables: gems and runes your build uses, which to **combine in the Horadric Cube** (amalgamate lesser into greater, runes into higher runes), and which to sell. Uses the marks taken on 2026-10-11 to learn both tabs' layout. | 🖥📦 | M |
 | Cube and recipe helper | Every Horadric Cube and crafting recipe with ingredients and what you can make right now | 📦 `RecipeDefinition`, `Crafter` | M |
+| Seals and charms you wear | Remember the seal and charms you wear (read once from the talisman panel), so a spare seal or charm is judged even without the game's comparison column: charm slots, a mythic seal, its powers and set bonuses. Since 0.2.0 a spare seal is already compared when the tooltip shows "Properties lost when equipped" or your seal's column (requested 2026-10-11). | 🖥 | S |
 | Gem and rune planner | Which gems and runes the build socketed, what to craft, rune combos | 📦 | S |
 | Real drop sources | Replace the hand-written research file with drop tables mined from the game: which boss, chest or activity can drop each unique, aspect, rune and material | 📦 `TreasureClass`, `SpawnPool` | L |
 
@@ -104,6 +105,7 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 | Lair boss materials | Track summon materials and how many kills you can afford | 🖥📦 | S |
 | Undercity map helper | Run tracking, floor splits, the countdown warning and reward upgrades are done. Next: point out beacons, Afflicted monsters and the exit on each floor's map (needs map captures from real runs), and suggest which tribute to offer | 🖥📦 | M |
 | The Tower | Timed leaderboard dungeon from the Pit's obelisk: tell it apart from the Pit, track tier and time, show your best per tier and what beats it | 🖥📦 | S |
+| Events inside dungeons | Events that pop up inside a Nightmare Dungeon or the Undercity ("Impromptu Investigation", "Nest", "Cursed Shrine": a timer, a mastery objective) get their own split in the dungeon's run, with the time they took and whether the mastery was met, plus per-event bests (requested 2026-10-11). | 🖥 | S |
 | Legion, strongholds | Run tracking like the Pit; stronghold, cellar and altar completion | 🖥📦 | M |
 | Seasonal mechanic module | One module per season (datamined each patch) so the app is ready on day one | 📦 | M per season |
 | Bounties and dailies | Read the active bounty or Grim Favor list and plan the shortest route | 🖥📦 `BountyData` | M |

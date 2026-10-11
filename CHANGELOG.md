@@ -37,6 +37,19 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- **Wear verdicts were too eager.** A cut-off tooltip hid stats from your piece ("Properties lost when equipped"), so they weren't counted: the stats of the piece you were last seen wearing now fill the gap. The roll on the same unique's power counts (230% vs your 235%), and so does the game's own Toughness change. "Wear this" needs a clear gain, and not one that gives up nearly as much as it adds ("a trade, not an upgrade"). The reasons always show the biggest loss, and a number compared without your masterwork says so ("vs yours 476 (about 414 before its masterwork)").
+- The judge never tells you to imprint an aspect onto a unique (you can only change its stats); a unique in a slot your build fills with an aspect counts against it.
+- A spare seal is no longer told "keep it, your build uses a seal" when the one you wear is better: with the game's comparison showing, a mythic seal, more charm slots or more seal powers win ("Salvage it: the seal you wear is better (1 more charm slot and 3 seal powers this one doesn't have)").
+- **Nightmare Dungeons**: a split only when the objective really changes (two reads agree), not on every OCR slip ("Seaborn"/"Seabom", a damage number glued on). The timer stops on "Dungeon cleared" instead of when you walk out.
+- **Escalating Nightmares** are timed stage by stage ("Nightmare Escalation Tier 1"), each stage named after its dungeon, and the next stage starts its own run right away.
+- **The Pit** no longer finishes when you die and revive at the checkpoint (the loading screen hid "Slay the Boss"). It finishes on "Dungeon cleared", or when the boss objective has been gone for a few seconds while the Pit's tracker still shows.
+- Lair bosses are recognised from their health bar ("TORMENTED ECHO OF URIVAR +3" is Urivar), and the boss panel also shows inside dungeons while the dungeon's run keeps the time.
+- Hovering an Infernal Hordes compass in the bag no longer brings up the Hordes panel when OCR garbles the word "Compass".
+- Helltide cinders no longer jump on one misread frame (283 → 3 → 387): a drop or a big jump must be read twice.
+- Dungeon Caches and Experience Tomes get "Open it" / "Use it" instead of "couldn't read this item".
+- Tree of Whispers: caches that score the same no longer swap places on every read.
+- A mythic you wear whose name the comparison column garbles ("Blood Mo N Che G") is still known as your build's unique.
+- Player-facing text no longer uses em dashes.
 - Unique and mythic names misread in the title font are matched to the real name ("TYRÄEL'S rn1Gi4T" is Tyrael's Might).
 - When an item can't be read (a failed AI read, or a tooltip that isn't an item), the card says "Couldn't read this item" with what to do, instead of disappearing.
 - Helltide: the cinder count no longer jumps to the HUD's other counter when the cinders aren't read, and opening the bag or the map no longer ends the Helltide (it ends after 90 s without the HUD).

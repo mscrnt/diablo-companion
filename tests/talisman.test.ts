@@ -119,3 +119,32 @@ describe("caches and experience tomes", () => {
     expect(decide(item, ctx.variant, { prog: ctx.prog }, null).action).toMatch(/grants experience/);
   });
 });
+
+// a spare seal against the mythic one you wear (2026-10-11 RC test): the comparison lists what you'd lose
+describe("spare seals", () => {
+  const read = async (texts: string[]) => {
+    const { fastParse } = await import("../src/lib/fastparse");
+    return fastParse(texts.map((text) => ({ text, bullet: "none" as const })), false, ctx.variant)!;
+  };
+  const seal = ["HARMONIOUS", "HORADRIC SEAL", "OF CURSES", "Legendary Horadric Seal", "850 Item Power", "Unlocks 5 Charm Slots", "+7.0% All Stats (-0.5%)", "Word of the Blood Binder:", "+9% Blood Skill Damage", "Radament's Desecration:", "+7% Damage against Cursed Enemies"];
+
+  it("yours unlocks more slots and has more powers: salvage it", async () => {
+    const item = await read([...seal, "Properties lost when equipped:", "Unlocks 1 Charm Slots", "Seal Power", "Seal Power", "Seal Power", "Requires Level 50", "Sell Value: 13,380,834"]);
+    const r = decide(item, ctx.variant, { prog: ctx.prog }, null);
+    expect(r.verdict).toBe("SCRAP");
+    expect(r.action).toMatch(/1 more charm slot and 3 seal powers/);
+  });
+
+  it("against your seal's own column: a mythic wins", async () => {
+    const item = await read([...seal, "Requires Level 50"]);
+    const worn = await read(["SEAL OF THE", "DIAMOND MIND", "Mythic Horadric Seal", "900 Item Power", "Unlocks 6 Charm Slots", "+7.5% All Stats", "Rathma's Walking Touch:", "+7% Minion Damage", "Requires Level 70"]);
+    const r = decide(item, ctx.variant, { prog: ctx.prog }, worn);
+    expect(r.verdict).toBe("SCRAP");
+    expect(r.action).toMatch(/a mythic seal \(5 charm slots vs your 6\)/);
+  });
+
+  it("without a comparison it's still kept for the build", async () => {
+    const r = decide(await read([...seal, "Requires Level 50"]), ctx.variant, { prog: ctx.prog }, null);
+    expect(r.verdict).toBe("SOCKET");
+  });
+});

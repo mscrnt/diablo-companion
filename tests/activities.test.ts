@@ -70,6 +70,9 @@ describe("Infernal Hordes", () => {
     expect(looksLikeHordes("The Infemal Hordes in Buming Hells")).toBe(true);
     expect(looksLikeHordes("WAVE: 10/10")).toBe(true);
     expect(looksLikeHordes("lnfernal Hordes")).toBe(true);
+    // a compass tooltip in the bag over the tracker, its "Compass" garbled (2026-10-11 RC test)
+    expect(looksLikeHordes("INFERNAL HORDES commss (37) Legendary Infemal Hordes")).toBe(false);
+    expect(looksLikeHordes("Infernal Hordes Compass Pass through the Gates of Hell")).toBe(false);
     expect(parseAether("Burning Aether 245")).toBe(245);
     expect(parseAether("245 Aether")).toBe(245);
   });
