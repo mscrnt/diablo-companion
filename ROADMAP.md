@@ -128,7 +128,8 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 |---|---|---|---|
 | Search everything | One search box over items, aspects, affixes, monsters, zones, recipes and activities | 📦 | M |
 | Coach with game knowledge | Retrieval over the datamined data and the build, so the AI Coach answers from facts | 📦 | M |
-| Patch notes digest | Fetch patch notes and summarise them for your build with the local LLM | 🌐 | S |
+| **News & patches tab** | A News page (and a dismissable overlay toast) with the latest Diablo IV news, patch notes and hotfixes. Checks at start and every 4 hours, plus right after 10:00 Pacific, when patches usually go live. Sources: the official forums' Blizzard-tracker feed (blue posts as JSON, e.g. "HOTFIX 2 – October 6, 2026 – 3.2.2") and the Diablo IV page on news.blizzard.com. Also notices when your local game build changes (from the install folder's build info) and says so: "Diablo IV updated to 3.2.2 — patch notes" | 🌐🖥 | S–M |
+| Patch notes digest | Summarise new patch notes for your build with the local LLM: nerfs and buffs to your skills, aspects and uniques, and whether the build guide has caught up. Builds on the News tab | 🌐 | S |
 
 ## Later: platform and polish
 - **Multi-language**: the game ships every locale's strings, so the OCR and verdicts can work in other game languages. 📦
