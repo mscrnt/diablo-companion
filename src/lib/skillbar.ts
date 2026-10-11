@@ -6,6 +6,7 @@ import { http } from "./http";
 import { captureRegion } from "./native";
 import { getActiveVariant } from "./store";
 import type { SkillBarEntry } from "./types";
+import { useCharacter } from "./charmap";
 
 const ICON_FRAC = 0.044; // HUD skill icon size as a fraction of game height (1440p: ~64px)
 const WORK_PX = 24; // match at ~24px icons
@@ -124,6 +125,7 @@ export async function scanSkillBar(gameRect: [number, number, number, number]): 
     const R = grayOf(img, 0, 0, img.width, img.height, rw, rh);
     const onBar: SkillBarResult["onBar"] = [];
     const missing: SkillBarEntry[] = [];
+    const mapped = useCharacter.getState().skills;
     for (const sk of bar) {
       const ts = await templates(sk);
       let best = { score: -1, x: 0 };
@@ -133,7 +135,8 @@ export async function scanSkillBar(gameRect: [number, number, number, number]): 
         if (r.score > best.score) best = r;
       }
       if (best.score >= MATCH_MIN) onBar.push({ slug: sk.slug, name: sk.name, score: best.score, x: best.x });
-      else missing.push(sk);
+      // a skill the guided mapping read off the bar is on it, whatever the icon match says
+      else if (!mapped[sk.slug]) missing.push(sk);
     }
     onBar.sort((a, b) => a.x - b.x);
     // HUD hidden (inventory/map/menus open)? then nothing matches — don't report that as "missing"

@@ -547,16 +547,19 @@ export async function startEngine() {
   );
 
   // skill bar check: every 60s while playing; toast when something changes
-  let lastMissing = "";
+  const missRuns: Record<string, number> = {};
+  const warnedSkills = new Set<string>();
   setInterval(async () => {
     const g = useRuntime.getState().game;
     if (!g?.visible || !g.rect || useGuide.getState().active) return;
     const r = await scanSkillBar(g.rect);
     if (r.error) return;
-    const key = r.missing.map((m) => m.slug).join(",");
-    if (key !== lastMissing) {
-      lastMissing = key;
-      if (r.missing.length) overlayToast("Skill bar check", `Not on your bar: ${r.missing.map((m) => m.name).join(", ")}`, "#ff9b4a", 9000);
+    // icon matching can miss a skill on one scan: warn only after 3 misses in a row, once per skill
+    for (const slug of Object.keys(missRuns)) if (!r.missing.some((m) => m.slug === slug)) delete missRuns[slug];
+    const confirmed = r.missing.filter((m) => (missRuns[m.slug] = (missRuns[m.slug] ?? 0) + 1) >= 3 && !warnedSkills.has(m.slug));
+    if (confirmed.length) {
+      confirmed.forEach((m) => warnedSkills.add(m.slug));
+      overlayToast("Skill bar check", `Not on your bar: ${confirmed.map((m) => m.name).join(", ")}`, "#ff9b4a", 9000);
     }
   }, 60_000);
   setInterval(() => pushOverlay(), 500);
