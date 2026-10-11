@@ -158,6 +158,14 @@ export function tooltipRegion(rect: [number, number, number, number], cx: number
   return { x, y: gy, w: x1 - x, h: gh };
 }
 
+/**
+ * The hint footer only shown when the item is in a menu (bag, stash, vendor), never for loot on the
+ * ground: "Equip", "Unequip", "Mark as Junk", "Mark as Favorite", "Hide Comparison", "Take", "Sell", "Buy".
+ */
+export function inMenuFooter(lines: Pick<OcrLine, "text">[]): boolean {
+  return lines.some((l) => /^\W{0,3}(un)?equip$|mark as (junk|favorite)|hide comparison|^\W{0,3}(take|sell|buy|select)$/i.test(l.text.trim()));
+}
+
 /** Grow the OCR box: the stylised item name & icons sit outside the text OCR finds. */
 export function padBox(b: TooltipBox): TooltipBox {
   const px = Math.round(b.w * 0.1) + 20;
@@ -339,7 +347,12 @@ async function tick(isFocused: () => boolean) {
     // Inventory / stash / vendor open → judge right away with the full panel.
     // Otherwise it's ground loot (probably mid-fight): wait for a deliberate hover, badge only.
     const lines = cap.ocr?.lines ?? [];
-    const inMenu = scanning || lines.some((l) => /^(character|stash|inventory|equipment|blacksmith|occultist|jeweler|alchemist|purveyor)\b/i.test(l.text.trim()));
+    // the panel header can be hidden under the tooltip (items in the bag's right-hand columns), so the
+    // tooltip's own footer counts too: Equip / Mark as Junk / Hide Comparison (bag), Take (stash), Sell / Buy (vendor)
+    const inMenu =
+      scanning ||
+      lines.some((l) => /^(character|stash|inventory|equipment|blacksmith|occultist|jeweler|alchemist|purveyor)\b/i.test(l.text.trim())) ||
+      inMenuFooter(det.hovered.lines);
     const quiet = !inMenu;
     dbg.quiet = quiet;
     if (sig !== pendingSig)
