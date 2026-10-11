@@ -7,6 +7,8 @@ account_id = "a8997be9f2c11feee8d473739c61b887"
 # the app posts to https://reports.mscrnt.com/report (change here and in the app's REPORT_URL together)
 routes = [{ pattern = "reports.mscrnt.com", custom_domain = true }]
 workers_dev = false
+# reports.mscrnt.com is the only way in: workers.dev and version preview URLs would bypass the WAF rate-limit rule
+preview_urls = false
 
 [vars]
 S3_ENDPOINT = "https://s3.mscrnt.com"
@@ -49,6 +51,6 @@ simple = { limit = 2, period = 60 }
 # hourly per-IP and daily counters: create with `npx wrangler kv namespace create COUNTERS` and paste the id
 [[kv_namespaces]]
 binding = "COUNTERS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "f4aad7f13293465c9ba4178afacc2040"
 
 # IP_SALT is a Worker secret: `npx wrangler secret put IP_SALT` (any long random string)

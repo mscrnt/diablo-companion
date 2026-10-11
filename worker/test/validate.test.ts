@@ -5,9 +5,12 @@ describe("report metadata", () => {
   it("accepts what the app sends", () => {
     expect(parseMeta('{"version":"0.2.0","os":"windows-11","screenshots":true}')).toEqual({ ok: true, value: { version: "0.2.0", os: "windows-11", screenshots: true } });
     expect(parseMeta('{"version":"10.20.30","os":"windows"}')).toMatchObject({ ok: true, value: { screenshots: false } });
+    // pre-release builds report their real version
+    expect(parseMeta('{"version":"0.2.0-rc.1","os":"windows-11"}')).toMatchObject({ ok: true, value: { version: "0.2.0-rc.1" } });
+    expect(parseMeta('{"version":"0.3.0-beta.12","os":"windows-10"}').ok).toBe(true);
   });
   it("rejects anything else", () => {
-    for (const h of [null, "", "nope", "[]", '{"version":"0.2","os":"windows-11"}', '{"version":"0.2.0-rc.1","os":"windows-11"}', '{"version":"0.2.0","os":"linux"}', '{"version":"0.2.0","os":"windows-11","screenshots":"yes"}', "x".repeat(600)])
+    for (const h of [null, "", "nope", "[]", '{"version":"0.2","os":"windows-11"}', '{"version":"0.2.0-hello world","os":"windows-11"}', '{"version":"0.2.0-rc","os":"windows-11"}', '{"version":"0.2.0-rc.1<script>","os":"windows-11"}','{"version":"0.2.0","os":"linux"}', '{"version":"0.2.0","os":"windows-11","screenshots":"yes"}', "x".repeat(600)])
       expect(parseMeta(h).ok, String(h)).toBe(false);
   });
 });

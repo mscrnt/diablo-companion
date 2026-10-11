@@ -14,7 +14,7 @@ app ── POST /report (zip + X-Report-Meta) ──▶ Worker ── SigV4 PUT 
 
 - `Content-Type: application/zip`, body = the zip (max 25 MB)
 - `X-Report-Meta: {"version":"0.2.0","os":"windows-11","screenshots":false}`
-  - `version` must match `x.y.z`
+  - `version` must be `x.y.z`, or a pre-release `x.y.z-alpha.N`, `-beta.N` or `-rc.N`
   - `os` must be one of `windows-10`, `windows-11`, `windows`
 
 Response `201 {"id":"01K7…"}`. Errors return `{"error":"…"}` with:
@@ -33,6 +33,17 @@ The Worker checks, in order:
 
 IPs are only stored as salted hashes, in counters that expire within two days.
 
+**Rate limits in front of the Worker:**
+- A Cloudflare **WAF rule** on `reports.mscrnt.com` blocks more than 5 requests per 10 s per IP (429, `retry-after: 10`) before the Worker runs.
+- The `BURST` binding is a loose extra guard. It counts per machine and syncs asynchronously, and in testing caught about 1 request in 15.
+- The KV hourly and daily caps are the real per-IP limits. In testing, the 6th valid report in an hour was refused.
+
+## Deployed
+
+- `https://reports.mscrnt.com/report`, a custom domain. It's the **only** public way in: `workers_dev` and `preview_urls` are off, because those URLs would bypass the WAF rule.
+- KV namespace `COUNTERS`: `f4aad7f13293465c9ba4178afacc2040`.
+- Deploy by hand, or from CI on `main` only. Never from a `pull_request` or `pull_request_target` workflow: this repo is public.
+
 ## One-time setup
 
 ```sh
@@ -41,21 +52,25 @@ npm install
 npx wrangler login                          # opens the browser
 npx wrangler kv namespace create COUNTERS   # paste the id into wrangler.toml
 npx wrangler secret put IP_SALT             # any long random string
-npm run dev                                 # wrangler dev --remote: real bindings, real MinIO
 ```
 
-Test against the dev URL wrangler prints (replace the port if different):
+`wrangler dev --remote` doesn't work with the Secrets Store binding (the preview fails with an internal error). To test a change against the real bindings before it takes traffic:
+1. Set `preview_urls = true` and run `npx wrangler versions upload`.
+2. Test the preview URL: the first 8 characters of the version ID, then `-sanctuary-reports.kenneth-a89.workers.dev`.
+3. Set `preview_urls = false` again and run `npm run deploy`.
+
+Test with:
 
 ```sh
 # a valid report
-curl -s -X POST http://localhost:8787/report \
+curl -s -X POST https://reports.mscrnt.com/report \
   -H "content-type: application/zip" \
   -H 'x-report-meta: {"version":"0.2.0","os":"windows-11","screenshots":false}' \
   --data-binary @some-debug-report.zip
 # → {"id":"01K…"}; the object appears under d4-companion/debug/<date>/
 ```
 
-Then `npm run deploy`. That creates `reports.mscrnt.com` as a custom domain on the Worker.
+Afterwards, delete the test keys from `COUNTERS` (`npx wrangler kv key list --namespace-id … --remote`, then `kv key delete`) so the hourly and daily caps aren't used up.
 
 ## Turning on GitHub issues
 

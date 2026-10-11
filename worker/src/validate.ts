@@ -25,7 +25,8 @@ export function parseMeta(header: string | null): Check<ReportMeta> {
   }
   if (!raw || typeof raw !== "object") return bad(400, "X-Report-Meta must be an object");
   const m = raw as Record<string, unknown>;
-  if (typeof m.version !== "string" || !/^\d+\.\d+\.\d+$/.test(m.version)) return bad(400, "bad version");
+  // x.y.z, or a pre-release build: x.y.z-alpha.N / -beta.N / -rc.N
+  if (typeof m.version !== "string" || !/^\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?$/.test(m.version)) return bad(400, "bad version");
   if (typeof m.os !== "string" || !(OS_ALLOW as readonly string[]).includes(m.os)) return bad(400, "bad os");
   if (m.screenshots !== undefined && typeof m.screenshots !== "boolean") return bad(400, "bad screenshots flag");
   return { ok: true, value: { version: m.version, os: m.os as Os, screenshots: m.screenshots === true } };
