@@ -5,6 +5,8 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-11
+
 ### Added
 - **Kurast Undercity helper:** a run starts on its own when you enter, with a split for each floor. A panel in the left bar shows the floor, the seconds left, the reward upgrades (N/4) and what fills the attunement bar and adds time. Toasts mark each new floor and each reward upgrade (and "Rewards maxed" at 4/4). When the countdown drops to 15 s you get a warning and a sound. When you leave, the run is saved in Runs & Splits with its time, counting as cleared if you reached the last floor.
 - Boss mode recognises the world bosses (Avarice, Ashava, Azmodan, Wandering Death), including health bars that show the title without a comma ("AZMODAN LORD OF SIN"), notes that they drop Lair boss summoning materials and Temper Manuals, and stops the timer as soon as "World Boss Defeated" shows.
@@ -126,6 +128,7 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mscrnt/diablo-companion/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/mscrnt/diablo-companion/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mscrnt/diablo-companion/releases/tag/v0.1.0
