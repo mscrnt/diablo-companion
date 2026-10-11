@@ -59,7 +59,7 @@ export function nextPreset(cur: MapPinPreset, cycle: MapPinPreset[]): MapPinPres
   return list[(i + 1) % list.length];
 }
 
-export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdit" | "coachSnap" | "overlayToggle" | "mapCharacter" | "snoozeJudge" | "mapPinsPreset";
+export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdit" | "coachSnap" | "overlayToggle" | "mapCharacter" | "snoozeJudge" | "mapPinsPreset" | "markMoment";
 
 export interface Settings {
   llm: { baseUrl: string; model: string; apiKey: string; thinkingForCoach: boolean };
@@ -147,6 +147,8 @@ export const defaultSettings: Settings = {
     mapCharacter: "F7",
     snoozeJudge: "F6",
     mapPinsPreset: "Alt+M",
+    // not Ctrl+Shift+D: that's Discord's deafen key (a global hotkey would swallow it)
+    markMoment: "CommandOrControl+Alt+D",
   },
   padChords: {
     judge: ["View", "RS"],
@@ -159,6 +161,7 @@ export const defaultSettings: Settings = {
     mapCharacter: ["View", "Y"],
     snoozeJudge: ["View", "X"],
     mapPinsPreset: ["View", "LS"],
+    markMoment: ["View", "RB"],
   },
   padEnabled: true,
   capture: { width: 2800, height: 0, maxEdge: 1600, quality: 88, ocrAssist: true, equippedCompare: true },
@@ -249,6 +252,23 @@ export function migrateMapPins(m: Settings, persisted: any): Settings {
     const key = (c: string[]) => [...c].sort().join("+");
     const mine = key(m.padChords.mapPinsPreset);
     if (Object.entries(m.padChords).some(([a, c]) => a !== "mapPinsPreset" && c.length && key(c) === mine)) m.padChords = { ...m.padChords, mapPinsPreset: [] };
+  }
+  return freeNewBinding(m, persisted, "markMoment");
+}
+
+/**
+ * An action added in an update gets its default key and chord only if no other action already
+ * uses them (otherwise it starts unbound, and the user's own binding keeps working).
+ */
+export function freeNewBinding(m: Settings, persisted: any, action: ActionId): Settings {
+  if (persisted?.hotkeys && !persisted.hotkeys[action]) {
+    const k = m.hotkeys[action];
+    if (k && Object.entries(m.hotkeys).some(([a, x]) => a !== action && x === k)) m.hotkeys = { ...m.hotkeys, [action]: "" };
+  }
+  if (persisted?.padChords && !persisted.padChords[action]) {
+    const key = (c: string[]) => [...c].sort().join("+");
+    const mine = key(m.padChords[action]);
+    if (mine && Object.entries(m.padChords).some(([a, c]) => a !== action && c.length && key(c) === mine)) m.padChords = { ...m.padChords, [action]: [] };
   }
   return m;
 }

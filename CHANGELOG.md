@@ -6,6 +6,10 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
+- **Debug page** (new in the sidebar): shows live what the app is doing and what it thinks is on your screen: the game window, the current activity, what the loot judge saw and why it did or didn't judge, map pins, the skill bar check, and what the overlay is drawing and where. A filterable list shows every decision as it happens.
+- **Mark this moment:** press **Ctrl+Alt+D** (or **View + RB** on a controller) when something looks wrong in game. The app saves a full screenshot of the game, what it believed at that moment and the last 90 seconds of what it did, and the overlay shows "Moment saved". Add a note to it afterwards on the Debug page. Works with test mode off; the newest 30 are kept. (Not Ctrl+Shift+D, which is Discord's deafen key.)
+- With **test mode** on, the app also keeps a live state file and a log of every decision in its debug folder, sharing test mode's size limit.
+- **Create debug report** (Debug page, and **Report a problem** in Settings → About): saves a zip of the debug files, recent loot judgments and test-mode records to your Downloads folder and opens a pre-filled GitHub issue to attach it to. It shows what's included first, and screenshots are left out unless you tick the box (they can show your character name or BattleTag). Your LLM address and API key, Discord webhook and OBS password are never included, and nothing is uploaded for you.
 - **Map pins:** open the in-game map and the overlay pins Deckard's journals, Altars of Lilith and the regional collectibles, dungeons, cellars, strongholds and side quests (dimmer, as their spots are approximate) at their real places, at every zoom level. Helltide chest spots show during a Helltide in its zone. The app finds the map from its waypoint icons by screen capture only, and draws nothing when it isn't sure.
   - **Presets:** switch what the pins show in game with **Alt+M** or **View + left stick click** on a controller: Custom, Collectibles, Dungeons & cellars, Quests, Helltide, Everything or Off. The preset's name shows briefly in the map's corner. On the **Overlay** page you pick which presets the key steps through and which kinds Custom shows. The default is quiet: journals, altars and collectibles, and dungeons. If you had the old everything-on defaults, they switch to the quiet ones once.
   - **Unfound only:** altars and regional collectibles the map already shows as found are hidden (or drawn faded, if you turn the option off).
@@ -25,6 +29,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- The "Open test-mode folder" and judge log buttons open the folder again (the app wasn't allowed to open folders from the page).
 - The skill bar check no longer warns about skills your character mapping already read off your bar, and only warns after a skill is missing on three checks in a row, once per session.
 - Screen reading could fail silently on some screen areas: when text was enlarged for reading, the image could end up a pixel off the size Windows expected and nothing was read. This affected the Infernal Hordes helper most, which never noticed a Hordes run.
 - The Infernal Hordes helper recognises the run despite common misreads ("Infemal Hordes", "WAVE: 10/10"), and reads text on the red Hordes arena.

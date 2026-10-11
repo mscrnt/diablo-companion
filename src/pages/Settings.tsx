@@ -6,6 +6,7 @@ import { discord } from "../lib/alerts";
 import { useSettings, type ActionId } from "../lib/store";
 import { staticMeta } from "../lib/names";
 import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate, installUpdate } from "../lib/version";
+import { DebugReportButton } from "../components/DebugReport";
 
 const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "judge", label: "Judge item under cursor" },
@@ -18,6 +19,7 @@ const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "mapCharacter", label: "Map my character (start / pause / resume)" },
   { id: "snoozeJudge", label: "Snooze the loot judge (30 s)" },
   { id: "mapPinsPreset", label: "Map pins: next preset" },
+  { id: "markMoment", label: "Mark this moment (saves a debug snapshot)" },
 ];
 
 export default function SettingsPage() {
@@ -246,9 +248,7 @@ function About() {
         <a className="btn ghost sm" href={REPO_URL} target="_blank" rel="noreferrer">
           GitHub
         </a>
-        <a className="btn ghost sm" href={`${REPO_URL}/issues`} target="_blank" rel="noreferrer">
-          Report a problem
-        </a>
+        <DebugReportButton label="Report a problem" className="btn ghost sm" />
       </div>
       {progress !== undefined && (
         <div className="progress" style={{ marginTop: 8 }}>

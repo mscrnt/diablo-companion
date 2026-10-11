@@ -14,6 +14,7 @@ import { localSchedule } from "./timers";
 import { bossInfo, findBoss } from "./boss";
 import { bestTrees, needs, parseWarPlan, useWarPlans } from "./warplans";
 import { getActiveVariant, useRuns, useSettings } from "./store";
+import { debugEvent } from "./debug";
 
 export interface AdvisorState {
   title: string;
@@ -22,13 +23,24 @@ export interface AdvisorState {
 }
 let advisorShownAt = 0;
 let favorsAlerted = false;
+let advisorKey = "";
+let advisorLast: AdvisorState | null = null;
 
 function pushAdvisor(title: string, items: RankedCache[]) {
   if (items.length) {
     advisorShownAt = Date.now();
-    emitOverlay("advisor", { title, items, at: Date.now() } satisfies AdvisorState);
+    advisorLast = { title, items, at: Date.now() };
+    const key = `${title}|${items.map((i) => i.name).join(",")}`;
+    if (key !== advisorKey) {
+      advisorKey = key;
+      debugEvent("activity", "advisor", { title, ranked: items.slice(0, 4).map((i) => `${i.rank}. ${i.name}`) });
+    }
+    emitOverlay("advisor", advisorLast);
   } else if (advisorShownAt && Date.now() - advisorShownAt > 5000) {
     advisorShownAt = 0;
+    advisorKey = "";
+    advisorLast = null;
+    debugEvent("activity", "advisor-hidden");
     emitOverlay("advisor", null);
   }
 }
@@ -54,7 +66,10 @@ export function onFrame(lines: OcrLine[], region?: { x: number; y: number }) {
   // stylised "OBELISK" can OCR as "0BELISK" — "Select Tier" under the dropdown is a second anchor
   if (/artificer|belisk|select tier/i.test(text)) {
     const m = text.match(/(?:pit\s*)?tier\s*(\d{1,3})/i) ?? text.match(/\blevel\s*(\d{1,3})\b/i);
-    if (m) pendingTier = `T${m[1]}`;
+    if (m && pendingTier !== `T${m[1]}`) {
+      pendingTier = `T${m[1]}`;
+      debugEvent("activity", "pit-tier", { tier: pendingTier });
+    }
   }
 }
 
@@ -113,6 +128,8 @@ async function helltideTick() {
       if (cur?.end) hud.secondsLeft = Math.round((cur.end - now) / 1000);
     }
     const adv = helltideAdvice(variant, prog, cinders);
+    if (!ht.active) debugEvent("activity", "helltide-start", { cinders, secondsLeft: hud.secondsLeft, best: adv.best?.name ?? null });
+    else if (cinders !== ht.cinders) debugEvent("activity", "helltide-cinders", { from: ht.cinders, to: cinders, read: hud.cinders != null ? "hud" : "kept" });
     ht = { active: true, cinders, secondsLeft: hud.secondsLeft, best: adv.best, plan: adv.plan };
     // you can afford the recommended chest now
     if (adv.best && cinders != null && cinders >= adv.best.cost && htAffordAlerted !== adv.best.name) {
@@ -136,6 +153,7 @@ async function helltideTick() {
       }).catch(() => {});
     }
   } else if (ht.active && now - htLastSeen > 20000) {
+    debugEvent("activity", "helltide-end", { why: "Helltide HUD gone for 20 s", cinders: ht.cinders });
     ht = { active: false, cinders: null, secondsLeft: null, best: null, plan: [] };
     htAffordAlerted = "";
     emitOverlay("helltide", ht);
@@ -158,7 +176,11 @@ function glyphTip(): string | null {
 function startRun() {
   endBoss("left");
   const runs = useRuns.getState();
-  if (runs.active) return;
+  if (runs.active) {
+    debugEvent("activity", "pit-start-skipped", { why: "a run is already active", active: runs.active.activity });
+    return;
+  }
+  debugEvent("activity", "pit-start", { tier: pendingTier || runs.tier || null });
   runs.setActivity("The Pit", pendingTier || runs.tier);
   runs.start();
   survivalFailed = false;
@@ -176,6 +198,7 @@ function finishRun(success: boolean) {
   const dur = Date.now() - active.start;
   const prev = runs.runs.filter((r) => r.activity === "The Pit" && r.tier === active.tier && r.end && r.success !== false).map((r) => r.end! - r.start);
   const pb = prev.length ? Math.min(...prev) : Infinity;
+  debugEvent("activity", "pit-finish", { success, durS: Math.round(dur / 1000), tier: active.tier, pb: dur < pb });
   runs.stop(success);
   const mins = `${Math.floor(dur / 60000)}:${String(Math.floor((dur % 60000) / 1000)).padStart(2, "0")}`;
   if (success) {
@@ -216,6 +239,7 @@ function nmdTick() {
     if (!nmd) {
       endBoss("left");
       nmd = { dungeon, objective, lastSeen: now };
+      debugEvent("activity", "nmd-start", { dungeon, objective, runStarted: !runs.active });
       if (!runs.active) {
         runs.setActivity("Nightmare Dungeon", dungeon);
         runs.start();
@@ -229,11 +253,13 @@ function nmdTick() {
         nmd.dungeon = dungeon;
       }
       if (objective && objective !== nmd.objective && runs.active?.activity === "Nightmare Dungeon") {
+        debugEvent("activity", "nmd-objective", { from: nmd.objective, to: objective });
         runs.split(nmd.objective.slice(0, 40) || "Objective");
         nmd.objective = objective;
       }
     }
   } else if (nmd && now - nmd.lastSeen > 12000) {
+    debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: "tracker marker gone for 12 s" });
     const active = runs.active;
     if (active?.activity === "Nightmare Dungeon") {
       const dur = now - 12000 - active.start;
@@ -253,6 +279,7 @@ let bossLogged = 0;
 /** Leave boss mode (and close its timer) — e.g. when another activity starts. */
 function endBoss(reason: "dead" | "left") {
   if (!boss) return;
+  debugEvent("activity", "boss-end", { boss, reason });
   const runs = useRuns.getState();
   const active = runs.active;
   const label = `Boss: ${boss.split(",")[0]}`;
@@ -279,6 +306,7 @@ async function bossTick(rect: Rect) {
   if (name) {
     bossSeen = now;
     if (boss !== name) {
+      debugEvent("activity", "boss-start", { boss: name, previous: boss, runStarted: !runs.active });
       boss = name;
       const { variant, prog } = getActiveVariant();
       const info = bossInfo(name, variant, prog);
@@ -292,6 +320,7 @@ async function bossTick(rect: Rect) {
     }
   } else if (boss && now - bossSeen > 10000) {
     // health bar gone for 10 s → dead (or you left)
+    debugEvent("activity", "boss-end", { boss, reason: "health bar gone for 10 s" });
     const active = runs.active;
     const label = `Boss: ${boss.split(",")[0]}`;
     if (active && active.activity === label) {
@@ -330,6 +359,7 @@ async function tick(rect: Rect) {
   if (wpp) {
     const prev = useWarPlans.getState().progress;
     if (!prev || prev.step !== wpp.step || prev.of !== wpp.of || prev.quest !== wpp.quest) {
+      debugEvent("activity", "warplan-progress", { step: wpp.step, of: wpp.of, quest: wpp.quest, prev: prev ? `${prev.step}/${prev.of}` : null });
       useWarPlans.getState().setProgress({ ...wpp, at: Date.now() });
       if (prev && prev.step === prev.of - 1 && wpp.step < prev.step) {
         const { variant, prog } = getActiveVariant();
@@ -349,6 +379,7 @@ async function tick(rect: Rect) {
   const fav = parseGrimFavors(t);
   if (fav && fav.have >= fav.max && !favorsAlerted) {
     favorsAlerted = true;
+    debugEvent("activity", "favors-full", fav);
     overlayToast("Grim Favors full", `${fav.have}/${fav.max} — cash them in at the Tree of Whispers.`, "#b06cff", 9000);
   } else if (fav && fav.have < fav.max) favorsAlerted = false;
   const inPit = /artificer'?s pit|summon a guardian|slay the boss|speed mastery|survival mastery/i.test(t);
@@ -374,31 +405,55 @@ async function tick(rect: Rect) {
 
   // a NEW run only starts on the fresh-run objective (leftover mastery lines after a clear don't count)
   if (phase === "none" && /summon a guardian/i.test(t) && now - lastFinish > 20000) {
-    phase = "summon";
+    setPhase("summon", "tracker: summon a Guardian");
     startRun();
   }
   // app (re)started mid-run while a run is already active → just resume tracking
-  if (phase === "none" && inPit && useRuns.getState().active?.activity === "The Pit") phase = /slay the boss/i.test(t) ? "boss" : "summon";
+  if (phase === "none" && inPit && useRuns.getState().active?.activity === "The Pit") setPhase(/slay the boss/i.test(t) ? "boss" : "summon", "resumed an active Pit run");
   if (phase === "summon" && /slay the boss/i.test(t)) {
-    phase = "boss";
+    setPhase("boss", "tracker: slay the boss");
     bossSince = now;
     useRuns.getState().split("Guardian");
     overlayToast("Guardian summoned", "Boss phase", "#ff9b4a", 2500);
   }
   // boss objective gone (after the boss phase) → cleared
   if (phase === "boss" && now - bossSince > 4000 && !/slay the boss/i.test(t)) {
-    phase = "done";
+    setPhase("done", "boss objective gone");
     finishRun(true);
   }
   // left the Pit without finishing (or tracker gone for a while)
   if ((phase === "summon" || phase === "boss") && !inPit && now - lastSeenPit > 15000) {
-    phase = "none";
+    setPhase("none", "no Pit lines in the tracker for 15 s");
     finishRun(false);
   }
   if (phase === "done" && !inPit && now - lastSeenPit > 8000) {
-    phase = "none";
+    setPhase("none", "left the Pit after the clear");
     pendingTier = "";
   }
+}
+
+function setPhase(next: PitPhase, why: string) {
+  if (next === phase) return;
+  debugEvent("activity", "pit-phase", { from: phase, to: next, why });
+  phase = next;
+}
+
+/** What activity tracking believes right now (debug snapshot). */
+export function activityDebug() {
+  const runs = useRuns.getState();
+  const a = runs.active;
+  const now = Date.now();
+  return {
+    autoRuns: useSettings.getState().settings.autoRuns,
+    run: a ? { activity: a.activity, tier: a.tier, elapsedS: Math.round((now - a.start) / 1000), splits: a.splits.map((s) => s.label), deaths: a.deaths } : null,
+    pit: { phase, pendingTier: pendingTier || null, lastSeenAgoS: lastSeenPit ? Math.round((now - lastSeenPit) / 1000) : null, survivalFailed },
+    nmd: nmd && { ...nmd, lastSeen: undefined, lastSeenAgoS: Math.round((now - nmd.lastSeen) / 1000) },
+    boss: boss && { name: boss, lastSeenAgoS: Math.round((now - bossSeen) / 1000) },
+    helltide: ht.active ? { ...ht, lastSeenAgoS: Math.round((now - htLastSeen) / 1000) } : { active: false },
+    tree: advisorLast && { title: advisorLast.title, ranked: advisorLast.items.slice(0, 4).map((i) => `${i.rank}. ${i.name}`), shownAgoS: Math.round((now - advisorShownAt) / 1000) },
+    warPlan: useWarPlans.getState().progress,
+    tracker: trackerLines.slice(0, 16).map((l) => l.text.slice(0, 80)),
+  };
 }
 
 export function startActivityWatcher(isFocused: () => boolean, gameRect: () => Rect | null) {
@@ -413,6 +468,7 @@ export function startActivityWatcher(isFocused: () => boolean, gameRect: () => R
     try {
       await tick(rect);
     } catch (e) {
+      debugEvent("activity", "error", { error: String(e) });
       console.warn("activity tick failed", e);
     } finally {
       busy = false;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AppWindow, Camera, Castle, Eye, Flame, Hourglass, Map as MapIcon, Package, Scale, ScrollText, Settings, Sparkles, Swords, Timer, UserRound, type LucideIcon } from "lucide-react";
+import { AppWindow, Bug, Camera, Castle, Eye, Flame, Hourglass, Map as MapIcon, Package, Scale, ScrollText, Settings, Sparkles, Swords, Timer, UserRound, type LucideIcon } from "lucide-react";
 import { startEngine, useRuntime } from "./lib/engine";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Welcome from "./pages/Welcome";
@@ -21,6 +21,7 @@ import OverlayPage from "./pages/OverlayPage";
 import GuidePage from "./pages/Guide";
 import Character from "./pages/Character";
 import WarPlans from "./pages/WarPlans";
+import DebugPage from "./pages/Debug";
 
 export type PageId =
   | "dashboard"
@@ -36,6 +37,7 @@ export type PageId =
   | "watchers"
   | "overlay"
   | "collection"
+  | "debug"
   | "settings";
 
 const NAV: { id: PageId; label: string; ico: LucideIcon }[] = [
@@ -52,6 +54,7 @@ const NAV: { id: PageId; label: string; ico: LucideIcon }[] = [
   { id: "watchers", label: "Screen Watchers", ico: Eye },
   { id: "overlay", label: "Overlay", ico: AppWindow },
   { id: "collection", label: "Collection", ico: Package },
+  { id: "debug", label: "Debug", ico: Bug },
   { id: "settings", label: "Settings", ico: Settings },
 ];
 
@@ -164,6 +167,7 @@ export default function App() {
         {page === "watchers" && <Watchers />}
         {page === "overlay" && <OverlayPage />}
         {page === "collection" && <Collection />}
+        {page === "debug" && <DebugPage />}
         {page === "settings" && <SettingsPage />}
         </ErrorBoundary>
       </main>

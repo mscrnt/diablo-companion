@@ -14,6 +14,7 @@ import { getActiveVariant, useSettings } from "./store";
 import { useGuide } from "./guide";
 import type { TooltipText } from "./parse";
 import { onFrame } from "./activity";
+import { debugEvent, debugEventEvery } from "./debug";
 
 // Words that only appear inside item tooltips.
 const MARKERS = [
@@ -247,12 +248,48 @@ export interface AutoJudgeStatus {
 }
 export const autoStatus: AutoJudgeStatus = { running: false, lastTickMs: 0, tooltip: false, judged: 0 };
 
+/** What the last scan saw and decided (debug snapshot). */
+const dbg = {
+  lastScanAt: 0,
+  region: null as CaptureResult["region"] | null,
+  cursor: null as [number, number] | null,
+  ocrLines: 0,
+  markerLines: 0,
+  tooltip: false,
+  /** why the last tick did (or didn't) judge */
+  reason: "not started",
+  boxes: null as { hovered: TooltipBox; equipped: TooltipBox | null } | null,
+  quiet: false,
+  hoveredText: [] as string[],
+  lastVerdict: null as null | { at: string; verdict: string; item: string; action?: string; ms: number; quiet: boolean },
+};
+
+export function autojudgeDebug() {
+  const now = Date.now();
+  return {
+    ...autoStatus,
+    ...dbg,
+    enabled: useSettings.getState().settings.autoJudge.enabled,
+    lastScanAt: dbg.lastScanAt ? new Date(dbg.lastScanAt).toISOString() : null,
+    lastScanAgoMs: dbg.lastScanAt ? now - dbg.lastScanAt : null,
+    snoozedForS: Math.max(0, Math.round((snoozeUntil - now) / 1000)),
+    waitingForDwell: !!pendingSig && pendingSig !== lastSig,
+    recentSeen: recent.length,
+  };
+}
+
 async function tick(isFocused: () => boolean) {
   const s = useSettings.getState().settings;
   const g = useGuide.getState();
   const scanning = g.flow === "gear" || (g.flow === "setup" && g.step === 4);
-  if ((!s.autoJudge.enabled && !scanning) || !isFocused() || busy) return;
-  if (Date.now() < snoozeUntil && !scanning) return;
+  if (!s.autoJudge.enabled && !scanning) return void (dbg.reason = "auto-judge is off");
+  if (!isFocused()) return void (dbg.reason = "game not on screen");
+  if (busy) return;
+  if (Date.now() < snoozeUntil && !scanning) {
+    dbg.reason = "snoozed";
+    debugEventEvery("aj-snooze", 10_000, "autojudge", "snoozed-skip", { leftS: Math.round((snoozeUntil - Date.now()) / 1000) });
+    return;
+  }
   busy = true;
   const t0 = performance.now();
   try {
@@ -262,43 +299,68 @@ async function tick(isFocused: () => boolean) {
     let cap: CaptureResult;
     if (rect) {
       const [mx, my] = await cursorPosition();
-      if (mx < rect[0] || my < rect[1] || mx > rect[0] + rect[2] || my > rect[1] + rect[3]) return;
+      if (mx < rect[0] || my < rect[1] || mx > rect[0] + rect[2] || my > rect[1] + rect[3]) return void (dbg.reason = "cursor outside the game window");
       cap = await captureRegion(tooltipRegion(rect, mx, c.width), { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true });
     } else cap = await captureAtCursor(c.width, c.height, { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true });
     onFrame(cap.ocr?.lines ?? [], cap.region);
     const det = detectTooltips(cap);
     autoStatus.tooltip = !!det;
+    const ocrLines = cap.ocr?.lines ?? [];
+    const markerLines = ocrLines.filter((l) => MARKERS.some((m) => m.test(l.text))).length;
+    Object.assign(dbg, { lastScanAt: Date.now(), region: cap.region, cursor: cap.cursor, ocrLines: ocrLines.length, markerLines });
+    debugEventEvery("aj-scan", 10_000, "autojudge", "scan", { ms: Math.round(performance.now() - t0), region: cap.region, lines: ocrLines.length, markers: markerLines, tooltip: !!det });
     // test mode: tooltip words on screen but no tooltip found = a detection miss worth a look
-    if (!det && testModeOn() && Date.now() - lastMissLog > 5000 && (cap.ocr?.lines ?? []).filter((l) => MARKERS.some((m) => m.test(l.text))).length >= 2) {
+    if (!det && testModeOn() && Date.now() - lastMissLog > 5000 && markerLines >= 2) {
       lastMissLog = Date.now();
       testLog("miss", { ...captureInfo(cap), ocr: cap.ocr?.lines ?? [] }, cap.image);
     }
     if (!det) {
+      const why = ocrLines.length < 4 ? `only ${ocrLines.length} OCR lines` : markerLines >= 2 ? `${markerLines} tooltip words but no tooltip column` : "no tooltip words";
+      dbg.reason = `no tooltip: ${why}`;
+      // the tooltip going away is logged at once; "still nothing" every 10 s
+      if (dbg.tooltip) debugEvent("autojudge", "no-tooltip", { why, gone: true });
+      else debugEventEvery("aj-none", 10_000, "autojudge", "no-tooltip", { why });
+      dbg.tooltip = false;
+      dbg.boxes = null;
       if (pendingSig || lastSig) emitOverlay("tooltip", null);
       pendingSig = "";
       lastSig = "";
       return;
     }
+    dbg.tooltip = true;
+    dbg.boxes = { hovered: det.hovered.box, equipped: det.equipped?.box ?? null };
+    dbg.hoveredText = det.hovered.lines.slice(0, 8).map((l) => l.text.slice(0, 80));
     const sig = signature(det.hovered.lines);
-    if (sig === lastSig) return; // same tooltip still showing
+    if (sig === lastSig) {
+      dbg.reason = "same tooltip still showing (already handled)";
+      debugEventEvery("aj-dedupe", 10_000, "autojudge", "dedupe-skip", { why: "same tooltip", first: dbg.hoveredText[0] });
+      return;
+    }
     // Inventory / stash / vendor open → judge right away with the full panel.
     // Otherwise it's ground loot (probably mid-fight): wait for a deliberate hover, badge only.
     const lines = cap.ocr?.lines ?? [];
     const inMenu = scanning || lines.some((l) => /^(character|stash|inventory|equipment|blacksmith|occultist|jeweler|alchemist|purveyor)\b/i.test(l.text.trim()));
     const quiet = !inMenu;
+    dbg.quiet = quiet;
+    if (sig !== pendingSig)
+      debugEvent("autojudge", "tooltip-found", { box: det.hovered.box, equipped: det.equipped?.box ?? null, score: det.score, quiet, first: dbg.hoveredText.slice(0, 3) });
     if (quiet) {
       if (sig !== pendingSig) {
         pendingSig = sig;
         pendingSince = Date.now();
+        dbg.reason = "ground loot: waiting for a deliberate hover";
+        debugEvent("autojudge", "quiet-skip", { why: "ground loot, waiting for the hover to settle", dwellMs: s.autoJudge.worldDwellMs });
         return;
       }
-      if (Date.now() - pendingSince < s.autoJudge.worldDwellMs) return;
+      if (Date.now() - pendingSince < s.autoJudge.worldDwellMs) return void (dbg.reason = "ground loot: waiting for a deliberate hover");
     }
     pendingSig = sig;
     lastSig = sig;
     if (recent.includes(sig)) {
       const v = cachedVerdict(sig);
       if (v) {
+        dbg.reason = "seen before: showed the cached verdict";
+        debugEvent("autojudge", "dedupe-skip", { why: "seen before (cached verdict)", verdict: v.verdict, item: v.item.name });
         emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: v, sig, quiet });
         if (!quiet) emitOverlay("verdict", v);
         return;
@@ -329,9 +391,17 @@ async function tick(isFocused: () => boolean) {
         cap.image,
       );
     }
-    if (result) emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: result, sig, quiet });
-    else emitOverlay("tooltip", null);
+    if (result) {
+      dbg.reason = "judged";
+      dbg.lastVerdict = { at: new Date().toISOString(), verdict: result.verdict, item: result.item.name, action: result.action, ms: result.ms, quiet };
+      emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: result, sig, quiet });
+    } else {
+      dbg.reason = "the parser found no item in the tooltip";
+      emitOverlay("tooltip", null);
+    }
   } catch (e) {
+    dbg.reason = `error: ${String(e).slice(0, 120)}`;
+    debugEvent("autojudge", "error", { error: String(e) });
     console.warn("autojudge tick failed", e);
   } finally {
     autoStatus.lastTickMs = Math.round(performance.now() - t0);

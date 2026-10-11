@@ -14,6 +14,84 @@ import { BookOpen, Castle, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, Map
 import { VERDICT_STYLE } from "../lib/judge";
 import { EVENT_META, fmtCountdown, isActive } from "../lib/timers";
 import type { JudgeResult } from "../lib/types";
+import { cssToScreen, installDebugHooks, type Box, type OverlayRender, type RenderedElement } from "../lib/debugcore";
+
+// Debug: this window's errors and what it draws go to the main window's event log (the overlay is
+// hidden from screen capture, so this is the only way to see it). At most 10 events a second.
+let dbgCount = 0;
+let dbgWindow = 0;
+function sendDebug(type: string, data?: Record<string, unknown>, src = "overlay") {
+  const t = Date.now();
+  if (t - dbgWindow > 1000) {
+    dbgWindow = t;
+    dbgCount = 0;
+  }
+  if (++dbgCount > 10) return;
+  emitMain("debug-event", { src, type, data });
+}
+installDebugHooks((type, data) => sendDebug(type, { ...data, window: "overlay" }, "error"));
+
+/** Where the overlay's CSS px sit on screen: the game window's corner (the overlay is glued to it). */
+function overlayOrigin(st: OverlayState): [number, number] {
+  const dpr = window.devicePixelRatio || 1;
+  return [st.gameRect?.[0] ?? Math.round(window.screenX * dpr), st.gameRect?.[1] ?? Math.round(window.screenY * dpr)];
+}
+
+/** An element's box in overlay CSS px and absolute screen px. */
+function measure(el: Element | null, st: OverlayState): { css: Box; screen: Box } | null {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  const css = { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
+  return { css, screen: cssToScreen(css, overlayOrigin(st), window.devicePixelRatio || 1) };
+}
+
+interface RenderInputs {
+  tip: TooltipEvt | null;
+  verdict: JudgeResult | null;
+  toasts: OverlayToast[];
+  judging: boolean;
+  guide: GuideState | null;
+  hordes: HordesState | null;
+  advisor: AdvisorState | null;
+  helltide: HelltideInfo | null;
+  boss: BossInfo | null;
+  mapPins: MapPinsFrame | null;
+}
+
+/** What this window is drawing right now, measured from the DOM (elements tagged data-dbg). */
+function collectRender(st: OverlayState, x: RenderInputs): OverlayRender {
+  const dpr = window.devicePixelRatio || 1;
+  const bars = st.settings.layout === "bars" && !!st.settings.gameBounds && st.settings.gameBounds.left > 0.03;
+  const guideOn = !!x.guide?.active;
+  const visible = st.visible || guideOn;
+  const elements: RenderedElement[] = [];
+  document.querySelectorAll<HTMLElement>("[data-dbg]").forEach((el) => {
+    const m = measure(el, st);
+    if (!m || (m.css.w === 0 && m.css.h === 0)) return;
+    const kids = [...el.querySelectorAll<HTMLElement>("[data-dbg]")].map((k) => k.dataset.dbg!);
+    elements.push({ id: el.dataset.dbg!, ...m, ...(kids.length ? { children: kids } : { text: (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 200) }) });
+  });
+  return {
+    at: Date.now(),
+    window: { css: { x: window.screenX, y: window.screenY, w: window.innerWidth, h: window.innerHeight }, dpr, origin: overlayOrigin(st), gameRect: st.gameRect },
+    visible,
+    opacity: visible ? st.settings.opacity : 0,
+    edit: st.edit,
+    layout: bars ? "bars" : "free",
+    gameBounds: st.settings.gameBounds,
+    verdictCard: x.tip && { state: x.tip.state, quiet: !!x.tip.quiet, verdict: x.tip.verdict?.verdict, action: x.tip.verdict?.action?.slice(0, 160), tooltipBox: x.tip.box },
+    verdictPanel: x.verdict && { verdict: x.verdict.verdict, item: x.verdict.item.name, judgedAt: x.verdict.at },
+    judging: x.judging,
+    toasts: x.toasts.map((t) => ({ title: t.title, body: t.body?.slice(0, 120) })),
+    mapPins: x.mapPins && { pins: x.mapPins.pins.length, clip: x.mapPins.clip, hud: x.mapPins.hud.length, zoom: Math.round(x.mapPins.zoom * 100) / 100, label: x.mapPins.label, drawn: st.visible && !guideOn },
+    guide: guideOn && x.guide ? { title: x.guide.title, step: x.guide.step, steps: x.guide.steps, instruction: x.guide.instruction.slice(0, 160), highlights: x.guide.highlights.length } : null,
+    hordes: x.hordes?.active ? { aether: x.hordes.aether, offers: x.hordes.offers.map((o) => ({ title: o.title, rank: o.rank })), chests: x.hordes.chests.map((c) => ({ name: c.name, order: c.order })) } : null,
+    advisor: x.advisor && { title: x.advisor.title, items: x.advisor.items.map((i) => ({ name: i.name, rank: i.rank })) },
+    helltide: x.helltide?.active ? { cinders: x.helltide.cinders, secondsLeft: x.helltide.secondsLeft, best: x.helltide.best?.name ?? null } : null,
+    boss: x.boss?.name ?? null,
+    elements,
+  };
+}
 
 interface TooltipEvt {
   box: TooltipBox;
@@ -63,6 +141,7 @@ export default function Overlay() {
         vTimer.current = setTimeout(() => setVerdict(null), (stRef.current?.settings.verdictSeconds ?? 7) * 1000);
       }),
       onOverlay<OverlayToast>("toast", (x) => {
+        sendDebug("toast", { title: x.title, body: x.body?.slice(0, 100), ttl: x.ttl, shown: !!stRef.current?.settings.widgets.toasts.on });
         setToasts((ts) => [...ts.slice(-3), x]);
         setTimeout(() => setToasts((ts) => ts.filter((y) => y.id !== x.id)), x.ttl);
       }),
@@ -84,6 +163,11 @@ export default function Overlay() {
         setMapPins(m && { ...m, labelUntil: m.labelMs != null ? Date.now() + m.labelMs : undefined });
         if (m) pinTimer.current = setTimeout(() => setMapPins(null), m.ttl || 1500);
       }),
+      // the main window wants the render state now (a mark, or the Debug page)
+      onOverlay<boolean>("debug-request", () => {
+        dbgReq.current = true;
+        setNow(Date.now());
+      }),
     ];
     emitMain("overlay-ready", true);
     return () => {
@@ -91,6 +175,47 @@ export default function Overlay() {
       subs.forEach((p) => p.then((u) => u()));
     };
   }, []);
+
+  // debug: report what is drawn (test mode / Debug page: at most once a second, when it changed; else on request)
+  const dbgReq = useRef(false);
+  const dbgLast = useRef({ key: "", at: 0 });
+  useEffect(() => {
+    if (!st || (!st.debug && !dbgReq.current)) return;
+    const t = Date.now();
+    if (!dbgReq.current && t - dbgLast.current.at < 1000) return;
+    const rep = collectRender(st, { tip, verdict, toasts, judging, guide, hordes, advisor, helltide, boss, mapPins });
+    const key = JSON.stringify({ ...rep, at: 0 });
+    if (!dbgReq.current && key === dbgLast.current.key) return;
+    dbgReq.current = false;
+    dbgLast.current = { key, at: t };
+    emitMain("overlay-debug", rep);
+  });
+
+  // debug: the verdict card beside the tooltip, and the verdict panel, shown / hidden (with where)
+  const tipKey = tip ? `${tip.state}|${tip.verdict?.verdict ?? ""}|${tip.box.x},${tip.box.y}` : "";
+  const hadTip = useRef(false);
+  useEffect(() => {
+    if (!st || (!tipKey && !hadTip.current)) return;
+    hadTip.current = !!tipKey;
+    if (!tip) return sendDebug("verdict-card-hidden");
+    const info = { state: tip.state, quiet: !!tip.quiet, verdict: tip.verdict?.verdict, action: tip.verdict?.action?.slice(0, 120), tooltipBox: tip.box, overlayVisible: st.visible || !!guide?.active };
+    // measured once its pop-in animation (150 ms, scaled) has finished
+    const t = setTimeout(() => sendDebug("verdict-card-shown", { ...info, ...measure(document.querySelector('[data-dbg="verdict-card"]'), st) }), 200);
+    return () => clearTimeout(t);
+  }, [tipKey]);
+  const hadVerdict = useRef(false);
+  useEffect(() => {
+    if (!st || (!verdict && !hadVerdict.current)) return;
+    hadVerdict.current = !!verdict;
+    if (!verdict) return sendDebug("verdict-hidden");
+    sendDebug("verdict-shown", {
+      verdict: verdict.verdict,
+      item: verdict.item.name,
+      widgetOn: st.settings.widgets.verdict.on,
+      ...measure(document.querySelector('[data-dbg="verdict-panel"]'), st),
+      overlayVisible: st.visible || !!guide?.active,
+    });
+  }, [verdict?.id]);
 
   if (!st) return null;
   const dpr = window.devicePixelRatio || 1;
@@ -113,13 +238,13 @@ export default function Overlay() {
     verdict:
       st.settings.widgets.verdict.on &&
       (judging && !verdict ? (
-        <div className="ov-panel row">
+        <div className="ov-panel row" data-dbg="panel:reading">
           <span className="loader" /> Reading tooltip…
         </div>
       ) : verdict ? (
         <VerdictPanel v={verdict} detailed={bars} judging={judging} />
       ) : bars ? (
-        <div className="ov-panel small muted">
+        <div className="ov-panel small muted" data-dbg="panel:loot-hint">
           {helltide?.active && helltide.best && (
         <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid #3a2c22" }}>
           <div className="ov-title"><Ico icon={Flame} size={13} /> Helltide · {helltide.cinders ?? "?"} cinders</div>
@@ -140,12 +265,12 @@ export default function Overlay() {
           {st.autoJudge ? "Hover any item — I'll tell you what to do with it." : "Hover an item and press the judge key."}
         </div>
       ) : st.edit ? (
-        <div className="ov-panel small muted">Loot verdicts appear here</div>
+        <div className="ov-panel small muted" data-dbg="panel:loot-placeholder">Loot verdicts appear here</div>
       ) : null),
     toasts: st.settings.widgets.toasts.on && toasts.length > 0 && (
       <div>
         {toasts.map((t) => (
-          <div key={t.id} className="ov-panel ov-toast" style={{ borderLeftColor: t.color ?? "var(--gold)" }}>
+          <div key={t.id} className="ov-panel ov-toast" data-dbg="toast" style={{ borderLeftColor: t.color ?? "var(--gold)" }}>
             <b>{t.title}</b>
             {t.body && <div className="small muted">{t.body}</div>}
           </div>
@@ -168,7 +293,7 @@ export default function Overlay() {
 
       {bars ? (
         <>
-          <div className="ov-col" style={{ left: 0, width: `${st.settings.gameBounds!.left * 100}%` }}>
+          <div className="ov-col" data-dbg="bar-left" style={{ left: 0, width: `${st.settings.gameBounds!.left * 100}%` }}>
             {hordes?.active && <HordesPanel h={hordes} />}
             {helltide?.active && <HelltidePanel h={helltide} />}
             {boss && <BossPanel b={boss} />}
@@ -177,7 +302,7 @@ export default function Overlay() {
             {panels.farm}
             {panels.build}
           </div>
-          <div className="ov-col" style={{ left: `${st.settings.gameBounds!.right * 100}%`, width: `${(1 - st.settings.gameBounds!.right) * 100}%`, bottom: 200 }}>
+          <div className="ov-col" data-dbg="bar-right" style={{ left: `${st.settings.gameBounds!.right * 100}%`, width: `${(1 - st.settings.gameBounds!.right) * 100}%`, bottom: 200 }}>
             {panels.verdict}
             {panels.watchers}
             {panels.toasts}
@@ -227,7 +352,7 @@ export default function Overlay() {
 function TimersPanel({ st, now, big }: { st: OverlayState; now: number; big: boolean }) {
   const kinds = ["worldBoss", "helltide", "legion"] as const;
   return (
-    <div className="ov-panel">
+    <div className="ov-panel" data-dbg="panel:timers">
       <div className="ov-title">World events</div>
       {kinds.map((k) => {
         const list = st.events.filter((x) => x.kind === k && (x.end ?? x.start) > now).slice(0, big && k !== "legion" ? 2 : 1);
@@ -257,7 +382,7 @@ function TimersPanel({ st, now, big }: { st: OverlayState; now: number; big: boo
 function RunPanel({ st, now, big }: { st: OverlayState; now: number; big: boolean }) {
   const el = st.run ? now - st.run.start : 0;
   return (
-    <div className="ov-panel">
+    <div className="ov-panel" data-dbg="panel:run">
       <div className="ov-title">
         {st.run?.activity ?? st.runActivity}
         {st.run?.tier ? ` · ${st.run.tier}` : ""}
@@ -286,7 +411,7 @@ function RunPanel({ st, now, big }: { st: OverlayState; now: number; big: boolea
 
 function FarmPanel({ st }: { st: OverlayState }) {
   return (
-    <div className="ov-panel">
+    <div className="ov-panel" data-dbg="panel:farm">
       <div className="ov-title">Farm next</div>
       {st.farm.map((f) => (
         <div key={f.item} style={{ marginBottom: 6 }}>
@@ -300,7 +425,7 @@ function FarmPanel({ st }: { st: OverlayState }) {
 
 function BuildPanel({ st }: { st: OverlayState }) {
   return (
-    <div className="ov-panel">
+    <div className="ov-panel" data-dbg="panel:build">
       <div className="ov-title">{st.build!.variant}</div>
       <div className="small">
         {st.build!.skillBar.map((s, i) => (
@@ -320,7 +445,7 @@ function BuildPanel({ st }: { st: OverlayState }) {
 
 function WatchersPanel({ st }: { st: OverlayState }) {
   return (
-    <div className="ov-panel">
+    <div className="ov-panel" data-dbg="panel:watchers">
       <div className="ov-title">Tracked</div>
       {st.watchers.length === 0 && <div className="small muted">Add "show on overlay" watchers</div>}
       {st.watchers.map((w) => (
@@ -339,7 +464,7 @@ function VerdictPanel({ v, detailed, judging }: { v: JudgeResult; detailed: bool
   const s = VERDICT_STYLE[v.verdict] ?? VERDICT_STYLE.UNKNOWN;
   const total = v.matched.length + v.missing.length;
   return (
-    <div className={"ov-panel ov-verdict " + (v.verdict === "WEAR" || v.verdict === "CUBE" ? "bis" : "")} style={{ borderColor: s.color, maxWidth: detailed ? "none" : 440 }}>
+    <div className={"ov-panel ov-verdict " + (v.verdict === "WEAR" || v.verdict === "CUBE" ? "bis" : "")} data-dbg="verdict-panel" style={{ borderColor: s.color, maxWidth: detailed ? "none" : 440 }}>
       <div className="row" style={{ gap: 8, color: s.color }}>
         <Ico icon={s.icon} size={detailed ? 30 : 24} />
         <div style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: detailed ? 28 : 22, letterSpacing: ".05em", textTransform: "uppercase" }}>{s.label}</div>
@@ -400,6 +525,7 @@ function TooltipBadge({ t, style }: { t: TooltipEvt; style: CSSProperties }) {
   return (
     <div
       className="ov-panel"
+      data-dbg="verdict-card"
       style={{
         position: "absolute",
         left: x,
@@ -441,6 +567,7 @@ function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: To
   return (
     <div
       className="ov-panel"
+      data-dbg="status-corner"
       style={{
         position: "absolute",
         right: 12,
@@ -496,7 +623,7 @@ function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: To
 function HordesBadges({ h, toCss }: { h: HordesState; toCss: (b: { x: number; y: number; w: number; h: number }) => CSSProperties }) {
   return (
     <>
-      {h.offers.map((o) => {
+      {h.offers.filter((o) => o.visible !== false).map((o) => {
         const css = toCss(o.box);
         const top = Number(css.top);
         const best = o.rank === 1;
@@ -504,6 +631,7 @@ function HordesBadges({ h, toCss }: { h: HordesState; toCss: (b: { x: number; y:
           <div
             key={o.key}
             className="ov-panel"
+            data-dbg="hordes-offer"
             style={{
               position: "absolute",
               left: Number(css.left),
@@ -530,6 +658,7 @@ function HordesBadges({ h, toCss }: { h: HordesState; toCss: (b: { x: number; y:
           <div
             key={c.key}
             className="ov-panel"
+            data-dbg="hordes-chest"
             style={{
               position: "absolute",
               left: Number(css.left),
@@ -551,7 +680,7 @@ function HordesBadges({ h, toCss }: { h: HordesState; toCss: (b: { x: number; y:
 
 function HordesPanel({ h }: { h: HordesState }) {
   return (
-    <div className="ov-panel">
+    <div className="ov-panel" data-dbg="panel:hordes">
       <div className="ov-title">
         <Ico icon={Flame} size={13} /> Infernal Hordes{h.aether != null ? ` · ${h.aether} Aether` : ""}
       </div>
@@ -601,6 +730,7 @@ function AdvisorBadges({ a, toCss }: { a: AdvisorState; toCss: (b: { x: number; 
           <div
             key={c.key}
             className="ov-panel"
+            data-dbg="advisor-badge"
             style={{
               position: "absolute",
               left: Number(css.left) + Number(css.width) + 12,
@@ -625,7 +755,7 @@ function AdvisorBadges({ a, toCss }: { a: AdvisorState; toCss: (b: { x: number; 
 function HelltidePanel({ h }: { h: HelltideInfo }) {
   const mins = h.secondsLeft != null ? `${Math.floor(h.secondsLeft / 60)}:${String(h.secondsLeft % 60).padStart(2, "0")}` : "?";
   return (
-    <div className="ov-panel">
+    <div className="ov-panel" data-dbg="panel:helltide">
       <div className="ov-title"><Ico icon={Flame} size={13} /> Helltide · {mins} left</div>
       <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--display)" }}>{h.cinders ?? "?"} cinders</div>
       {h.plan.map((p, i) => (
@@ -642,7 +772,7 @@ function HelltidePanel({ h }: { h: HelltideInfo }) {
 
 function BossPanel({ b }: { b: BossInfo }) {
   return (
-    <div className="ov-panel" style={{ borderColor: "var(--blood2)" }}>
+    <div className="ov-panel" data-dbg="panel:boss" style={{ borderColor: "var(--blood2)" }}>
       <div className="ov-title"><Ico icon={Skull} size={13} /> {b.name}</div>
       {b.wanted.length ? (
         b.wanted.map((w) => (
@@ -669,7 +799,7 @@ function GuidePanel({ g, toCss }: { g: GuideState; toCss: (b: { x: number; y: nu
       {g.highlights.map((h, i) => {
         const css = toCss(h);
         return (
-          <div key={i} className="ov-hl" style={css}>
+          <div key={i} className="ov-hl" data-dbg="guide-highlight" style={css}>
             <div className="ov-hl-label">
               {h.arrow === "down" ? "↓ " : h.arrow === "left" ? "← " : ""}
               {h.label}
@@ -678,7 +808,7 @@ function GuidePanel({ g, toCss }: { g: GuideState; toCss: (b: { x: number; y: nu
           </div>
         );
       })}
-      <div className="ov-guide">
+      <div className="ov-guide" data-dbg="guide">
         <div className="row" style={{ gap: 10 }}>
           <span className="ov-title" style={{ margin: 0 }}>
             {g.title}
@@ -748,7 +878,7 @@ function MapPinsLayer({ m, toCss, now }: { m: MapPinsFrame & { labelUntil?: numb
   const flash = m.labelUntil != null && now < m.labelUntil;
   return (
     <>
-      <div style={{ position: "absolute", ...clip, overflow: "hidden", clipPath, pointerEvents: "none" }}>
+      <div data-dbg="map-pins" style={{ position: "absolute", ...clip, overflow: "hidden", clipPath, pointerEvents: "none" }}>
         {m.pins.map((p, i) => {
           const sty = PIN_STYLE[p.k] ?? PIN_STYLE.waypoint;
           const at = toCss({ x: p.x, y: p.y, w: 0, h: 0 });
@@ -768,7 +898,7 @@ function MapPinsLayer({ m, toCss, now }: { m: MapPinsFrame & { labelUntil?: numb
         })}
       </div>
       {m.label && (flash || m.labelMs == null) && (
-        <div className={"ov-pin-chip" + (flash ? " flash" : "")} style={{ left: ox + 12, top: oy + 10 }}>
+        <div className={"ov-pin-chip" + (flash ? " flash" : "")} data-dbg="map-pins-chip" style={{ left: ox + 12, top: oy + 10 }}>
           <Ico icon={MapPin} size={flash ? 13 : 11} /> {m.label}
         </div>
       )}
@@ -783,6 +913,7 @@ function Widget({ id, pos, edit, children }: { id: string; pos: { x: number; y: 
   return (
     <div
       className="ov-w"
+      data-dbg={`widget:${id}`}
       style={{ left: `${x * 100}%`, top: `${y * 100}%`, transform: `scale(${pos.scale})` }}
       onPointerDown={(e) => {
         if (!edit) return;

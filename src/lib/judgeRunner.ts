@@ -15,6 +15,7 @@ import { fastParse, looksSane } from "./fastparse";
 import { getActiveVariant, useBuilds, useLoot, useSettings } from "./store";
 import type { JudgeResult, ParsedItem } from "./types";
 import type { TooltipBox } from "./autojudge";
+import { debugEvent } from "./debug";
 
 let running = false;
 const cache = new Map<string, JudgeResult>();
@@ -60,10 +61,9 @@ function logJudgment(id: string, hov: TooltipText, eq: TooltipText | null, dbg: 
   if (eq) invoke("debug_log_write", { name: base + "_equipped", image: eq.image, json: "{}" }).catch(() => {});
 }
 
+/** Opened from Rust: the opener plugin's JS openPath isn't allowed by the app's permissions. */
 export async function openJudgeLog() {
-  const dir = await invoke<string>("debug_log_dir");
-  const { openPath } = await import("@tauri-apps/plugin-opener");
-  await openPath(dir);
+  await invoke<string>("open_log_folder", { path: "judge-log" });
 }
 
 export interface JudgeDebug {
@@ -106,6 +106,7 @@ export async function judgeTooltips(
     meta?.debug?.({ hovered: h.debug, equipped: e?.debug, hoveredItem: hovered, equippedItem: equipped });
     if (!hovered) {
       logJudgment(id, hov, eq, dbg, null, "no tooltip found by parser");
+      debugEvent("autojudge", "parse-failed", { ms: Math.round(performance.now() - t0), lines: hov.lines.length, first: hov.lines[0]?.slice(0, 80), note: (h.debug.raw as any)?.note });
       return null;
     }
     // the comparison tooltip IS what you're wearing → keep worn memory fresh, quietly
@@ -139,6 +140,17 @@ export async function judgeTooltips(
       thumb: await thumbnail(hov.image.replace(/^data:[^,]+,/, "")).catch(() => undefined),
     };
     logJudgment(id, hov, eq, dbg, result);
+    debugEvent("autojudge", "judged", {
+      verdict: result.verdict,
+      item: hovered.name,
+      action: result.action,
+      ms: result.ms,
+      parseMs: h.debug.ms,
+      path: (h.debug.raw as any)?.fast ? "rules" : "llm",
+      quiet: !!meta?.quiet,
+      auto: !!meta?.sig,
+      comparedWith: equipped?.name ?? null,
+    });
 
     // de-dupe: same item (name + stat lines) judged in the last 3 minutes → no new history row
     const key = (it: ParsedItem) => normName(it.name) + "|" + it.affixes.map((a) => normName(a.text)).join("|");
@@ -156,6 +168,7 @@ export async function judgeTooltips(
     return result;
   } catch (err) {
     logJudgment(id, hov, eq, dbg, null, String((err as Error).message ?? err));
+    debugEvent("autojudge", "error", { error: String((err as Error).message ?? err), ms: Math.round(performance.now() - t0) });
     overlayToast("Couldn't read that item", String((err as Error).message ?? err).slice(0, 160), "#e0543c");
     return null;
   } finally {
@@ -231,6 +244,7 @@ export async function judgeNow() {
       ? await captureRegion(tooltipRegion(g.rect, mx, c.width), { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true })
       : await captureAtCursor(c.width, c.height, { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true });
     const det = detectTooltips(cap);
+    debugEvent("autojudge", det ? "tooltip-found" : "no-tooltip", { manual: true, region: cap.region, lines: cap.ocr?.lines.length ?? 0, box: det?.hovered.box });
     if (!det) {
       overlayToast("No item tooltip found", "Hover an item so its tooltip is visible.", "#9a8f86");
       playTone("bad", settings.alerts.volume * 0.6);

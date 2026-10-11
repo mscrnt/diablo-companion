@@ -53,6 +53,14 @@ npm run typecheck
 ```
 CI (`.github/workflows/ci.yml`) runs the typecheck, tests, web build and `cargo check` on every push and PR.
 
+## Debugging
+Everything is local, under `%LOCALAPPDATA%\com.kenneth.d4companion\logs\debug\` (the **Debug** page shows it live, and opens the folder):
+- `state.json`: what the app believes right now, rewritten every 2 s while **test mode** is on: game window, DPI and black bars, current activity (Pit, NMD, Helltide, boss, Hordes, Tree, War Plan), the loot judge's last scan (region, tooltip found or why not, boxes, verdict, quiet mode, snooze), map pins, skill bar, LLM and live timers, recent errors, and the overlay's own report of what it draws and where (CSS and screen px; the overlay is hidden from screen capture).
+- `events-YYYY-MM-DD.jsonl`: one JSON line per decision (`ts`, `src`, `type`, `data`) from every subsystem, including skipped and negative decisions, plus uncaught errors and console warnings from both windows. Test mode only; it gets a tenth of test mode's size budget.
+- `marks/<time>/`: press **Ctrl+Alt+D** (controller: **View + RB**) in game to mark a moment, even with test mode off: `screenshot.jpg` (game window, full resolution), `state.json`, `events.jsonl` (the last 90 s), `overlay.json` and an optional `note.txt` added on the Debug page. The newest 30 are kept.
+
+Secrets (LLM API key, Discord webhook, OBS password) are never written. **Create debug report** (Debug page or Settings → About) zips these with recent judge logs and test-mode records into Downloads and opens a pre-filled GitHub issue; nothing is uploaded.
+
 ## Release
 Add notes under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) as you go. The version bump turns them into the new version's section, and that section becomes the GitHub release notes. A release won't build without notes.
 

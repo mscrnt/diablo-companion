@@ -8,6 +8,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./http";
 import type { GameStatus } from "./native";
+import { splitBudget } from "./debugcore";
 import { useSettings } from "./store";
 import { APP_VERSION } from "./version";
 
@@ -20,15 +21,15 @@ const stamp = () => new Date().toISOString().replace(/[:.]/g, "-");
 /** Write one record (JSON + optional JPEG frame) to the test-mode folder. */
 export function testLog(kind: string, data: Record<string, unknown>, image?: string | null) {
   if (!testModeOn()) return;
-  const { maxMB } = useSettings.getState().settings.testMode;
+  // the budget is shared with the debug event log (debug/events-*.jsonl)
+  const { framesMB } = splitBudget(useSettings.getState().settings.testMode.maxMB);
   const json = JSON.stringify({ kind, at: new Date().toISOString(), app: APP_VERSION, ...data }, null, 1);
-  invoke("debug_log_write", { name: `${stamp()}_${kind}`, image: image ?? null, json, folder: TEST_FOLDER, maxFiles: 5000, maxMb: maxMB }).catch(() => {});
+  invoke("debug_log_write", { name: `${stamp()}_${kind}`, image: image ?? null, json, folder: TEST_FOLDER, maxFiles: 5000, maxMb: framesMB }).catch(() => {});
 }
 
+/** Opened from Rust: the opener plugin's JS openPath isn't allowed by the app's permissions. */
 export async function openTestLog() {
-  const dir = await invoke<string>("debug_log_dir", { folder: TEST_FOLDER });
-  const { openPath } = await import("@tauri-apps/plugin-opener");
-  await openPath(dir);
+  await invoke<string>("open_log_folder", { path: TEST_FOLDER });
 }
 
 // ---- black bars ----------------------------------------------------------------------------

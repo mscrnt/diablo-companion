@@ -34,6 +34,7 @@ import {
 } from "./mappins";
 import { MAP_PIN_PRESETS, presetGroups, useSettings } from "./store";
 import { testLog, testModeOn } from "./testmode";
+import { debugEvent } from "./debug";
 
 type Rect = [number, number, number, number];
 interface ScreenBox {
@@ -145,6 +146,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
   let lastSent = "";
   let lastLog = 0;
   let wasTracking = false;
+  let dbgTracking = false;
   let lastFull = 0;
   /** the nav bar and the map strip of the last full frame, for the fast probes */
   let navRef: Float32Array | null = null;
@@ -246,6 +248,10 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     const on = mapPins.enabled && mapPins.preset !== "off";
     // an overlay that shows in screen captures would put our own pins into the frames we read
     if (!on || overlay.capturable || !active() || !rect || rect[2] < 200 || rect[3] < 200) {
+      if (dbgTracking) {
+        dbgTracking = false;
+        debugEvent("mappins", "lost", { why: !on ? "map pins off" : overlay.capturable ? "overlay is capturable (paused)" : "game or overlay not showing" });
+      }
       clear();
       setStatus({ state: !on ? "off" : overlay.capturable ? "paused" : "idle", how: undefined });
       return 2000;
@@ -261,7 +267,9 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
       // act on two readings in a row (~0.36 s): a single noisy probe made the pins blink
       if (closedRun >= 2) {
         closedRun = 0;
+        debugEvent("mappins", "closed", { why: "nav bar gone or changed on two probes in a row" });
         clear();
+        dbgTracking = false;
         setStatus({ state: "idle", how: "closed" });
         return PROBE_MS;
       }
@@ -273,6 +281,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
       if (p === "moved") {
         // being panned or zoomed: no pins until the map is still again (a full frame right away, and
         // its pins once a probe sees nothing moved since)
+        if (!settling) debugEvent("mappins", "moved", { why: "map strip changed between probes: pins hidden until it settles" });
         shown = pending = null;
         settling = true;
         send(null);
@@ -382,6 +391,20 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
       );
     }
     wasTracking = !!out.xf;
+    // debug log: found / lost (a frame kept from the last fit counts as still tracking)
+    const tracking = !!out.xf || !!frame;
+    if (tracking !== dbgTracking) {
+      dbgTracking = tracking;
+      debugEvent("mappins", tracking ? "found" : "lost", {
+        how: out.how,
+        waypoints: sc?.wpInliers,
+        icons: sc?.iconInliers,
+        pins: frame?.pins.length ?? 0,
+        preset: useSettings.getState().settings.mapPins.preset,
+        menu: !!area.chrome,
+        fitMs: Math.round(t3 - t2),
+      });
+    }
     return out.xf ? PROBE_MS : area.chrome ? 900 : 2000;
   }
 
@@ -391,6 +414,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     try {
       next = await tick();
     } catch (e) {
+      debugEvent("mappins", "error", { error: String(e) });
       console.warn("map pins tick failed", e);
       clear();
     }

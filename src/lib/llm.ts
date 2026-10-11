@@ -1,5 +1,6 @@
 // OpenAI-compatible client for the local vLLM server (Qwen3.5-35B-A3B, vision).
 import { httpJson } from "./http";
+import { debugEvent } from "./debug";
 
 export type ChatContent =
   | string
@@ -32,12 +33,46 @@ function headers(cfg: LlmConfig) {
   return h;
 }
 
+/** Log an LLM call to the debug event log: kind, model, time, ok or the error. Never the prompt or the answer. */
+async function logged<T>(kind: string, cfg: LlmConfig, info: Record<string, unknown>, fn: () => Promise<T>, out?: (r: T) => Record<string, unknown>): Promise<T> {
+  const t0 = performance.now();
+  try {
+    const r = await fn();
+    debugEvent("llm", kind, { model: cfg.model, ms: Math.round(performance.now() - t0), ok: true, ...info, ...out?.(r) });
+    return r;
+  } catch (e) {
+    debugEvent("llm", kind, { model: cfg.model, ms: Math.round(performance.now() - t0), ok: false, error: String((e as Error)?.message ?? e).slice(0, 200), ...info });
+    throw e;
+  }
+}
+
+/** What a request carries, without its content. */
+const shape = (messages: ChatMessage[], opts: ChatOptions) => ({
+  messages: messages.length,
+  images: messages.reduce((n, m) => n + (Array.isArray(m.content) ? m.content.filter((c) => c.type === "image_url").length : 0), 0),
+  maxTokens: opts.maxTokens,
+  json: opts.jsonSchema?.name,
+  thinking: !!opts.thinking,
+});
+
 export async function listModels(cfg: LlmConfig): Promise<string[]> {
-  const r = await httpJson<any>(cfg.baseUrl.replace(/\/$/, "") + "/models", { headers: headers(cfg), timeoutMs: 8000 });
-  return (r.data ?? []).map((m: any) => m.id);
+  return logged(
+    "models",
+    cfg,
+    {},
+    async () => {
+      const r = await httpJson<any>(cfg.baseUrl.replace(/\/$/, "") + "/models", { headers: headers(cfg), timeoutMs: 8000 });
+      return (r.data ?? []).map((m: any) => m.id) as string[];
+    },
+    (r) => ({ models: r.length }),
+  );
 }
 
 export async function chat(cfg: LlmConfig, messages: ChatMessage[], opts: ChatOptions = {}): Promise<string> {
+  return logged("chat", cfg, shape(messages, opts), () => chatRaw(cfg, messages, opts), (r) => ({ chars: r.length }));
+}
+
+async function chatRaw(cfg: LlmConfig, messages: ChatMessage[], opts: ChatOptions): Promise<string> {
   const body: any = {
     model: cfg.model,
     messages,
@@ -73,6 +108,15 @@ export async function chatStream(
   messages: ChatMessage[],
   onToken: (t: string, kind: "content" | "reasoning") => void,
   opts: ChatOptions = {},
+): Promise<string> {
+  return logged("stream", cfg, shape(messages, opts), () => chatStreamRaw(cfg, messages, onToken, opts), (r) => ({ chars: r.length }));
+}
+
+async function chatStreamRaw(
+  cfg: LlmConfig,
+  messages: ChatMessage[],
+  onToken: (t: string, kind: "content" | "reasoning") => void,
+  opts: ChatOptions,
 ): Promise<string> {
   const res = await fetch(cfg.baseUrl.replace(/\/$/, "") + "/chat/completions", {
     method: "POST",

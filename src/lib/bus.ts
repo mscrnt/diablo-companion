@@ -3,8 +3,8 @@
 import { emitTo, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { isTauri } from "./http";
 
-export type OverlayEvent = "state" | "verdict" | "toast" | "judging" | "tooltip" | "guide" | "hordes" | "advisor" | "helltide" | "boss" | "mappins";
-export type MainEvent = "layout" | "overlay-ready" | "overlay-action";
+export type OverlayEvent = "state" | "verdict" | "toast" | "judging" | "tooltip" | "guide" | "hordes" | "advisor" | "helltide" | "boss" | "mappins" | "debug-request";
+export type MainEvent = "layout" | "overlay-ready" | "overlay-action" | "overlay-debug" | "debug-event";
 
 export function emitOverlay(ev: OverlayEvent, payload: unknown) {
   if (!isTauri) return;

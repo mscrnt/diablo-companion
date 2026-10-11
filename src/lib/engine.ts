@@ -22,6 +22,7 @@ import { regionKey } from "./mappins";
 import { toggleMapCharacter } from "./charmap";
 import { obsSaveReplay } from "./obs";
 import { noteBars, onGameStatus, watchTestContext } from "./testmode";
+import { debugEvent, debugWanted, installMainDebugHooks, markMoment, startDebug } from "./debug";
 import { MAP_PIN_PRESETS, getActiveVariant, nextPreset, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
 import { EVENT_META, fetchLive, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
 import type { GameEvent, JudgeResult } from "./types";
@@ -103,6 +104,9 @@ export async function runAction(a: ActionId) {
       else if (!mapPinsPresetChanged()) overlayToast(`Map pins: ${label}`, undefined, "#d9a86a", 1800);
       break;
     }
+    case "markMoment":
+      await markMoment();
+      break;
     case "coachSnap": {
       const cap = await captureMonitor(undefined, { maxEdge: 1920, quality: 85 });
       useCoach.getState().setPendingImage(cap.image);
@@ -140,7 +144,9 @@ export async function applyHotkeys() {
     if (!combo) continue;
     try {
       await register(combo, (ev) => {
-        if (ev.state === "Pressed") runAction(action).catch((e) => overlayToast("Action failed", String(e), "#e0543c"));
+        if (ev.state !== "Pressed") return;
+        debugEvent("input", "hotkey", { action, combo });
+        runAction(action).catch((e) => overlayToast("Action failed", String(e), "#e0543c"));
       });
     } catch (e) {
       errors.push(`${action} (${combo}): ${String(e)}`);
@@ -159,6 +165,7 @@ function onPad(ev: { held: string[]; pressed: string[] }) {
     // fire when the chord is fully held and the last button of it was just pressed
     if (chord.every((b) => ev.held.includes(b)) && ev.pressed.some((b) => chord.includes(b))) {
       chordLock = Date.now() + 600;
+      debugEvent("input", "chord", { action, chord: chord.join("+") });
       runAction(action).catch(() => {});
       return;
     }
@@ -321,6 +328,8 @@ export interface OverlayState {
   gameRect: [number, number, number, number] | null;
   autoJudge: boolean;
   worldBadgeSeconds: number;
+  /** the overlay reports what it draws (test mode on or the Debug page open) */
+  debug: boolean;
 }
 
 function snapshot(): OverlayState {
@@ -367,6 +376,7 @@ function snapshot(): OverlayState {
     gameRect: rt.game?.rect ?? null,
     autoJudge: s.autoJudge.enabled,
     worldBadgeSeconds: s.autoJudge.worldBadgeSeconds,
+    debug: debugWanted(),
   };
 }
 
@@ -390,6 +400,19 @@ function pushOverlay(force = false) {
   }
 }
 
+// ---- game window changes (debug log) ---------------------------------------------------------
+
+let prevGame: GameStatus | null = null;
+function noteGame(g: GameStatus) {
+  const p = prevGame;
+  prevGame = g;
+  if (!p) return debugEvent("game", "status", { running: g.running, focused: g.focused, visible: g.visible, rect: g.rect });
+  if (p.running !== g.running) debugEvent("game", g.running ? "started" : "closed");
+  if (p.focused !== g.focused) debugEvent("game", g.focused ? "focused" : "unfocused", { companionFocused: g.companionFocused });
+  if (p.visible !== g.visible) debugEvent("game", g.visible ? "visible" : "hidden");
+  if (String(p.rect) !== String(g.rect)) debugEvent("game", "rect", { from: p.rect, to: g.rect });
+}
+
 // ---- black bar auto-detection --------------------------------------------------------
 
 let barsBusy = false;
@@ -410,6 +433,7 @@ async function autoDetectBars(rect: [number, number, number, number]) {
     const cap = await captureRegion({ x: rect[0], y: rect[1], w: rect[2], h: rect[3] }, { maxEdge: 1280, quality: 70 });
     const b = await detectPillarbox(cap.image);
     noteBars(rect, b, cap.image);
+    debugEvent("game", "bars", { sample: barsSamples + 1, rect, bounds: b });
     if (!b) return; // unusable frame (e.g. black loading screen) — retry on a later focus event
     barsSamples++;
     // keep the narrowest bars seen this session (a dark scene can only make bars look wider)
@@ -434,6 +458,7 @@ let started = false;
 export async function startEngine() {
   if (started) return;
   started = true;
+  installMainDebugHooks();
 
   const tick = () => {
     const events = mergeLive(localSchedule(), useRuntime.getState().live);
@@ -479,6 +504,7 @@ export async function startEngine() {
   // wait for persisted settings before registering hotkeys
   if (!useSettings.persist.hasHydrated()) await new Promise<void>((r) => useSettings.persist.onFinishHydration(() => r()));
   await applyHotkeys();
+  startDebug();
   setOverlayCapturable(useSettings.getState().settings.overlay.capturable).catch(() => {});
   let lastHotkeys = JSON.stringify(useSettings.getState().settings.hotkeys);
   useSettings.subscribe((st) => {
@@ -491,6 +517,7 @@ export async function startEngine() {
 
   gameStatus().then((game) => useRuntime.setState({ game })).catch(() => {});
   onGlobal<GameStatus>("game-status", (game) => {
+    noteGame(game);
     useRuntime.setState({ game });
     onGameStatus(game);
     if (game.focused && game.rect) autoDetectBars(game.rect);
@@ -498,6 +525,7 @@ export async function startEngine() {
   watchTestContext();
   onGlobal<{ held: string[]; pressed: string[] }>("gamepad", onPad);
   onGlobal<string>("tray-action", (a) => {
+    debugEvent("input", "tray", { action: a });
     if (a === "edit-overlay") runAction("overlayEdit");
     if (a === "judge") runAction("judge");
   });
@@ -553,11 +581,18 @@ export async function startEngine() {
     const g = useRuntime.getState().game;
     if (!g?.visible || !g.rect || useGuide.getState().active) return;
     const r = await scanSkillBar(g.rect);
+    debugEvent("skillbar", r.error ? "skipped" : "result", {
+      ok: r.ok,
+      error: r.error,
+      onBar: r.onBar.map((x) => `${x.name} ${x.score.toFixed(2)}`),
+      missing: r.missing.map((m) => m.name),
+    });
     if (r.error) return;
     // icon matching can miss a skill on one scan: warn only after 3 misses in a row, once per skill
     for (const slug of Object.keys(missRuns)) if (!r.missing.some((m) => m.slug === slug)) delete missRuns[slug];
     const confirmed = r.missing.filter((m) => (missRuns[m.slug] = (missRuns[m.slug] ?? 0) + 1) >= 3 && !warnedSkills.has(m.slug));
     if (confirmed.length) {
+      debugEvent("skillbar", "warned", { missing: confirmed.map((m) => m.name), why: "missing on 3 checks in a row" });
       confirmed.forEach((m) => warnedSkills.add(m.slug));
       overlayToast("Skill bar check", `Not on your bar: ${confirmed.map((m) => m.name).join(", ")}`, "#ff9b4a", 9000);
     }
