@@ -86,7 +86,7 @@ ${buildSummary()}
 
 ${farmContext(variant, prog, events)}
 
-${characterContext() || "(character not mapped yet — suggest the Character page's 'Map my character' if stats matter)"}
+${characterContext() || "(character not mapped yet: suggest the Character page's 'Map my character' if stats matter)"}
 
 RECENT LOOT:
 ${loot || "(none)"}
@@ -132,7 +132,7 @@ ${runs || "(none)"}`;
   const quick = [
     "What should I farm next and why?",
     "Explain the rotation and what to watch for in high Pit/Tower tiers.",
-    "My damage feels low — what's the most likely cause given my gear?",
+    "My damage feels low: what's the most likely cause given my gear?",
     "Is anything in this guide contradictory or outdated for this season?",
   ];
 

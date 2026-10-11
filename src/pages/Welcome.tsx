@@ -48,7 +48,7 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
   return (
     <div style={{ maxWidth: 860, margin: "30px auto" }}>
       <h1 style={{ fontFamily: "var(--display)", color: "var(--gold)" }}>Welcome to Sanctuary Toolkit</h1>
-      <p className="muted">It reads your screen (no game memory, no input) and helps with loot, events, the Pit, Hordes, Helltides and more — tuned to the build you play.</p>
+      <p className="muted">It reads your screen (no game memory, no input) and helps with loot, events, the Pit, Hordes, Helltides and more: tuned to the build you play.</p>
 
       <div className="card" style={{ marginTop: 16 }}>
         <h2>1. Your build</h2>
@@ -94,7 +94,7 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
         <h2>3. In game</h2>
         <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
           <li>Set Display Mode to <b>Windowed Fullscreen</b> so the overlay can draw.</li>
-          <li>Open your inventory and hover your equipped gear once — the app learns what you're wearing.</li>
+          <li>Open your inventory and hover your equipped gear once: the app learns what you're wearing.</li>
           <li>Hover any item: the badge tells you what to do with it. F8 judges on demand, F6 snoozes, F7 maps your character.</li>
         </ul>
       </div>

@@ -51,7 +51,7 @@ Roles:
 - power: the legendary/unique power paragraph, including lines starting "Imprinted:"
 - socket: socket / gem / rune lines
 - flavor: italic lore text
-- other: anything else (key hints like Equip/Drop/CTRL, "Properties lost when equipped:" and the stat lines listed under it — those belong to the OTHER item)
+- other: anything else (key hints like Equip/Drop/CTRL, "Properties lost when equipped:" and the stat lines listed under it: those belong to the OTHER item)
 g = true only for a GREATER affix (small star/flame icon instead of the normal diamond bullet).
 Also give: name = the item name exactly as printed; rarity from the NAME COLOUR (white common, blue magic, yellow rare, orange legendary, gold/tan unique, purple/pink mythic); slot.`;
 
@@ -201,7 +201,7 @@ export async function parseTooltipText(cfg: LlmConfig, tip: TooltipText, variant
   const typeLine = typeLines.join(" ").replace(/\s+/g, " ").trim();
   if (!name) name = raw.name && !similarity(raw.name, typeLine) ? raw.name : "";
   if (name && typeLine && similarity(name, typeLine) > 0.8) name = "";
-  name = titleCase(name || `(${typeLine || "item"} — name not visible)`);
+  name = titleCase(name || `(${typeLine || "item"}: name not visible)`);
 
   // rarity from the type line beats colour guessing
   const tl = typeLine.toLowerCase();

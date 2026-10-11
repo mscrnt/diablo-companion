@@ -91,7 +91,7 @@ export default function Collection() {
             </tbody>
           </table>
         </div>
-        {rows.length > 400 && <div className="small dim">Showing 400 of {rows.length} — refine your search.</div>}
+        {rows.length > 400 && <div className="small dim">Showing 400 of {rows.length}: refine your search.</div>}
       </Card>
     </>
   );

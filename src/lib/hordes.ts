@@ -120,7 +120,7 @@ export function findOffers(lines: OcrLine[], region: { x: number; y: number }, s
     // the "The" prefix and length checks above keep this loose enough for OCR slips ("The Wrath 0fHell")
     if (!best || bestS < 0.68 || found.has(best.key)) continue;
     const sc = scoreOffer(best, style);
-    const why = sc.note ?? `${best.boon} — but ${best.bane.toLowerCase()}`;
+    const why = sc.note ?? `${best.boon}, but ${best.bane.toLowerCase()}`;
     found.set(best.key, { key: best.key, title: best.title, boon: best.boon, bane: best.bane, box: boxOf(l), score: sc.score, rank: 0, why });
   }
   // 2) description lines only grow the box of an offer already found by its title
@@ -181,11 +181,11 @@ export function chestAdvice(variant: BuildVariant | undefined, prog: (slot: stri
   }
   if (gearMissing) {
     order.push("Spoils of Greater Equipment");
-    why.push(`${gearMissing} gear slot${gearMissing > 1 ? "s" : ""} not perfect yet — Greater Equipment rolls greater affixes.`);
+    why.push(`${gearMissing} gear slot${gearMissing > 1 ? "s" : ""} not perfect yet: Greater Equipment rolls greater affixes.`);
   }
   if (mwLeft) {
     order.push("Spoils of Materials");
-    why.push(`Masterworking isn't finished on ${mwLeft} slot${mwLeft > 1 ? "s" : ""} — materials help.`);
+    why.push(`Masterworking isn't finished on ${mwLeft} slot${mwLeft > 1 ? "s" : ""}: materials help.`);
   }
   order.push("Spoils of Equipment", "Spoils of Gold");
   if (aether != null) {

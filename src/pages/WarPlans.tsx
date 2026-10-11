@@ -43,7 +43,7 @@ export default function WarPlans() {
     setBusy(true);
     setErr("");
     try {
-      const summary = `Build: ${build?.name} (${build?.className}) — ${variant?.name}. Missing: ${(variant?.gear ?? []).filter((g) => prog(g.slot).state === "missing").map((g) => g.itemName).join(", ")}.`;
+      const summary = `Build: ${build?.name} (${build?.className}), ${variant?.name}. Missing: ${(variant?.gear ?? []).filter((g) => prog(g.slot).state === "missing").map((g) => g.itemName).join(", ")}.`;
       setAi(await llmPlan(llm, summary, need, ownedSet));
     } catch (e) {
       setErr(String((e as Error).message ?? e));
@@ -71,7 +71,7 @@ export default function WarPlans() {
               <div className="small dim">read from your quest tracker</div>
             </>
           ) : (
-            <div className="muted small">Not seen yet — it's read from "War Plan: x/5" in your quest tracker.</div>
+            <div className="muted small">Not seen yet: it's read from "War Plan: x/5" in your quest tracker.</div>
           )}
         </Card>
         <Card title="Next point goes into…">
@@ -83,7 +83,7 @@ export default function WarPlans() {
               {r.next && (
                 <div className="small muted">
                   {r.next.node.name}
-                  {r.next.why.length ? ` — ${r.next.why.join(", ")}` : ""}
+                  {r.next.why.length ? `: ${r.next.why.join(", ")}` : ""}
                 </div>
               )}
             </div>
@@ -111,7 +111,7 @@ export default function WarPlans() {
               const n = nodes().find((x) => x.slug === p.node);
               return (
                 <li key={i}>
-                  <b>{n?.name ?? p.node}</b> <span className="dim small">({trees().find((t) => t.slug === p.tree)?.name ?? p.tree})</span> — {p.why}
+                  <b>{n?.name ?? p.node}</b> <span className="dim small">({trees().find((t) => t.slug === p.tree)?.name ?? p.tree})</span>: {p.why}
                 </li>
               );
             })}
@@ -126,7 +126,7 @@ export default function WarPlans() {
           </button>
         ))}
       </div>
-      <Card title={`${tree?.name} — ${ownedHere}/${tree?.max} points`} right={<span className="small muted">click a node to mark it unlocked · green = recommended path</span>}>
+      <Card title={`${tree?.name}: ${ownedHere}/${tree?.max} points`} right={<span className="small muted">click a node to mark it unlocked · green = recommended path</span>}>
         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ background: "#0d0a08", borderRadius: 8 }}>
           {treeNodes.flatMap((n) =>
             n.depends.map((d) => {

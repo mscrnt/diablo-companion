@@ -90,7 +90,7 @@ describe("greater affixes read as a star character", () => {
     expect(item.affixes.filter((a) => a.greater).length).toBe(4);
     const r = decide(item, ctx.variant, { prog: ctx.prog }, item.compare);
     expect(r.verdict).toBe("STASH");
-    expect(r.action).toMatch(/Save it for later — 4★ greater affixes/);
+    expect(r.action).toMatch(/Save it for later: 4★ greater affixes/);
   });
 });
 

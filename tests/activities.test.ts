@@ -131,6 +131,12 @@ describe("boss helper", () => {
     expect(findBoss([line("BOSS TRAINING DUMMY")])).toBeNull();
   });
 
+  it("lair bosses, with their Tormented title and Torment step (2026-10-11 test session)", () => {
+    expect(findBoss([line("TORMENTED ECHO OF URIVAR +3")])).toBe("Urivar");
+    expect(findBoss([line("ECHO OF VARSHAN")])).toBe("Echo of Varshan");
+    expect(findBoss([line("Tormented Echo of Varshan +1")])).toBe("Echo of Varshan");
+  });
+
   it("lists the build items the boss drops", () => {
     const info = bossInfo("Grigoire, the Galvanic Saint", ctx.variant, ctx.prog);
     expect(info.wanted.map((w) => w.item)).toContain("Deathgrip");

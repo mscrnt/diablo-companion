@@ -36,7 +36,7 @@ export default function Farm() {
           },
           {
             role: "user",
-            content: `Build: ${build?.name} — ${variant?.name} (${build?.className}).\nI have ${minutes} minutes to play right now.\n\n${ctx}\n\nPlan my session.`,
+            content: `Build: ${build?.name}, ${variant?.name} (${build?.className}).\nI have ${minutes} minutes to play right now.\n\n${ctx}\n\nPlan my session.`,
           },
         ],
         (t, kind) => kind === "content" && setPlan((p) => p + t),
@@ -134,7 +134,7 @@ export default function Farm() {
                         </div>
                       ))
                     ) : (
-                      <span className="dim">unknown — ask the Coach</span>
+                      <span className="dim">unknown: ask the Coach</span>
                     )}
                   </td>
                   <td className="small">
@@ -159,7 +159,7 @@ export default function Farm() {
           <ol style={{ margin: 0, paddingLeft: 20 }}>
             {knowledge.progression.map((p: any, i: number) => (
               <li key={i} style={{ marginBottom: 6 }}>
-                <b>{p.step}</b> — {p.goal} <span className="muted">({p.activity})</span>
+                <b>{p.step}</b>: {p.goal} <span className="muted">({p.activity})</span>
                 {p.notes && <div className="small muted">{p.notes}</div>}
               </li>
             ))}

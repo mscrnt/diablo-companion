@@ -188,13 +188,13 @@ function checkAlerts(events: GameEvent[]) {
       if (now >= at && now < at + 20_000) {
         fired.add(key);
         const meta = EVENT_META[e.kind];
-        const title = lead === 0 ? `${meta.emoji} ${e.name} — NOW` : `${meta.emoji} ${e.name} in ${lead} min`;
+        const title = lead === 0 ? `${meta.emoji} ${e.name}: NOW` : `${meta.emoji} ${e.name} in ${lead} min`;
         const body = e.zone ? e.zone : meta.label;
         if (alerts.sound) playTone("alert", alerts.volume);
         if (alerts.toast) toast(title, body);
         overlayToast(title, body, meta.color, 8000);
         if (alerts.discordWebhook && alerts.discordKinds[e.kind] && lead === alerts.leadMinutes[0])
-          discord(alerts.discordWebhook, `**${title}** — ${body} (<t:${Math.floor(e.start / 1000)}:t>)`);
+          discord(alerts.discordWebhook, `**${title}**: ${body} (<t:${Math.floor(e.start / 1000)}:t>)`);
       } else if (now > at + 20_000) {
         fired.add(key); // don't fire stale alerts on startup
       }
@@ -214,7 +214,7 @@ async function refreshLive() {
 export async function checkLlm() {
   const { llm } = useSettings.getState().settings;
   if (!llm.baseUrl) {
-    useRuntime.setState({ llm: { ok: false, models: [], error: "No AI model configured (optional) — Settings → Local LLM", checkedAt: Date.now() } });
+    useRuntime.setState({ llm: { ok: false, models: [], error: "No AI model configured (optional): Settings → Local LLM", checkedAt: Date.now() } });
     return;
   }
   try {

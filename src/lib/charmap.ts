@@ -114,7 +114,7 @@ export async function mapStats(my?: number, embedded = false) {
   let lastLog = 0;
   guideSet({
     instruction: "Open Character → Materials & Stats",
-    detail: `Press C, then open the stats list. I'll read every line — scroll down slowly when I ask. Press ${key} when you reach the bottom · ${pauseKey()} pauses.`,
+    detail: `Press C, then open the stats list. I'll read every line: scroll down slowly when I ask. Press ${key} when you reach the bottom · ${pauseKey()} pauses.`,
     items: [],
     highlights: [],
   });
@@ -278,7 +278,7 @@ export async function mapGlyphs(my?: number, embedded = false) {
       if (it && !it.done) {
         it.done = true;
         const want = variant?.paragon.find((p) => p.glyphSlug === hit.slug)?.glyphLevel ?? 0;
-        it.note = `lvl ${level}${want && level < want ? ` — ${want - level} to go` : " ✓"}`;
+        it.note = `lvl ${level}${want && level < want ? `: ${want - level} to go` : " ✓"}`;
         useCharacter.getState().patchSession({ glyphs: [...(useCharacter.getState().session?.glyphs ?? []), it.key] });
         playTone("tick", useSettings.getState().settings.alerts.volume);
       }
@@ -323,7 +323,7 @@ export async function mapCharacter() {
     if (!flowAlive(my)) return;
   }
   useCharacter.getState().patchSession(null);
-  guideSet({ instruction: "Character mapped ✓", detail: "See the Character page — the coach now knows your real stats, skills and glyphs.", items: [] });
+  guideSet({ instruction: "Character mapped ✓", detail: "See the Character page: the coach now knows your real stats, skills and glyphs.", items: [] });
   playTone("bis", useSettings.getState().settings.alerts.volume);
   await guideSleep(4000);
   if (flowAlive(my)) cancelGuide();
@@ -334,7 +334,7 @@ export function toggleMapCharacter() {
   const g = useGuide.getState();
   if (g.active && g.flow === "character") {
     cancelGuide();
-    overlayToast("Character mapping paused", `Progress saved — press ${pauseKey()} to pick up where you left off.`, "#d4ad62", 6000);
+    overlayToast("Character mapping paused", `Progress saved: press ${pauseKey()} to pick up where you left off.`, "#d4ad62", 6000);
     return;
   }
   if (g.active) return; // another guide is running

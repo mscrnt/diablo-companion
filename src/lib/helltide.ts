@@ -74,12 +74,12 @@ export function helltideAdvice(variant: BuildVariant | undefined, prog: (slot: s
     }
     // worth saving for a much better pricier chest?
     if (top.cost > cinders && top.score - a.score >= 2) {
-      plan.push(`Save up: ${top.name} (${top.cost}) — ${top.why} You need ${top.cost - cinders} more.`);
-      best = { name: top.name, cost: top.cost, why: `save for it — ${top.cost - cinders} cinders to go` };
+      plan.push(`Save up for ${top.name} (${top.cost}): ${top.why} You need ${top.cost - cinders} more.`);
+      best = { name: top.name, cost: top.cost, why: `save for it: ${top.cost - cinders} cinders to go` };
     } else {
       best = { name: a.name, cost: a.cost, why: a.why };
       const list = [...opens.entries()].map(([n, k]) => `${n.replace("Tortured Gift of ", "")}${k > 1 ? " ×" + k : ""}`);
-      plan.push(`Spend: ${list.join(", ")}${left > 0 ? ` — ${left} left over` : ""}.`);
+      plan.push(`Spend: ${list.join(", ")}${left > 0 ? `: ${left} left over` : ""}.`);
       plan.push(`Why ${a.name.replace("Tortured Gift of ", "")}: ${a.why}`);
     }
   } else if (cinders != null) {

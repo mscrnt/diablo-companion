@@ -266,7 +266,7 @@ export default function Overlay() {
         </div>
       )}
       <div className="ov-title">Loot judge</div>
-          {st.autoJudge ? "Hover any item — I'll tell you what to do with it." : "Hover an item and press the judge key."}
+          {st.autoJudge ? "Hover any item: I'll tell you what to do with it." : "Hover an item and press the judge key."}
         </div>
       ) : st.edit ? (
         <div className="ov-panel small muted" data-dbg="panel:loot-placeholder">Loot verdicts appear here</div>
@@ -288,7 +288,7 @@ export default function Overlay() {
       {st.edit && (
         <div className="ov-bar">
           <b style={{ color: "var(--gold)" }}>Overlay edit mode</b>
-          <span className="small muted">{bars ? "Bar layout is automatic — switch to Free layout on the Overlay page to drag." : "Drag widgets anywhere."}</span>
+          <span className="small muted">{bars ? "Bar layout is automatic: switch to Free layout on the Overlay page to drag." : "Drag widgets anywhere."}</span>
           <button className="btn sm primary" onClick={() => emitMain("overlay-action", "overlayEdit")}>
             Done
           </button>
@@ -617,7 +617,7 @@ function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: To
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Ico icon={Eye} size={22} style={{ color: "var(--gold)" }} />
-          <span className="muted">{autoJudge ? "Watching — hover any item" : "Hover an item and press the judge key"}</span>
+          <span className="muted">{autoJudge ? "Watching: hover any item" : "Hover an item and press the judge key"}</span>
         </div>
       )}
     </div>
@@ -705,7 +705,7 @@ function HordesPanel({ h }: { h: HordesState }) {
           </div>
         ))
       ) : h.chests.length > 0 ? null : (
-        <div className="small muted">{h.lastPick ? `Last pick: ${h.lastPick}` : "Walk up to the offers — I'll rank them."}</div>
+        <div className="small muted">{h.lastPick ? `Last pick: ${h.lastPick}` : "Walk up to the offers: I'll rank them."}</div>
       )}
       {h.chests.length > 0 && (
         <>
@@ -785,7 +785,7 @@ function UndercityPanel({ u }: { u: UndercityState }) {
         {u.secondsLeft != null && u.floor < u.floors && <span style={{ fontSize: 18, fontWeight: 800, color: low ? "var(--red, #e0543c)" : "var(--gold)" }}>{u.secondsLeft}s</span>}
       </div>
       <div className="small" style={{ marginTop: 4, color: u.upgrades >= u.upgradesMax ? "var(--green)" : undefined }}>
-        Reward upgrades {u.upgrades}/{u.upgradesMax}{u.upgrades >= u.upgradesMax ? " — maxed" : ""}
+        Reward upgrades {u.upgrades}/{u.upgradesMax}{u.upgrades >= u.upgradesMax ? ": maxed" : ""}
       </div>
       {u.attunement && u.upgrades < u.upgradesMax && <div className="small dim">Attunement: {u.attunement}</div>}
       {u.timeBonus && u.floor < u.floors && <div className="small dim">Time: {u.timeBonus}</div>}
@@ -850,7 +850,7 @@ function GuidePanel({ g, toCss }: { g: GuideState; toCss: (b: { x: number; y: nu
             {g.items.map((it) => (
               <div key={it.key} className="small" style={{ color: it.done ? "var(--green)" : "var(--text)" }}>
                 {it.done ? "✓" : "○"} {it.label}
-                {it.note && <span className="muted"> — {it.note}</span>}
+                {it.note && <span className="muted">: {it.note}</span>}
               </div>
             ))}
           </div>

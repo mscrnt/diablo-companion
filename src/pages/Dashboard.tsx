@@ -27,7 +27,7 @@ export default function Dashboard({ go }: { go: (p: PageId) => void }) {
 
   return (
     <>
-      <PageHead title="Sanctuary" sub={build ? `${build.name} — ${variant?.name} · ${build.season}` : "Import a build to begin"}>
+      <PageHead title="Sanctuary" sub={build ? `${build.name}, ${variant?.name} · ${build.season}` : "Import a build to begin"}>
         <button className="btn primary" disabled={judging} onClick={() => runAction("judge")}>
           {judging ? <span className="loader" /> : <Scale size={15} strokeWidth={1.75} aria-hidden />} Judge item under cursor <span className="kbd">{hotkeys.judge}</span>
         </button>

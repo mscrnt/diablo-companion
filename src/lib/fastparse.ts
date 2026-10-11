@@ -135,6 +135,14 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
       category: "socketable",
     };
   }
+  // caches and experience tomes: the capture often starts below their title ("A collection of items as a
+  // reward for …", "Grants a substantial amount of experience"), and their text is enough to know them
+  if (ti < 0) {
+    const all = L.map((l) => l.text).join("\n");
+    const tome = /amount of\s+experience|experience tome/i.test(all);
+    if (tome || /use this cache to receive your rewards|collection of items as a reward/i.test(all))
+      return { name: tome ? "Experience Tome" : "Cache", rarity: "rare", itemType: tome ? "Experience Tome" : "Cache", slot: "other", itemPower: null, affixes: [], aspect: null, rawText: all, category: "consumable" };
+  }
   // a garbled rarity word ("ii/ölakic Scythe" = Magic Scythe): a short Title-case line ending in the item
   // kind, under an ALL-CAPS title
   if (ti < 0)
@@ -384,10 +392,19 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     untitled: !rawName.trim() || undefined,
     category,
     tempersUsed: tempers ? Number(tempers[1]) : undefined,
+    toughness: toughnessOf(all),
     compare,
     compareRows,
     compareKind: lostPowerKind,
   };
+}
+
+/** The game's Toughness change for the swap: "(-11.5% Toughness)" on the armor / resist line. */
+export function toughnessOf(text: string): number | undefined {
+  const m = text.match(/\(\s*([+\-−]?)\s*(\d{1,3}(?:[.,]\d)?)\s*%\s*toughness/i);
+  if (!m) return undefined;
+  const v = Number(m[2].replace(",", "."));
+  return m[1] === "-" || m[1] === "−" ? -v : v;
 }
 
 /** Quick check used by tests: how sure are we the parse makes sense? */

@@ -74,7 +74,7 @@ export default function SettingsPage() {
             <div className="small muted">Without it, imports fall back to Mobalytics' GraphQL API (all gear/skills/paragon, but no author notes).</div>
             {meta && (
               <div className="small dim">
-                Static data {String(meta.staticDataVersion ?? "")} · fetched {String(meta.fetchedAt ?? "").slice(0, 10)} — refresh with <span className="mono">node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs</span>
+                Static data {String(meta.staticDataVersion ?? "")} · fetched {String(meta.fetchedAt ?? "").slice(0, 10)}: refresh with <span className="mono">node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs</span>
               </div>
             )}
           </div>
@@ -111,7 +111,7 @@ export default function SettingsPage() {
               Pad live: {pad.length ? pad.map((b) => <span key={b} className="kbd" style={{ marginRight: 4 }}>{b}</span>) : <span className="dim">press buttons to test</span>}
             </div>
             <div className="small dim">
-              Global hotkeys are swallowed system-wide while the app runs — pick keys you don't use in game. The companion only reads your controller; it never sends input to the game.
+              Global hotkeys are swallowed system-wide while the app runs: pick keys you don't use in game. The companion only reads your controller; it never sends input to the game.
             </div>
             {errs.length > 0 && <div className="err">{errs.join("\n")}</div>}
           </div>
@@ -150,7 +150,7 @@ export default function SettingsPage() {
                 className="btn sm"
                 onClick={() =>
                   obsReplayStatus(settings.obs.url, settings.obs.password)
-                    .then((r) => setObsMsg(`Connected · replay buffer ${r.outputActive ? "running ✓" : "NOT running — start it in OBS"}`))
+                    .then((r) => setObsMsg(`Connected · replay buffer ${r.outputActive ? "running ✓" : "NOT running: start it in OBS"}`))
                     .catch((e) => setObsMsg(String(e.message ?? e)))
                 }
               >
@@ -213,7 +213,7 @@ function About() {
     try {
       await installUpdate((f) => {
         setProgress(f);
-        if (f === 1) setStatus("Installing — the app will restart.");
+        if (f === 1) setStatus("Installing: the app will restart.");
       });
     } catch (e) {
       setProgress(undefined);

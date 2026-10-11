@@ -97,3 +97,25 @@ describe("tribute advice comes from what it earns", () => {
     expect(r.action).not.toMatch(/charms and a Seal/);
   });
 });
+
+// the capture started below the title (2026-10-11 test session): only the description was read
+describe("caches and experience tomes", () => {
+  const read = async (texts: string[]) => {
+    const { fastParse } = await import("../src/lib/fastparse");
+    return fastParse(texts.map((text) => ({ text, bullet: "none" as const })), false, ctx.variant)!;
+  };
+
+  it("a Dungeon Cache: open it", async () => {
+    const item = await read(["A collection of items as a reward for", "completing a Dungeon the first time.", "Use this cache to receive your rewards.", "Account Bound", "Cannot Salvage", "Sell Value: Cannot Be Sold"]);
+    expect(item.category).toBe("consumable");
+    const r = decide(item, ctx.variant, { prog: ctx.prog }, null);
+    expect(r.verdict).toBe("STASH");
+    expect(r.action).toMatch(/^Open it/);
+  });
+
+  it("an Experience Tome: use it", async () => {
+    const item = await read(["Grants a substantial amount of", "experience.", "Use this cache to receive your rewards.", "Within are the teachings of ages past. Use", "them to build a better future.", "Account Bound", "Cannot Salvage"]);
+    expect(item.name).toBe("Experience Tome");
+    expect(decide(item, ctx.variant, { prog: ctx.prog }, null).action).toMatch(/grants experience/);
+  });
+});

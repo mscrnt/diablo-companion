@@ -269,7 +269,7 @@ function Skills() {
         {sb && (
           <div className={sb.error ? "note" : sb.ok ? "note" : "err"} style={{ marginBottom: 10 }}>
             {sb.error === "hud-hidden"
-              ? "Couldn't see your skill bar — close menus in game and try again."
+              ? "Couldn't see your skill bar: close menus in game and try again."
               : sb.error
                 ? sb.error
                 : sb.ok
@@ -316,11 +316,11 @@ function Skills() {
         <Card title="Mercenaries">
           <div className="col small">
             <div>
-              <span className="dim">Primary:</span> <b>{variant.mercenary.primary ?? "—"}</b> — {variant.mercenary.skills.join(", ")}
+              <span className="dim">Primary:</span> <b>{variant.mercenary.primary ?? "—"}</b>: {variant.mercenary.skills.join(", ")}
             </div>
             <div>
               <span className="dim">Reinforcement:</span> <b>{variant.mercenary.reinforcement ?? "—"}</b>
-              {variant.mercenary.reinforcementSkill && <> — {variant.mercenary.reinforcementSkill}</>}
+              {variant.mercenary.reinforcementSkill && <>: {variant.mercenary.reinforcementSkill}</>}
             </div>
             {variant.mercenary.trigger && (
               <div>

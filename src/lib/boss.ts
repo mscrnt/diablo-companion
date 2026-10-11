@@ -27,14 +27,21 @@ function names(): string[] {
   return bossNames;
 }
 
+/** A lair boss's bar adds a title and the Torment step: "TORMENTED ECHO OF URIVAR +3" is Urivar. */
+const bareBoss = (s: string) =>
+  s
+    .trim()
+    .replace(/\s*\+\s*\d+\s*$/, "")
+    .replace(/^(tormented\s+)?(echo\s+of\s+)?/i, "");
+
 /** Find a known boss name among OCR lines of the health-bar area. */
 export function findBoss(lines: OcrLine[]): string | null {
   for (const l of lines) {
-    const t = l.text.trim();
+    const t = bareBoss(l.text);
     if (t.length < 5) continue;
     for (const n of names()) {
-      const short = n.split(",")[0];
-      if (trigramSim(t, n) >= 0.72 || (short.length > 4 && trigramSim(t.split(",")[0], short) >= 0.8)) return n;
+      const short = bareBoss(n.split(",")[0]);
+      if (trigramSim(t, bareBoss(n)) >= 0.72 || (short.length > 4 && trigramSim(t.split(",")[0], short) >= 0.8)) return n;
       // the bar can show the title without a comma ("AZMODAN LORD OF SIN"): the name is its first word(s)
       const nt = normName(t);
       const ns = normName(short);
@@ -75,7 +82,7 @@ export function bossInfo(name: string, variant: BuildVariant | undefined, prog: 
     const ga = g.affixes.filter((a) => a.greater).map((a) => a.name);
     const lookFor =
       p.state === "missing"
-        ? "any copy — you don't have it yet"
+        ? "any copy: you don't have it yet"
         : `a copy with ${[...ga.map((x) => "★ " + shortName(x)), ...missingStats.filter((m) => !ga.includes(m)).map(shortName)].slice(0, 3).join(", ")}`;
     wanted.push({ item: g.itemName, slot: g.slotLabel, state: p.state, lookFor });
   }

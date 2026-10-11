@@ -143,7 +143,7 @@ export function parseWarPlan(lines: { text: string; y: number }[]): { step: numb
 /** Ask the local LLM for a ranked plan (text-only, uses the real node descriptions). */
 export async function llmPlan(cfg: LlmConfig, buildSummary: string, need: Needs, owned: Set<string>) {
   const lines = trees()
-    .map((t) => `## ${t.name} (${t.slug})\n` + nodes(t.slug).map((n) => `- ${n.slug}${owned.has(n.slug) ? " [OWNED]" : ""}: ${n.name} — ${n.desc.replace(/\*\*/g, "").replace(/\s+/g, " ").slice(0, 200)}${n.depends.length ? ` (needs ${n.depends.join(" or ")})` : ""}`).join("\n"))
+    .map((t) => `## ${t.name} (${t.slug})\n` + nodes(t.slug).map((n) => `- ${n.slug}${owned.has(n.slug) ? " [OWNED]" : ""}: ${n.name}: ${n.desc.replace(/\*\*/g, "").replace(/\s+/g, " ").slice(0, 200)}${n.depends.length ? ` (needs ${n.depends.join(" or ")})` : ""}`).join("\n"))
     .join("\n\n");
   const schema = {
     type: "object",

@@ -134,7 +134,7 @@ export async function judgeTooltips(
         const oprog = (slot: string) => bs.progress[`${b.id}:${ov.id}:${slot}`] ?? { state: "missing" as const, greater: [], have: [], tempered: false, masterwork: 0 };
         const other = decide(hovered, ov, { prog: oprog, cubeHint });
         if (other.verdict === "WEAR") {
-          scored = { ...scored, verdict: "STASH", action: `Stash it — great for your ${b.name} build (${ov.gear.find((g) => g.slot === other.slot)?.slotLabel ?? "gear"}).`, reasons: [other.action ?? "", ...other.reasons].filter(Boolean) };
+          scored = { ...scored, verdict: "STASH", action: `Stash it: great for your ${b.name} build (${ov.gear.find((g) => g.slot === other.slot)?.slotLabel ?? "gear"}).`, reasons: [other.action ?? "", ...other.reasons].filter(Boolean) };
           break;
         }
       }

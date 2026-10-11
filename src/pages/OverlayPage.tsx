@@ -173,13 +173,13 @@ export default function OverlayPage() {
       const cap = await captureMonitor(point, { maxEdge: 1280, quality: 85 });
       const b = await detectPillarbox(cap.image);
       if (!b) {
-        setMsg("The screen is mostly black right now (loading screen?) — try again in game.");
+        setMsg("The screen is mostly black right now (loading screen?): try again in game.");
         return;
       }
       const barL = b.left,
         barR = 1 - b.right;
       if (barL < 0.04 && barR < 0.04) {
-        setMsg("No black bars found — is the game in the foreground with pillarboxing? Widgets were left where they are.");
+        setMsg("No black bars found: is the game in the foreground with pillarboxing? Widgets were left where they are.");
         update((s) => void (s.overlay.gameBounds = b));
         return;
       }
@@ -214,7 +214,7 @@ export default function OverlayPage() {
     <>
       <PageHead
         title="Overlay"
-        sub="A transparent, click-through window glued to the game. Requires Display Mode: Windowed Fullscreen (borderless) — exclusive fullscreen hides it."
+        sub="A transparent, click-through window glued to the game. Requires Display Mode: Windowed Fullscreen (borderless). Exclusive fullscreen hides it."
       >
         <button className={"btn " + (edit ? "primary" : "gold")} onClick={() => setOverlayEdit(!edit)}>
           {edit ? "✓ Done editing" : "✥ Edit layout"} <span className="kbd">{settings.hotkeys.overlayEdit.replace("CommandOrControl", "Ctrl")}</span>
@@ -230,7 +230,7 @@ export default function OverlayPage() {
                 update((s) => void (s.overlay.capturable = v));
                 setOverlayCapturable(v).catch(() => {});
               }}
-              label="Show overlay in screenshots & OBS (off keeps it out of our own OCR — recommended)"
+              label="Show overlay in screenshots & OBS (off keeps it out of our own OCR, recommended)"
             />
             <Check checked={o.onlyWhenGameFocused} onChange={(v) => update((s) => void (s.overlay.onlyWhenGameFocused = v))} label="Only show while Diablo IV is focused" />
             <label className="field">
@@ -250,7 +250,7 @@ export default function OverlayPage() {
         <Card title="Dock into the black bars">
           <div className="col">
             <div className="small muted">
-              On ultrawide monitors Diablo IV draws black bars beside the game image. Put the game in front, then click — the companion finds the bars and moves the widgets into them so they never cover gameplay.
+              On ultrawide monitors Diablo IV draws black bars beside the game image. Put the game in front, then click: the companion finds the bars and moves the widgets into them so they never cover gameplay.
             </div>
             <div className="row">
               <button className="btn primary" disabled={busy} onClick={dockToBars}>

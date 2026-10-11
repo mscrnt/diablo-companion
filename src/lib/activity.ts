@@ -18,6 +18,8 @@ import { bestTrees, needs, parseWarPlan, useWarPlans } from "./warplans";
 import { getActiveVariant, useRuns, useSettings } from "./store";
 import { debugEvent } from "./debug";
 import { parseUndercity } from "./undercity";
+import { isDungeonCleared, readObjective, stepObjective, type Objective } from "./dungeon";
+import { trigramSim } from "./names";
 
 export interface AdvisorState {
   title: string;
@@ -55,6 +57,8 @@ let phase: PitPhase = "none";
 let pendingTier = "";
 let lastSeenPit = 0;
 let bossSince = 0;
+/** when the Pit tracker was first seen without "Slay the Boss" (0 = it's there) */
+let bossGoneSince = 0;
 let survivalFailed = false;
 let syncedRun = "";
 
@@ -118,6 +122,8 @@ let ht: HelltideInfo = { active: false, cinders: null, secondsLeft: null, best: 
 let htLastSeen = 0;
 let htWarned = false;
 let htAffordAlerted = "";
+/** a cinder count that differs a lot from the last one, waiting for the next read to agree */
+let htPendingCinders: number | null = null;
 let htLogged = 0;
 
 async function helltideTick() {
@@ -128,7 +134,18 @@ async function helltideTick() {
     htLastSeen = now;
     endBoss("left");
     const { variant, prog } = getActiveVariant();
-    const cinders = hud.cinders ?? ht.cinders;
+    // a normal gain counts at once; a drop (a chest bought) or a big jump must be read again first:
+    // one frame's digit slip ("283" → "3", "389" → "689") mustn't move the count
+    let cinders = ht.cinders;
+    const read = hud.cinders;
+    if (read != null && read !== ht.cinders) {
+      const gain = ht.cinders == null ? 0 : read - ht.cinders;
+      const confirmed = htPendingCinders != null && Math.abs(read - htPendingCinders) <= 10;
+      if (ht.cinders == null || (gain > 0 && gain <= 120) || confirmed) {
+        cinders = read;
+        htPendingCinders = null;
+      } else htPendingCinders = read;
+    } else htPendingCinders = null;
     // the HUD timer digits are orange + an hourglass icon and OCR poorly; the schedule knows the end (:55)
     // ("Helitide: 01:16" for 31:16): when the read is off by more than two minutes, the schedule wins
     const cur = localSchedule(now, 2).find((e) => e.kind === "helltide" && e.start <= now && (e.end ?? 0) > now);
@@ -141,12 +158,12 @@ async function helltideTick() {
     // you can afford the recommended chest now
     if (adv.best && cinders != null && cinders >= adv.best.cost && htAffordAlerted !== adv.best.name) {
       htAffordAlerted = adv.best.name;
-      overlayToast(`🔥 ${cinders} cinders`, `Open ${adv.best.name} (${adv.best.cost}) — ${adv.best.why}`, "#ff7a2f", 8000);
+      overlayToast(`🔥 ${cinders} cinders`, `Open ${adv.best.name} (${adv.best.cost}): ${adv.best.why}`, "#ff7a2f", 8000);
     }
     // unspent cinders vanish when the Helltide ends
     if (hud.secondsLeft != null && hud.secondsLeft < 300 && (cinders ?? 0) >= 75 && !htWarned) {
       htWarned = true;
-      overlayToast("Helltide ending soon", `${Math.ceil(hud.secondsLeft / 60)} min left and ${cinders} unspent cinders — spend them before they're lost!`, "#e0543c", 12000);
+      overlayToast("Helltide ending soon", `${Math.ceil(hud.secondsLeft / 60)} min left and ${cinders} unspent cinders: spend them before they're lost!`, "#e0543c", 12000);
       playTone("alert", useSettings.getState().settings.alerts.volume);
     }
     if (hud.secondsLeft != null && hud.secondsLeft > 600) htWarned = false;
@@ -192,7 +209,7 @@ function startRun() {
   runs.setActivity("The Pit", pendingTier || runs.tier);
   runs.start();
   survivalFailed = false;
-  overlayToast("Pit run started", pendingTier ? `Tier ${pendingTier.slice(1)} — timer running` : "Timer running", "#d4ad62", 3500);
+  overlayToast("Pit run started", pendingTier ? `Tier ${pendingTier.slice(1)}: timer running` : "Timer running", "#d4ad62", 3500);
   playTone("tick", useSettings.getState().settings.alerts.volume);
 }
 
@@ -211,7 +228,7 @@ function finishRun(success: boolean) {
   const mins = `${Math.floor(dur / 60000)}:${String(Math.floor((dur % 60000) / 1000)).padStart(2, "0")}`;
   if (success) {
     const tip = glyphTip();
-    overlayToast(dur < pb ? `🏆 Pit cleared in ${mins} — new best!` : `Pit cleared in ${mins}`, tip ?? "Spend your glyph upgrades before leaving.", "#5fd18a", 9000);
+    overlayToast(dur < pb ? `🏆 Pit cleared in ${mins}, a new best!` : `Pit cleared in ${mins}`, tip ?? "Spend your glyph upgrades before leaving.", "#5fd18a", 9000);
     playTone(dur < pb ? "bis" : "good", useSettings.getState().settings.alerts.volume);
   } else overlayToast("Pit run ended", `Not completed (${mins})`, "#9a8f86", 5000);
 }
@@ -231,49 +248,83 @@ async function readObelisk(rect: Rect) {
 let obeliskCheck = 0;
 
 // ---- Nightmare Dungeons: tracker shows "<Dungeon name> / <objective> / Nightmare Dungeon" ----
-let nmd: { dungeon: string; objective: string; lastSeen: number } | null = null;
+// (an Escalating Nightmare's stages show "Nightmare Escalation Tier 1" there instead)
+/**
+ * `objective` = the one shown now; `pending` = a different read waiting for a second read to agree
+ * (one read of OCR noise mustn't split the run); `done` = "Dungeon cleared" already ended the timer.
+ */
+let nmd: { kind: NmdKind; stage: number | null; dungeon: string; objective: Objective | null; pending: Objective | null; lastSeen: number; done?: boolean } | null = null;
+type NmdKind = "Nightmare Dungeon" | "Escalating Nightmare";
+const nmdKind = (marker: string): NmdKind | null =>
+  /^\W*nightmare dungeon\W*$/i.test(marker) ? "Nightmare Dungeon" : /^\W*nightmare\s*escalat/i.test(marker) ? "Escalating Nightmare" : null;
 
 function nmdTick() {
   const now = Date.now();
-  const i = trackerLines.findIndex((l) => /^\W*nightmare dungeon\W*$/i.test(l.text.trim()));
+  const i = trackerLines.findIndex((l) => !!nmdKind(l.text.trim()));
   const runs = useRuns.getState();
   if (i >= 0) {
     const marker = trackerLines[i];
+    const kind = nmdKind(marker.text.trim())!;
     const above = trackerLines
-      .filter((l) => l.y < marker.y && marker.y - l.y < marker.h * 6 && !/torment|\btab\b|\d{1,2}:\d{2}/i.test(l.text))
+      // damage numbers float over the tracker in fights ("1,413M"): never a dungeon name or an objective
+      .filter((l) => l.y < marker.y && marker.y - l.y < marker.h * 6 && !/torment|\btab\b|\d{1,2}:\d{2}/i.test(l.text) && !/^\W*[\d,.]+\s*[kmb]?\W*$/i.test(l.text.trim()))
       .sort((a, b) => a.y - b.y);
     const dungeon = (above[0]?.text ?? "").replace(/[^A-Za-z' -]+$/, "").trim();
-    const objective = above.slice(1).map((l) => l.text.trim()).join(" ").replace(/\s*[◆♦•]\s*$/, "").trim();
+    const text = above.slice(1).map((l) => l.text.trim()).join(" ").replace(/\s*[◆♦•]\s*$/, "").trim();
+    const objective = readObjective(text, dungeon);
+    // "Nightmare Escalation Tier 2": an Escalating Nightmare's next stage follows the last one's clear
+    // within seconds, before the tracker has been gone long enough to end it
+    const stage = Number(marker.text.match(/\d+/)?.[0] ?? NaN) || null;
+    if (nmd && ((stage != null && nmd.stage != null && stage !== nmd.stage) || (nmd.done && dungeon && trigramSim(dungeon, nmd.dungeon) < 0.5))) {
+      debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: nmd.done ? "next stage" : "next stage before a clear was seen" });
+      const active = runs.active;
+      if (active?.activity === nmd.kind && !nmd.done) runs.stop(true, nmd.lastSeen);
+      nmd = null;
+    }
     if (!nmd) {
       endBoss("left");
-      nmd = { dungeon, objective, lastSeen: now };
-      debugEvent("activity", "nmd-start", { dungeon, objective, runStarted: !runs.active });
+      nmd = { kind, stage, dungeon, objective, pending: null, lastSeen: now };
+      debugEvent("activity", "nmd-start", { kind, dungeon, objective: text, runStarted: !runs.active });
       if (!runs.active) {
-        runs.setActivity("Nightmare Dungeon", dungeon);
+        runs.setActivity(kind, dungeon);
         runs.start();
-        overlayToast("Nightmare Dungeon", `${dungeon || "Run"} — timer running`, "#b06cff", 3000);
+        overlayToast(kind, `${dungeon || "Run"}: timer running`, "#b06cff", 3000);
       }
+    } else if (nmd.done) {
+      nmd.lastSeen = now;
+      nmd.stage ??= stage;
     } else {
       nmd.lastSeen = now;
+      nmd.stage ??= stage;
       // fix a run label picked up from the wrong line (e.g. "Torment XI")
-      if (dungeon && runs.active?.activity === "Nightmare Dungeon" && runs.active.tier !== dungeon && /torment/i.test(runs.active.tier ?? "")) {
+      if (dungeon && runs.active?.activity === nmd.kind && runs.active.tier !== dungeon && /torment/i.test(runs.active.tier ?? "")) {
         useRuns.setState({ active: { ...runs.active, tier: dungeon } });
         nmd.dungeon = dungeon;
       }
-      if (objective && objective !== nmd.objective && runs.active?.activity === "Nightmare Dungeon") {
-        debugEvent("activity", "nmd-objective", { from: nmd.objective, to: objective });
-        runs.split(nmd.objective.slice(0, 40) || "Objective");
-        nmd.objective = objective;
+      const active = runs.active?.activity === nmd.kind ? runs.active : null;
+      if (active && isDungeonCleared(text)) {
+        // the boss is down: stop the clock now, not when you walk out
+        debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: "dungeon cleared" });
+        if (nmd.objective) runs.split(nmd.objective.label || "Objective");
+        const dur = now - active.start;
+        runs.stop(true);
+        overlayToast(`${nmd.kind} done in ${mmss(dur)}`, nmd.dungeon, "#5fd18a", 6000);
+        nmd.done = true;
+      } else if (active) {
+        // two reads agreeing on something new: the objective really moved on
+        const finished = stepObjective(nmd, objective);
+        if (finished) {
+          debugEvent("activity", "nmd-objective", { from: finished.label, to: nmd.objective?.label });
+          runs.split(finished.label || "Objective");
+        }
       }
     }
   } else if (nmd && now - nmd.lastSeen > 12000) {
-    debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: "tracker marker gone for 12 s" });
+    debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: nmd.done ? "left after the clear" : "tracker marker gone for 12 s" });
     const active = runs.active;
-    if (active?.activity === "Nightmare Dungeon") {
-      const dur = now - 12000 - active.start;
-      runs.stop(true);
-      const f = `${Math.floor(dur / 60000)}:${String(Math.round((dur % 60000) / 1000)).padStart(2, "0")}`;
-      overlayToast(`Nightmare Dungeon done in ${f}`, nmd.dungeon, "#5fd18a", 6000);
+    if (active?.activity === nmd.kind && !nmd.done) {
+      runs.stop(true, now - 12000);
+      overlayToast(`${nmd.kind} done in ${mmss(now - 12000 - active.start)}`, nmd.dungeon, "#5fd18a", 6000);
     }
     nmd = null;
   }
@@ -334,7 +385,7 @@ function undercityTick() {
       if (!runs.active) {
         runs.setActivity("Undercity", torment ? `Torment ${torment}` : "");
         runs.start();
-        overlayToast("Kurast Undercity", "Timer running — Afflicted monsters add time", "#c9a227", 3500);
+        overlayToast("Kurast Undercity", "Timer running: Afflicted monsters add time", "#c9a227", 3500);
       }
     } else {
       uc.lastSeen = now;
@@ -357,7 +408,7 @@ function undercityTick() {
         debugEvent("activity", "undercity-upgrade", { from: uc.upgrades, to: hud.upgrades, floor: uc.floor });
         uc.upgrades = hud.upgrades;
         const maxed = hud.upgrades === uc.upgradesMax;
-        overlayToast(maxed ? "Rewards maxed" : `Reward upgrade ${hud.upgrades}/${uc.upgradesMax}`, maxed ? "All upgrades done — head down when you're ready" : uc.attunement ? `Keep going: ${uc.attunement}` : "", "#5fd18a", 4000);
+        overlayToast(maxed ? "Rewards maxed" : `Reward upgrade ${hud.upgrades}/${uc.upgradesMax}`, maxed ? "All upgrades done: head down when you're ready" : uc.attunement ? `Keep going: ${uc.attunement}` : "", "#5fd18a", 4000);
       }
     }
     if (hud.secondsLeft != null) uc.secondsLeft = hud.secondsLeft;
@@ -426,7 +477,7 @@ async function bossTick(rect: Rect) {
         runs.start();
       }
       const want = info.wanted[0];
-      overlayToast(`☠ ${name.split(",")[0]}`, want ? `Look for: ${want.item} — ${want.lookFor}` : "Timer running", "#e0543c", 6000);
+      overlayToast(`☠ ${name.split(",")[0]}`, want ? `Look for ${want.item}: ${want.lookFor}` : "Timer running", "#e0543c", 6000);
     }
   } else if (boss && (now - bossSeen > 10000 || cap.ocr?.lines.some((l) => /bo\S{0,3}\s*defeated/i.test(l.text)))) {
     // health bar gone for 10 s → dead (or you left); the "WORLD BOSS DEFEATED" banner ends it at once
@@ -440,7 +491,7 @@ async function bossTick(rect: Rect) {
       const today = useRuns.getState().runs.filter((x) => x.activity === label && x.end && x.start > now - 86400_000);
       const avg = today.reduce((a, x) => a + (x.end! - x.start), 0) / Math.max(1, today.length);
       const f = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`;
-      overlayToast(`☠ ${boss.split(",")[0]} down in ${f(dur)}`, `Kill #${today.length} today · avg ${f(avg)} — check the drops!`, "#5fd18a", 8000);
+      overlayToast(`☠ ${boss.split(",")[0]} down in ${f(dur)}`, `Kill #${today.length} today · avg ${f(avg)}. Check the drops!`, "#5fd18a", 8000);
       playTone("good", useSettings.getState().settings.alerts.volume);
     }
     boss = null;
@@ -483,7 +534,8 @@ async function tick(rect: Rect) {
   if (phase === "none") {
     nmdTick();
     undercityTick();
-    if (!nmd) await bossTick(rect).catch(() => {}); // dungeon bosses are part of the NMD run
+    // in a dungeon the boss panel still shows what it drops; the dungeon's run keeps the time (a boss only starts one when nothing runs)
+    await bossTick(rect).catch(() => {});
   }
   // Tree of Whispers reward dialog is centred; the tracker says "Choose your reward"
   if (/choose your reward|whispers of the dead/i.test(t)) await readCenter(rect).catch(() => {});
@@ -492,7 +544,7 @@ async function tick(rect: Rect) {
   if (fav && fav.have >= fav.max && !favorsAlerted) {
     favorsAlerted = true;
     debugEvent("activity", "favors-full", fav);
-    overlayToast("Grim Favors full", `${fav.have}/${fav.max} — cash them in at the Tree of Whispers.`, "#b06cff", 9000);
+    overlayToast("Grim Favors full", `${fav.have}/${fav.max}: cash them in at the Tree of Whispers.`, "#b06cff", 9000);
   } else if (fav && fav.have < fav.max) favorsAlerted = false;
   const inPit = /artificer'?s pit|summon a guardian|slay the boss|speed mastery|survival mastery/i.test(t);
   const now = Date.now();
@@ -528,11 +580,20 @@ async function tick(rect: Rect) {
     useRuns.getState().split("Guardian");
     overlayToast("Guardian summoned", "Boss phase", "#ff9b4a", 2500);
   }
-  // boss objective gone (after the boss phase) → cleared
-  if (phase === "boss" && now - bossSince > 4000 && !/slay the boss/i.test(t)) {
-    setPhase("done", "boss objective gone");
+  // the tracker says so: "The Pit · Dungeon cleared · Artificer's Pit (Tier 100)"
+  if ((phase === "boss" || phase === "summon") && inPit && isDungeonCleared(t)) {
+    setPhase("done", "tracker: dungeon cleared");
     finishRun(true);
   }
+  // boss objective gone (after the boss phase) → cleared. Only while the Pit's other lines still show and
+  // for a few seconds: a death's loading screen (revive at the checkpoint) hides the whole tracker
+  if (phase === "boss" && now - bossSince > 4000 && inPit && !/slay the boss/i.test(t)) {
+    bossGoneSince ||= now;
+    if (now - bossGoneSince >= 3000) {
+      setPhase("done", "boss objective gone");
+      finishRun(true);
+    }
+  } else bossGoneSince = 0;
   // left the Pit without finishing (or tracker gone for a while)
   if ((phase === "summon" || phase === "boss") && !inPit && now - lastSeenPit > 15000) {
     setPhase("none", "no Pit lines in the tracker for 15 s");

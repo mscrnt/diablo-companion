@@ -150,11 +150,11 @@ export async function startSetup() {
     if (bounds.left > 0.04 || 1 - bounds.right > 0.04) s.overlay.layout = "bars";
   });
   const barPx = Math.round(bounds.left * rect.w);
-  set({ busy: false, detail: barPx > 40 ? `Found ${barPx}px black bars — the overlay now fills them.` : "No black bars found — using free layout." });
+  set({ busy: false, detail: barPx > 40 ? `Found ${barPx}px black bars: the overlay now fills them.` : "No black bars found: using free layout." });
   await sleep(1500);
 
   // 3) inventory — the vision model learns where the panel & gear slots are
-  set({ step: 3, instruction: "Open your Inventory", detail: `Press I (or the inventory button on your controller). I'll spot it automatically — or press ${key} to skip.` });
+  set({ step: 3, instruction: "Open your Inventory", detail: `Press I (or the inventory button on your controller). I'll spot it automatically, or press ${key} to skip.` });
   let inv: Awaited<ReturnType<typeof locateUi>> | null = null;
   const r3 = await waitFor(
     async () => {
@@ -273,7 +273,7 @@ export async function gearScan(my = ++token, embedded = false): Promise<boolean>
   };
   set({
     instruction: "Hover each equipped item",
-    detail: `Keep the inventory open and hover your gear one piece at a time — the tooltip is read automatically. Press ${key} when you're done (or to skip the rest).`,
+    detail: `Keep the inventory open and hover your gear one piece at a time: the tooltip is read automatically. Press ${key} when you're done (or to skip the rest).`,
     items,
     highlights: nextHighlight(),
   });
@@ -317,7 +317,7 @@ export async function statsCheck(my = ++token, embedded = false) {
   const items: GuideItem[] = wants.map((w) => ({ key: w.label, label: w.label, done: false }));
   set({
     instruction: "Open your Character screen → Stats",
-    detail: `Press C, open "Materials & Stats" / the stats list. I'll read it — press ${key} to skip.`,
+    detail: `Press C, open "Materials & Stats" / the stats list. I'll read it: press ${key} to skip.`,
     items,
     highlights: [],
   });
@@ -339,7 +339,7 @@ export async function statsCheck(my = ++token, embedded = false) {
           if (w.min && v < w.min) {
             // quote the guide's own fix if it has one ("If you aren't at 100% attack speed ... drop X and run Y")
             const tip = text.match(/[^.\n]*(?:aren't|not) at 100%[^.\n]*[.\n]?/i)?.[0]?.trim();
-            overlayToast(`${w.label} too low`, `${v}% — the guide wants ${w.min}%+.${tip ? " " + tip : ""}`, "#e0543c", 12000);
+            overlayToast(`${w.label} too low`, `${v}%: the guide wants ${w.min}%+.${tip ? " " + tip : ""}`, "#e0543c", 12000);
           }
           since = Date.now();
         }

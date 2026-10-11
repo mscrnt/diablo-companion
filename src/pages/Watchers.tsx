@@ -63,7 +63,7 @@ export default function Watchers() {
     <>
       <PageHead
         title="Screen Watchers"
-        sub="Read parts of the screen with Windows OCR or match a learned scene fingerprint — locally, a few times per second. Pure screen reading: nothing touches the game."
+        sub="Read parts of the screen with Windows OCR or match a learned scene fingerprint, locally, a few times per second. Pure screen reading, nothing touches the game."
       />
       <Card title="Add a watcher">
         <div className="row">
@@ -245,7 +245,7 @@ function WatcherEditor({ initial, hint, onClose, onSave }: { initial: Watcher; h
         )}
         {w.mode === "scene" && (
           <label className="field">
-            Match sensitivity — max fingerprint distance ({w.scene?.maxDistance ?? 18} of 128; lower = stricter)
+            Match sensitivity: max fingerprint distance ({w.scene?.maxDistance ?? 18} of 128; lower = stricter)
             <input
               type="range"
               min={4}
@@ -253,7 +253,7 @@ function WatcherEditor({ initial, hint, onClose, onSave }: { initial: Watcher; h
               value={w.scene?.maxDistance ?? 18}
               onChange={(e) => set({ scene: { hash: w.scene?.hash ?? "", luma: w.scene?.luma ?? 0, maxDistance: Number(e.target.value) } })}
             />
-            {!w.scene?.hash && <span style={{ color: "var(--blood2)" }}>Not learned yet — show the scene in game and click "Learn".</span>}
+            {!w.scene?.hash && <span style={{ color: "var(--blood2)" }}>Not learned yet: show the scene in game and click "Learn".</span>}
           </label>
         )}
         <div className="grid g3">
@@ -280,7 +280,7 @@ function WatcherEditor({ initial, hint, onClose, onSave }: { initial: Watcher; h
         </div>
         {w.mode !== "scene" && (
           <label className="field">
-            OCR upscale ({w.ocrScale}×) — small HUD text reads better at 2–3×
+            OCR upscale ({w.ocrScale}×): small HUD text reads better at 2–3×
             <input type="range" min={1} max={4} step={0.5} value={w.ocrScale} onChange={(e) => set({ ocrScale: Number(e.target.value) })} />
           </label>
         )}

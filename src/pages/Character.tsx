@@ -19,7 +19,7 @@ export default function Character() {
 
   return (
     <>
-      <PageHead title="Character" sub="Your real stats, skill ranks and glyph levels — read from the game with guided overlays, then compared to your build.">
+      <PageHead title="Character" sub="Your real stats, skill ranks and glyph levels, read from the game with guided overlays, then compared to your build.">
         {g.active && g.flow === "character" ? (
           <button className="btn" onClick={cancelGuide}>
             Stop guide
@@ -32,7 +32,7 @@ export default function Character() {
       </PageHead>
       {g.active && g.flow === "character" && (
         <div className="note" style={{ marginBottom: 12 }}>
-          <b>{g.instruction}</b> — {g.detail} <span className="dim">(the same instructions are on the overlay; <span className="kbd">{key}</span> = next)</span>
+          <b>{g.instruction}</b>: {g.detail} <span className="dim">(the same instructions are on the overlay; <span className="kbd">{key}</span> = next)</span>
         </div>
       )}
       <div className="grid g3">

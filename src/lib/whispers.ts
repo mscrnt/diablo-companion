@@ -55,7 +55,7 @@ export function rankCache(c: WhisperCache, variant: BuildVariant | undefined, pr
         st === "missing" ? (isUnique ? 8 : 4.5) : st === "have" ? 3.5 : st === "upgrade" ? 2.5 : 0.5;
       const why =
         st === "missing"
-          ? `You still need ${g.itemName} (${g.slotLabel}) — this cache focuses on that slot.`
+          ? `You still need ${g.itemName} (${g.slotLabel}): this cache focuses on that slot.`
           : st === "perfect"
             ? `Your ${g.slotLabel} is already perfect.`
             : `Your ${g.slotLabel} (${g.itemName}) can still be upgraded.`;
@@ -70,22 +70,22 @@ export function rankCache(c: WhisperCache, variant: BuildVariant | undefined, pr
   switch (c.kind) {
     case "Talisman":
       return charmsMissing
-        ? { score: 9 + tierBonus, why: `You still need ${charmsMissing} talisman piece${charmsMissing > 1 ? "s" : ""}${c.tier !== "normal" ? " — Greater guarantees a Horadric Seal" : ""}.` }
+        ? { score: 9 + tierBonus, why: `You still need ${charmsMissing} talisman piece${charmsMissing > 1 ? "s" : ""}${c.tier !== "normal" ? ": Greater guarantees a Horadric Seal" : ""}.` }
         : { score: 1, why: "Your talisman is complete." };
     case "CubeMats":
       return cubeCraft
-        ? { score: 6, why: `Primordial Dust for the Horadric Cube — craft ${cubeCraft.itemName}.` }
+        ? { score: 6, why: `Primordial Dust for the Horadric Cube: craft ${cubeCraft.itemName}.` }
         : { score: 2.5, why: "Primordial Dust for Horadric Cube upgrades (e.g. Mythic upgrades)." };
     case "CraftingMats":
     case "GemMaterials":
-      return { score: mwLeft ? 2.8 : 1.2, why: mwLeft ? `Masterworking/tempering materials — ${mwLeft} slots not maxed.` : "Materials (you're mostly maxed)." };
+      return { score: mwLeft ? 2.8 : 1.2, why: mwLeft ? `Masterworking/tempering materials: ${mwLeft} slots not maxed.` : "Materials (you're mostly maxed)." };
     case "Keys":
       return { score: 1.8, why: "Infernal Hordes compasses and Nightmare sigils." };
     case "Gold":
     case "Avarice":
       return { score: 1, why: "Gold and materials." };
     default:
-      return { score: 2 + tierBonus, why: "Random mix — a gamble." };
+      return { score: 2 + tierBonus, why: "Random mix: a gamble." };
   }
 }
 
@@ -108,7 +108,8 @@ export function findWhisperCaches(lines: OcrLine[], region: { x: number; y: numb
     const r = rankCache(best, variant, prog);
     found.set(best.key, { key: best.key, name: best.name, ...r, rank: 0, box: { x: region.x + l.x, y: region.y + l.y, w: l.w, h: l.h } });
   }
-  const list = [...found.values()].sort((a, b) => b.score - a.score);
+  // ties keep their on-screen order (left to right, top to bottom), so the ranking doesn't flicker between reads
+  const list = [...found.values()].sort((a, b) => b.score - a.score || (a.box?.y ?? 0) - (b.box?.y ?? 0) || (a.box?.x ?? 0) - (b.box?.x ?? 0));
   list.forEach((c, i) => (c.rank = i + 1));
   return list;
 }

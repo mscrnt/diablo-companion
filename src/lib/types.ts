@@ -174,6 +174,8 @@ export interface ParsedItem {
   untitled?: boolean;
   /** "Tempers: n/m" from the tooltip */
   tempersUsed?: number;
+  /** the game's own Toughness change if you swap ("216 All Resist (-11.5% Toughness)") */
+  toughness?: number;
   /** equipped item reconstructed from the game's comparison view (deltas + "Properties lost when equipped") */
   compare?: ParsedItem | null;
   /** what kind of item the game is comparing against ("Unique Power" / "Legendary Power" listed as lost) */

@@ -17,7 +17,7 @@ export default function GuidePage() {
     <>
       <PageHead
         title="Setup & Guide"
-        sub="Guided overlays walk you through everything in game — what to open, what to hover, when to scroll. You never need to look back at this window."
+        sub="Guided overlays walk you through everything in game: what to open, what to hover, when to scroll. You never need to look back at this window."
       />
       <div className="grid g2">
         <Card title="Guided flows">
@@ -42,7 +42,7 @@ export default function GuidePage() {
             </div>
             {g.active && (
               <div className="note">
-                <b>{g.title}</b> — {g.instruction}
+                <b>{g.title}</b>: {g.instruction}
                 <div className="small">{g.detail}</div>
                 <div className="row" style={{ marginTop: 8 }}>
                   <span className="small muted">
@@ -143,7 +143,7 @@ export default function GuidePage() {
               </div>
             </div>
           ) : (
-            <div className="muted">Not calibrated yet — run the full setup.</div>
+            <div className="muted">Not calibrated yet: run the full setup.</div>
           )}
         </Card>
 
@@ -153,9 +153,9 @@ export default function GuidePage() {
             <label className="field">
               Playstyle (how much danger an offer may add)
               <select value={settings.hordes.style} onChange={(e) => update((s) => void (s.hordes.style = e.target.value as typeof s.hordes.style))}>
-                <option value="safe">Safe — avoid risky banes</option>
+                <option value="safe">Safe: avoid risky banes</option>
                 <option value="balanced">Balanced</option>
-                <option value="greedy">Greedy — max Aether, I can take it</option>
+                <option value="greedy">Greedy: max Aether, I can take it</option>
               </select>
             </label>
             <div className="row">
@@ -175,13 +175,13 @@ export default function GuidePage() {
             <label className="row" style={{ gap: 8 }}>
               <input type="radio" checked={settings.overlay.layout === "bars"} onChange={() => update((s) => void (s.overlay.layout = "bars"))} />
               <span>
-                <b>Black bars</b> — full-height panels beside the game image (uses all the dead space)
+                <b>Black bars</b>: full-height panels beside the game image (uses all the dead space)
               </span>
             </label>
             <label className="row" style={{ gap: 8 }}>
               <input type="radio" checked={settings.overlay.layout === "free"} onChange={() => update((s) => void (s.overlay.layout = "free"))} />
               <span>
-                <b>Free</b> — drag widgets anywhere
+                <b>Free</b>: drag widgets anywhere
               </span>
             </label>
           </div>

@@ -98,7 +98,7 @@ function obtainFor(g: GearSlot): ObtainMethod[] {
     if (!out.length)
       out.push({
         method: "drop",
-        detail: "Random legendary drop — salvage it at the Blacksmith to save the power to your Codex, then imprint at the Occultist.",
+        detail: "Random legendary drop: salvage it at the Blacksmith to save the power to your Codex, then imprint at the Occultist.",
       });
   }
   return out;
@@ -120,7 +120,7 @@ export function planFarm(variant: BuildVariant | undefined, prog: (slot: string)
     let why: string;
     let priority = prioIndex(g);
     if (p.state === "missing") {
-      why = g.kind === "unique" || g.kind === "mythic" ? "Core unique for the build — big power spike." : g.kind === "aspect" ? "Aspect needed in your Codex." : "Needed for the full setup.";
+      why = g.kind === "unique" || g.kind === "mythic" ? "Core unique for the build: big power spike." : g.kind === "aspect" ? "Aspect needed in your Codex." : "Needed for the full setup.";
     } else {
       why = gaMissing.length ? `Upgrade: still want Greater ${gaMissing.join(", ")}.` : "Polish: temper & masterwork.";
       priority += 100; // owned items come after missing ones
@@ -170,7 +170,7 @@ export function farmContext(variant: BuildVariant | undefined, prog: (slot: stri
   const steps = planFarm(variant, prog);
   const lines = steps.slice(0, 14).map(
     (s) =>
-      `- ${s.slotLabel}: ${s.item} [${s.state}] — ${s.why} Sources: ${s.obtain.map((o) => o.detail).join("; ") || "unknown"}${s.gaTargets.length ? ` | GA targets: ${s.gaTargets.join(", ")}` : ""}`,
+      `- ${s.slotLabel}: ${s.item} [${s.state}]: ${s.why} Sources: ${s.obtain.map((o) => o.detail).join("; ") || "unknown"}${s.gaTargets.length ? ` | GA targets: ${s.gaTargets.join(", ")}` : ""}`,
   );
   const now = Date.now();
   const ev = events
