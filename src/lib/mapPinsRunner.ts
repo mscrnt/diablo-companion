@@ -155,7 +155,6 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
   let pending: Shown | null = null;
   /** consecutive probe/frame results, so one noisy reading doesn't blank the pins (flicker) */
   let closedRun = 0;
-  let movedRun = 0;
   let missRun = 0;
   /** the last probe saw the map still and open: shown pins are still right */
   let stillOpen = false;
@@ -179,7 +178,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     navRef = stripRef = null;
     shown = pending = null;
     settling = false;
-    closedRun = movedRun = missRun = 0;
+    closedRun = missRun = 0;
     stillOpen = false;
     send(null);
   };
@@ -258,7 +257,6 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     if (tracker.tracking && performance.now() - lastFull < FULL_MS - PROBE_MS / 2) {
       const p = await probe(img);
       closedRun = p === "closed" ? closedRun + 1 : 0;
-      movedRun = p === "moved" ? movedRun + 1 : 0;
       stillOpen = p === "ok";
       // act on two readings in a row (~0.36 s): a single noisy probe made the pins blink
       if (closedRun >= 2) {
@@ -271,10 +269,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
         if (shown) send(frameFor(shown));
         return Math.round(PROBE_MS / 2);
       }
-      if (p === "moved" && movedRun < 2) {
-        if (shown) send(frameFor(shown));
-        return Math.round(PROBE_MS / 2);
-      }
+      // moving: hide at once (pins sliding against the map look wrong); they return once it's still
       if (p === "moved") {
         // being panned or zoomed: no pins until the map is still again (a full frame right away, and
         // its pins once a probe sees nothing moved since)
