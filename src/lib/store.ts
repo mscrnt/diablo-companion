@@ -102,8 +102,6 @@ export interface Settings {
     worldDwellMs: number;
     worldBadgeSeconds: number;
     snoozeSeconds: number;
-    /** instead of scrapping: "rare" keeps 3★+ items and 2★+ uniques; "plenty" (enough materials) also keeps every unique and 2★ items */
-    keepForOther: "off" | "rare" | "plenty";
   };
   /** record every auto-judge scan with its frame and display context (test-mode log folder, capped) */
   testMode: { enabled: boolean; maxMB: number };
@@ -198,7 +196,7 @@ export const defaultSettings: Settings = {
   timers: { source: "auto", pollSeconds: 60 },
   hordes: { enabled: true, style: "balanced" },
   autoRuns: true,
-  autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30, keepForOther: "rare" },
+  autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30 },
   testMode: { enabled: false, maxMB: 500 },
   mapPins: {
     enabled: true,
@@ -405,7 +403,8 @@ export function getActiveVariant() {
 
 interface LootState {
   history: JudgeResult[];
-  add: (r: JudgeResult) => void;
+  /** newest first; `replaces` drops that older row (the same item judged again moves to the top) */
+  add: (r: JudgeResult, replaces?: string) => void;
   patch: (id: string, p: Partial<JudgeResult>) => void;
   clear: () => void;
 }
@@ -414,7 +413,7 @@ export const useLoot = create<LootState>()(
   persist(
     (set) => ({
       history: [],
-      add: (r) => set((s) => ({ history: [r, ...s.history].slice(0, 80) })),
+      add: (r, replaces) => set((s) => ({ history: [r, ...s.history.filter((h) => h.id !== replaces)].slice(0, 80) })),
       patch: (id, p) => set((s) => ({ history: s.history.map((h) => (h.id === id ? { ...h, ...p } : h)) })),
       clear: () => set({ history: [] }),
     }),

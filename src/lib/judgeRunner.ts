@@ -116,7 +116,7 @@ export async function judgeTooltips(
     }
     const worn = (slot: string) => useBuilds.getState().worn[slot];
     const inCodex = (slug: string) => !!useBuilds.getState().owned[slug];
-    let scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex, keep: settings.autoJudge.keepForOther }, equipped ?? hovered.compare ?? null);
+    let scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex }, equipped ?? hovered.compare ?? null);
     // junk for the active build — but maybe great for another build you've bookmarked?
     if ((scored.verdict === "SCRAP" || scored.verdict === "SELL") && !hovered.equipped) {
       const bs = useBuilds.getState();
@@ -153,10 +153,10 @@ export async function judgeTooltips(
       comparedWith: equipped?.name ?? null,
     });
 
-    // de-dupe: same item (name + stat lines) judged in the last 3 minutes → no new history row
+    // de-dupe: same item (name + stat lines) judged in the last 3 minutes → its row moves back to the top
     const key = (it: ParsedItem) => normName(it.name) + "|" + it.affixes.map((a) => normName(a.text)).join("|");
     const dup = useLoot.getState().history.find((x) => Date.now() - x.at < 180_000 && key(x.item) === key(hovered));
-    if (!dup) useLoot.getState().add(result);
+    useLoot.getState().add(result, dup?.id);
     if (meta?.sig) cache.set(meta.sig, result);
     if (cache.size > 200) cache.delete(cache.keys().next().value!);
 

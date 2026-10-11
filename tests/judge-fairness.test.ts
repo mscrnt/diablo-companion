@@ -43,15 +43,20 @@ describe("rings: a named comparison stays with its slot", () => {
 describe("keeping rare items for other builds", () => {
   const junk = (ga: number, rarity = "legendary") =>
     item("Odd Gloves", "gloves", rarity, [A("+5% Fire Damage", null, { greater: ga > 0 }), A("+4% Attack Speed", null, { greater: ga > 1 }), A("+200 Dexterity", null, { greater: ga > 2 }), A("+3 to Curse Skills", null, { greater: ga > 3 })]);
-  it("stashes a 3★+ item instead of scrapping it", () => {
+  it("saves a 3★+ item for later instead of scrapping it", () => {
     const r = decide(junk(4), ctx.variant, { prog: ctx.prog });
     expect(r.verdict).toBe("STASH");
-    expect(r.action).toMatch(/4★ greater affixes/);
+    expect(r.action).toMatch(/Save it for later — 4★ greater affixes/);
   });
-  it("still scraps an ordinary item, unless you have plenty of materials and it's a unique", () => {
+  it("saves a 2★ unique, and a 2★ legendary only when both ★ are on stats the class uses", () => {
+    expect(decide(junk(2, "unique"), ctx.variant, { prog: ctx.prog }).verdict).toBe("STASH");
+    expect(decide(junk(2), ctx.variant, { prog: ctx.prog }).verdict).toBe("SCRAP"); // ★ on Fire Damage: not a necro stat
+    const good = item("Fine Gloves", "gloves", "legendary", [A("+120 Intelligence", "Intelligence", { greater: true }), A("+6% Attack Speed", null, { greater: true }), A("+5% Fire Damage")]);
+    expect(decide(good, ctx.variant, { prog: ctx.prog }).action).toMatch(/2★ greater affixes on stats your class uses/);
+  });
+  it("still scraps an ordinary item", () => {
     expect(decide(junk(1), ctx.variant, { prog: ctx.prog }).verdict).toBe("SCRAP");
-    expect(decide(junk(0, "unique"), ctx.variant, { prog: ctx.prog, keep: "plenty" }).verdict).toBe("STASH");
-    expect(decide(junk(4), ctx.variant, { prog: ctx.prog, keep: "off" }).verdict).toBe("SCRAP");
+    expect(decide(junk(0, "unique"), ctx.variant, { prog: ctx.prog }).verdict).toBe("SCRAP");
   });
 });
 

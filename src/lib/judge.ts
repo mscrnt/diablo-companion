@@ -90,8 +90,8 @@ export interface Ctx {
   cubeHint?: (slot: GearSlot) => { recipe: string; baseType: string; pool: string[] } | undefined;
   /** the aspect (by slug) is already in your Codex of Power (Collection page) */
   inCodex?: (slug: string) => boolean;
-  /** keep rare items for other builds instead of scrapping them (Settings → Auto-judge) */
-  keep?: "off" | "rare" | "plenty";
+  /** the build's stat weights (filled in by decide) */
+  prof?: BuildProfile;
 }
 
 type Out = Omit<JudgeResult, "id" | "at" | "ms" | "thumb">;
@@ -214,6 +214,21 @@ function betterLine(item: ParsedItem, slot: GearSlot, q: Quality, worn: ParsedIt
  * What to do with an item you're NOT going to wear. `better` says what beats it (any scrap/sell
  * verdict for a slot the build uses must say why and what's better).
  */
+/**
+ * Is this a roll to keep whatever the build: 3–4★ greater affixes, a unique with 2★, or a legendary
+ * whose two ★ land on stats your class uses. Returns why, or null.
+ */
+function topTier(item: ParsedItem, slot: GearSlot | null, prof: BuildProfile | null): string | null {
+  const greater = item.affixes.filter((a) => a.greater);
+  const r = rarityOf(item);
+  if (r !== "legendary" && r !== "unique") return null;
+  if (greater.length >= 3) return `${greater.length}★ greater affixes is a top-tier roll`;
+  if (greater.length < 2) return null;
+  if (r === "unique") return "a unique with 2★ greater affixes is a top-tier roll";
+  const forYou = !!slot && !!prof && greater.every((a) => statWeight(statKey(a.match ?? a.text), slot, prof) >= 0.4);
+  return forYou ? "2★ greater affixes on stats your class uses" : null;
+}
+
 function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSlot | null, q?: Quality, ctx?: Ctx, better?: string): Out {
   const r = rarityOf(item);
   const reasons = better && !why.includes(better) ? [...why, better] : why;
@@ -221,14 +236,9 @@ function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSl
     ? gear.find((g) => g.kind === "aspect" && (sameItem(item.aspect!.name, g.itemName) || similarity(item.aspect!.name, g.itemName) > 0.75))
     : undefined;
   if (r === "mythic") return out(item, "STASH", "Stash it — mythics are rare; keep it for other builds.", why, slot, q);
-  // rare rolls are worth more than their materials, even when this build has no use for them
-  const ga = item.affixes.filter((a) => a.greater).length;
-  const keep = ctx?.keep ?? "rare";
-  const uniq = r === "unique";
-  if (keep !== "off" && (ga >= 3 || (uniq && ga >= 2)))
-    return out(item, "STASH", `Stash it — ${ga}★ greater affixes is rare; another build may want it.`, reasons, slot, q);
-  if (keep === "plenty" && (uniq || (r === "legendary" && ga >= 2)))
-    return out(item, "STASH", uniq ? "Stash it — you have plenty of materials, so keep uniques for other builds." : `Stash it — ${ga}★ greater affixes; you have plenty of materials, so keep it for other builds.`, reasons, slot, q);
+  // a top-tier roll is worth more than its materials, even when this build has no use for it
+  const top = topTier(item, slot, ctx?.prof ?? null);
+  if (top) return out(item, "STASH", `Save it for later — ${top}.`, reasons, slot, q);
   const notes: string[] = [];
   if (buildAspect && item.aspect?.imprinted) {
     // an imprinted power came from your Codex already — salvaging it adds nothing new
@@ -252,7 +262,7 @@ function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSl
 }
 
 export function decide(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ctx, compareTo?: ParsedItem | null): Out {
-  const res = decideCore(item, variant, ctx, compareTo);
+  const res = decideCore(item, variant, { ...ctx, prof: buildProfile(variant) }, compareTo);
   if (item.truncated) res.reasons = [...res.reasons, "Part of this tooltip is hidden — scroll it down to let me see everything."];
   if (res.verdict === "WEAR" && variant && res.slot) {
     const slot = variant.gear.find((g) => g.slot === res.slot);
@@ -384,7 +394,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     }
 
   // pick the slot where it would help most (matters for rings)
-  const prof = buildProfile(variant);
+  const prof = ctx.prof ?? buildProfile(variant);
   let best: { slot: GearSlot; q: Quality; gain: number; w: ParsedItem | null; wornQ: Quality | null; cmp: Swap | null } | null = null;
   for (const c of candidates) {
     const q = quality(item, c);
