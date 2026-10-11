@@ -23,6 +23,8 @@ The release workflow publishes each version's section as its GitHub release note
 - **Test mode** (Setup & Guide, off by default): records every item scan with its screen capture, the tooltip boxes, the text read, the parse and the verdict, along with your game window size and mode, monitor DPI scale, overlay layout and black-bar detection. A new snapshot is saved whenever the window, mode or DPI changes. Recordings go to a test-mode folder next to the judge log (capped at 500 MB by default, oldest first) and open from the Loot page or the Test mode card.
 
 ### Changed
+- **The loot judge weighs every stat for your build**, not just the few the guide lists for that slot. Stats the build wants on that slot count most. Stats it wants elsewhere, your main stat and ranks to your skills still count. Generic offence and defence count a little; another element's damage or another class's skills barely count. A bigger roll beats a smaller one by how much bigger it is. So a piece with better numbers, or useful stats off the guide's list, is now recognised as an upgrade. The verdict says how it compares ("For your build: better than yours (…)") and lists the biggest differences with numbers.
+- A copy with a cut-off tooltip isn't called better on stats your piece might also have; scroll down to see the full comparison.
 - The app is now called **Sanctuary Toolkit**, with a new flaming-sword icon for the window, taskbar, tray and installer. Your settings and data carry over.
 - Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.
 - Licensed under the PolyForm Noncommercial License 1.0.0: free for personal and other noncommercial use.
@@ -30,6 +32,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Charms (even the ones your build uses), seals and Whisper Caches could be told "scrap" when the AI read the tooltip. Your build's charms are kept, other pieces of its charm set are kept, other charms are stashed, and caches are never judged as gear.
 - Infernal Hordes offers: the pick no longer jumps between offers. It remembers every offer seen on the offer screen and ranks that set, reads only real offer titles (not description fragments or boss names), starts fresh each wave, and reads your Aether count from the tracker instead of "+2 Aether" in a description.
 - The "Open test-mode folder" and judge log buttons open the folder again (the app wasn't allowed to open folders from the page).
 - The skill bar check no longer warns about skills your character mapping already read off your bar, and only warns after a skill is missing on three checks in a row, once per session.

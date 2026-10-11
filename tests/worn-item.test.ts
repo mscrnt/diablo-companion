@@ -114,7 +114,8 @@ describe("a worse amulet than yours", () => {
     const item: ParsedItem = { ...lions(), compare: null, compareRows: undefined };
     const r = decide(item, ctx.variant, { prog: ctx.prog, worn: (s) => (s === "amulet" ? wornAmulet() : undefined) }, null);
     expect(r.verdict).toBe("SCRAP");
-    expect(r.reasons[0]).toBe("Yours (Ocelot's Eye of Reanimation) has Crit Damage; this doesn't.");
+    expect(r.reasons[0]).toMatch(/worse than yours \(Ocelot's Eye of Reanimation\)/);
+    expect(r.reasons.join(" | ")).toMatch(/− Crit Damage: yours has/);
   });
 
   it("not imprinted: salvage it for the aspect, unless the Codex already has it", () => {
