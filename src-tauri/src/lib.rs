@@ -62,6 +62,11 @@ fn cursor_position() -> (i32, i32) {
 }
 
 #[tauri::command]
+fn mouse_down() -> bool {
+    capture::mouse_down()
+}
+
+#[tauri::command]
 fn game_status() -> game::GameStatus {
     game::current()
 }
@@ -495,6 +500,7 @@ pub fn run() {
             ocr_image,
             list_monitors,
             cursor_position,
+            mouse_down,
             game_status,
             set_overlay_interactive,
             set_overlay_capturable,

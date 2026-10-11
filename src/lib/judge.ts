@@ -432,6 +432,10 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
         ? "consumable"
         : (item.category ??
         (item.slot === "charm" || item.slot === "seal" ? "talisman" : item.slot === "other" && /\bcache\b|collection of/i.test(text) ? "consumable" : undefined));
+  // only a seal "Unlocks N Charm Slots": a capture that starts below the title left the AI read guessing
+  // ("Legendary Horadric Seal", slot "offhand"), and it was scrapped as gear (2026-10-11 RC test)
+  if (category !== "tribute" && category !== "consumable" && /unlocks\s+\d+\s+charm\s+slots|horadric seal/i.test(`${text}\n${item.affixes.map((a) => a.text).join("\n")}`))
+    return decideNonGear({ ...item, category: "talisman", slot: "seal", itemType: item.itemType || "Horadric Seal" }, variant, compareTo);
   if (category && category !== "gear") return decideNonGear({ ...item, category }, variant, compareTo);
   if (!variant) return out(item, "UNKNOWN", "Import your build first (Build page).", [], null);
   const gear = variant.gear.filter((g) => g.group === "gear");

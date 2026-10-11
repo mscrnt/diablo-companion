@@ -1,7 +1,7 @@
 // Instant tooltip parser: OCR lines + bullet-icon colours + rules. No LLM.
 // Returns null (→ fall back to the LLM labeller) when it isn't confident.
 import { buildTargetNames, cleanStat, matchTarget } from "./parse";
-import { aspectFromItemName, canonicalUnique, identifyAspect, similarity, table, trigramSim } from "./names";
+import { aspectFromItemName, canonicalUnique, identifyAspect, identifyUnique, similarity, table, trigramSim } from "./names";
 import { confusionKey, editDistance, knownStat, knownWord, ocrVocabReady, sheetLabel, snapLines } from "./ocrfix";
 import type { Bullet } from "./vision";
 import type { BuildVariant, CompareRow, ParsedAffix, ParsedItem } from "./types";
@@ -303,9 +303,12 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
 
   // 4) assemble
   const targets = buildTargetNames(variant);
-  const affixes: ParsedAffix[] = stats.map((s) => ({
+  // the base stat line ("801 Armor", "288 All Resist") has no bullet: never a greater affix, whatever the
+  // icon check saw beside it (a 4★ Paingorger's was read as 5★, 2026-10-11)
+  const baseLine = (t: string, i: number) => i === 0 && /^\d[\d,.]*\s+(armor|all resist)\b/i.test(t);
+  const affixes: ParsedAffix[] = stats.map((s, i) => ({
     text: s.text,
-    greater: s.bullet === "greater",
+    greater: s.bullet === "greater" && !baseLine(s.text, i),
     tempered: s.bullet === "tempered",
     masterwork: s.bullet === "masterwork",
     enchanted: s.bullet === "enchanted",
@@ -366,7 +369,9 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
 
   // repair OCR'd titles: snap uniques to the official name; for legendaries fix the "of X" suffix from the aspect
   let finalName = name;
-  if (rarity === "unique" || rarity === "mythic") finalName = canonicalUnique(name) ?? name;
+  // a capture that missed the title ("Unique Gloves" from the type line): the unique power says which one
+  if ((rarity === "unique" || rarity === "mythic") && !rawName.trim()) finalName = identifyUnique(powerText, typeLine) ?? name;
+  else if (rarity === "unique" || rarity === "mythic") finalName = canonicalUnique(name) ?? name;
   else if (legendaryName && / of /i.test(name)) {
     const suffix = legendaryName.replace(/^aspect\s+of\s+/i, "").replace(/\s+aspect$/i, "");
     const cut = name.toLowerCase().lastIndexOf(" of ");

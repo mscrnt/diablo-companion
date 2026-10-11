@@ -65,6 +65,9 @@ export const listMonitors = () => invoke<[string, Rect, boolean][]>("list_monito
 
 export const cursorPosition = () => invoke<[number, number]>("cursor_position");
 
+/** A mouse button held down right now (read-only OS state). */
+export const mouseDown = () => invoke<boolean>("mouse_down");
+
 export const gameStatus = () => invoke<GameStatus>("game_status");
 
 export const setOverlayInteractive = (interactive: boolean) => invoke("set_overlay_interactive", { interactive });

@@ -45,6 +45,11 @@ The release workflow publishes each version's section as its GitHub release note
 - **The Pit** no longer finishes when you die and revive at the checkpoint (the loading screen hid "Slay the Boss"). It finishes on "Dungeon cleared", or when the boss objective has been gone for a few seconds while the Pit's tracker still shows.
 - Lair bosses are recognised from their health bar ("TORMENTED ECHO OF URIVAR +3" is Urivar), and the boss panel also shows inside dungeons while the dungeon's run keeps the time.
 - Hovering an Infernal Hordes compass in the bag no longer brings up the Hordes panel when OCR garbles the word "Compass".
+- A seal whose title the capture missed is no longer scrapped as off-hand gear: "Unlocks N Charm Slots" makes it a seal.
+- Hovering one item no longer re-judges it every second: an item is recognised by its numbers, not its title, which the stylised font reads differently each time.
+- A unique whose title the capture missed is named from its unique power ("Unique Gloves" is Paingorger's Gauntlets), and the base armor line is never counted as a ★ greater affix (a 4★ item was called 5★).
+- **Map pins hide while you drag the map** (a mouse button held on the open map) and come back once it's let go and the map is still. A slow drag used to leave them sliding over the map.
+- The black-bar layout no longer switches off for a whole session when one early frame (a loading screen) showed no bars: the samples that agree win, so the loot judge panel and its picture, and the toasts, stay in the bars.
 - Helltide cinders no longer jump on one misread frame (283 → 3 → 387): a drop or a big jump must be read twice.
 - Dungeon Caches and Experience Tomes get "Open it" / "Use it" instead of "couldn't read this item".
 - Tree of Whispers: caches that score the same no longer swap places on every read.

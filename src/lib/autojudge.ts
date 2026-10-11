@@ -202,11 +202,18 @@ export function prelimScore(lines: OcrLine[], box: TooltipBox): Prelim {
  * other ring/weapon slot counts as a new tooltip and gets re-judged.
  */
 function signature(lines: OcrLine[]) {
-  const item = lines.slice(0, 14).map((l) => normName(cleanLine(l.text)));
+  // which item it is: its numbers ("900 Item Power", "+225 Intelligence", …) read the same every time, while
+  // the stylised title doesn't ("BLOOD mooN", "B&OD mobN"…), and the box can start above or below the title.
+  // Keyed on the title, hovering one item re-judged it every second (2026-10-11 RC test).
+  const numbers = lines
+    .slice(0, 24)
+    .map((l) => (l.text.replace(/\([^)]*\)?/g, " ").match(/\d[\d.,]*%?/g) ?? []).join(" "))
+    .filter(Boolean);
+  const item = numbers.length >= 3 ? numbers : lines.slice(0, 14).map((l) => normName(cleanLine(l.text))).filter((t) => t.length > 3);
   const deltas = lines.map((l) => l.text.match(/\(\s*[+\-][\d.,]+%?/g)?.join("") ?? "").join("");
   const lostAt = lines.findIndex((l) => /properties lost/i.test(l.text));
   const lost = lostAt >= 0 ? lines.slice(lostAt + 1, lostAt + 8).map((l) => normName(l.text)).join("|") : "";
-  return [...item.filter((t) => t.length > 3), deltas.replace(/\s+/g, ""), lost].join("|");
+  return [...item, deltas.replace(/\s+/g, ""), lost].join("|");
 }
 
 /**

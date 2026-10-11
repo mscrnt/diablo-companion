@@ -418,12 +418,15 @@ function noteGame(g: GameStatus) {
 let barsBusy = false;
 let barsSamples = 0;
 let barsRectKey = "";
+/** this session's usable samples for the current game window */
+let barsSeen: { left: number; right: number; top: number; bottom: number }[] = [];
 /** Learn the pillarbox bounds by itself: a few samples while the game is focused, keep the widest image. */
 async function autoDetectBars(rect: [number, number, number, number]) {
   const key = rect.join(",");
   if (key !== barsRectKey) {
     barsRectKey = key;
     barsSamples = 0;
+    barsSeen = [];
   }
   if (barsBusy || barsSamples >= 4) return;
   barsBusy = true;
@@ -436,13 +439,17 @@ async function autoDetectBars(rect: [number, number, number, number]) {
     debugEvent("game", "bars", { sample: barsSamples + 1, rect, bounds: b });
     if (!b) return; // unusable frame (e.g. black loading screen) — retry on a later focus event
     barsSamples++;
-    // keep the narrowest bars seen this session (a dark scene can only make bars look wider)
+    barsSeen.push(b);
+    // the samples that agree with the median, and of those the narrowest bars (a dark scene can only make
+    // bars look wider). One odd frame, like a loading screen read as "no bars" at all, used to win the
+    // narrowest-bars rule and turned the bar layout off for the whole session (2026-10-11 RC test).
+    const lefts = barsSeen.map((x) => x.left).sort((x, y) => x - y);
+    const mid = lefts[Math.floor(lefts.length / 2)]; // the upper median: two samples, one of them "no bars", pick the bars
+    const agree = barsSeen.filter((x) => Math.abs(x.left - mid) <= 0.01);
+    const best = agree.reduce((a, x) => ({ left: Math.min(a.left, x.left), right: Math.max(a.right, x.right), top: Math.min(a.top, x.top), bottom: Math.max(a.bottom, x.bottom) }));
     useSettings.getState().update((s) => {
-      const prev = barsSamples > 1 ? s.overlay.gameBounds : null;
-      s.overlay.gameBounds = prev
-        ? { left: Math.min(prev.left, b.left), right: Math.max(prev.right, b.right), top: Math.min(prev.top, b.top), bottom: Math.max(prev.bottom, b.bottom) }
-        : b;
-      if (b.left > 0.03) s.overlay.layout = "bars";
+      s.overlay.gameBounds = best;
+      if (best.left > 0.03) s.overlay.layout = "bars";
     });
   } catch {
     /* try again on the next focus event */

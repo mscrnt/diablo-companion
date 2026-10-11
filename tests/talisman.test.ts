@@ -148,3 +148,21 @@ describe("spare seals", () => {
     expect(r.verdict).toBe("SOCKET");
   });
 });
+
+describe("a seal the AI read couldn't name", () => {
+  it("'Unlocks 5 Charm Slots' makes it a seal, never off-hand gear to scrap", () => {
+    const item: ParsedItem = {
+      name: "Legendary Horadric Seal",
+      rarity: "legendary",
+      itemType: "",
+      slot: "offhand",
+      itemPower: null,
+      affixes: [{ text: "Unlocks 5 Charm Slots", greater: false }],
+      aspect: null,
+      rawText: "Unlocks 5 Charm Slots\n20.0% Damage (+20.0%)\nProperties lost when equipped:\nUnlocks 1 Charm Slots\n+7.5% All Stats\nSeal Power\nSeal Power\nSeal Power\nRequires Level 50",
+    };
+    const r = decide(item, ctx.variant, { prog: ctx.prog }, null);
+    expect(r.verdict).toBe("SCRAP");
+    expect(r.action).toMatch(/the seal you wear is better/);
+  });
+});

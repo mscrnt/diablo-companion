@@ -163,6 +163,29 @@ export function identifyAspect(powerText: string, className?: string): string | 
 }
 
 /**
+ * Name a unique or mythic from its power text, for a capture that missed the title ("Damaging enemies with
+ * a Non-Basic Skill cast marks them…" is Paingorger's Gauntlets). `itemType` narrows it to that kind of
+ * item when the table knows it. Returns the name, or null without a clear match.
+ */
+export function identifyUnique(powerText: string, itemType = ""): string | null {
+  const t = normStat(powerText);
+  if (t.split(" ").length < 6) return null;
+  const kind = normName(itemType).split(" ").pop() ?? "";
+  let best: string | null = null;
+  let bestS = 0;
+  for (const u of Object.values(table("uniques"))) {
+    if (u.x || !u.d) continue;
+    if (kind && u.t && !normName(u.t).includes(kind) && !kind.includes(normName(u.t).split(" ").pop() ?? "")) continue;
+    const s = similarity(t, u.d);
+    if (s > bestS) {
+      bestS = s;
+      best = u.n;
+    }
+  }
+  return bestS >= 0.6 ? best : null;
+}
+
+/**
  * The aspect a legendary's name points to: "Ocelot's Eye of Reanimation" → Aspect of
  * Reanimation, "Skullbreaker's Helm" → Skullbreaker's Aspect. Only real aspects from the
  * game data count (a name suffix with no aspect behind it returns null), and only one

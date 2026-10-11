@@ -13,7 +13,7 @@
 // over it) to clip to. It also drops them by itself if no update arrives for a while.
 import { create } from "zustand";
 import { emitOverlay } from "./bus";
-import { captureRegion, type CaptureResult } from "./native";
+import { captureRegion, mouseDown, type CaptureResult } from "./native";
 import {
   MapTracker,
   PROBE_BAND,
@@ -160,6 +160,8 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
   let missRun = 0;
   /** the last probe saw the map still and open: shown pins are still right */
   let stillOpen = false;
+  /** a mouse button is held on the open map (dragging it): no pins until it's let go and the map is still */
+  let held = false;
   /** expiry the overlay applies, sized to the measured cycle so a slow capture can't blink pins */
   const ttl = () => {
     const st = useMapPins.getState().status;
@@ -288,7 +290,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
         lastFull = 0;
         return 0;
       }
-      if (settling && pending) {
+      if (settling && pending && !held) {
         shown = pending;
         pending = null;
         settling = false;
@@ -422,6 +424,31 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     setTimeout(loop, Math.max(next === 0 ? 0 : 120, next - (performance.now() - t)));
   };
   setTimeout(loop, 3000);
+
+  // dragging the map: a slow drag barely changes the probe's strip, and a full frame mid-drag placed pins
+  // that then slid. A held mouse button hides them at once (read-only OS state, nothing sent to the game);
+  // they come back once it's let go and a probe sees the map still.
+  const holdLoop = async () => {
+    try {
+      if (tracker.tracking || shown) {
+        const down = await mouseDown();
+        if (down && !held) {
+          held = true;
+          debugEvent("mappins", "drag", { why: "mouse button held on the open map: pins hidden" });
+          shown = pending = null;
+          settling = true;
+          send(null);
+        } else if (!down && held) {
+          held = false;
+          lastFull = 0; // a fresh full frame right away
+        }
+      } else held = false;
+    } catch {
+      held = false;
+    }
+    setTimeout(holdLoop, 50);
+  };
+  setTimeout(holdLoop, 3000);
 }
 
 // background loops hold references to this module: reload the page instead of hot-swapping

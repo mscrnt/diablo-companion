@@ -66,6 +66,18 @@ pub fn cursor_pos() -> (i32, i32) {
     (0, 0)
 }
 
+/// Is a mouse button held down (left or right, physical buttons)? Read-only: the same OS state any
+/// app can query; nothing is sent to the game. Used to hide map pins while you drag the map.
+pub fn mouse_down() -> bool {
+    #[cfg(windows)]
+    unsafe {
+        use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON};
+        return (GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16 & 0x8000) != 0 || (GetAsyncKeyState(VK_RBUTTON.0 as i32) as u16 & 0x8000) != 0;
+    }
+    #[allow(unreachable_code)]
+    false
+}
+
 fn monitor_rect(m: &Monitor) -> anyhow::Result<Rect> {
     Ok(Rect {
         x: m.x()?,
