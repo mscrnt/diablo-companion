@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { chestAdvice, findChests, findOffers, looksLikeHordes, parseAether } from "../src/lib/hordes";
+import { chestAdvice, findChests, findOffers, looksLikeHordes, offerPhase, parseAether, trackerAether, trackerWave } from "../src/lib/hordes";
 import { findWhisperCaches, parseGrimFavors } from "../src/lib/whispers";
 import { helltideAdvice, parseHelltideHud } from "../src/lib/helltide";
 import { bossInfo, findBoss } from "../src/lib/boss";
@@ -39,6 +39,28 @@ describe("Infernal Hordes", () => {
     const a = chestAdvice(ctx.variant, ctx.prog, 1250);
     expect(a.order[0]).toBe("Spoils of Talismans");
     expect(a.order.at(-1)).toBe("Spoils of Gold");
+  });
+
+  it("takes offers only from title lines, not description fragments or boss names", () => {
+    // modelled on a real wave 6 offer screen (OCR slips kept)
+    const r = findOffers(
+      [line("Aether Goblins", 400, 300), line("The Enduring Lords", 1200, 300), line("The Exalted Fiends", 2000, 300), line("The Wrath 0fHell", 2800, 300), line("THE FELL COUNCIL", 100, 100)],
+      { x: 0, y: 0 },
+      "balanced",
+    );
+    expect(r.map((o) => o.title).sort()).toEqual(["The Enduring Lords", "The Exalted Fiends", "The Wrath of Hell"]);
+    expect(r[0].title).toBe("The Wrath of Hell");
+  });
+
+  it("reads the offer phase, wave and Aether count from the tracker", () => {
+    expect(offerPhase("Select an Infemal Offer •")).toBe("selecting");
+    expect(offerPhase("YOU'VE CHOSEN THE WRATH OF HELL")).toBe("chosen");
+    expect(offerPhase("BEGIN WAVE 7")).toBe("chosen");
+    expect(offerPhase("Slay monsters to draw out Aether")).toBeNull();
+    expect(trackerWave("MWAVE: 6/10")).toBe(6);
+    expect(trackerAether([line("WAVE: 7/10"), line("Xo:53"), line("453")])).toBe(453);
+    // "+2 Aether" in an offer description is not the count
+    expect(parseAether("Aether Fiends grant +2 Aether")).toBeNull();
   });
 
   it("parses the tracker", () => {

@@ -2,10 +2,11 @@
 // then scans the arena for offer labels / Spoils chests and pushes advice to the overlay.
 import { invoke } from "@tauri-apps/api/core";
 import { emitOverlay } from "./bus";
-import { chestAdvice, findChests, findOffers, looksLikeHordes, parseAether, type SeenChest, type SeenOffer } from "./hordes";
+import { chestAdvice, findChests, findOffers, looksLikeHordes, offerPhase, parseAether, trackerAether, trackerWave, type SeenChest, type SeenOffer } from "./hordes";
 import { captureRegion } from "./native";
 import { getActiveVariant, useSettings } from "./store";
 import { testModeOn } from "./testmode";
+import { debugEvent, debugEventEvery } from "./debug";
 
 export interface HordesState {
   active: boolean;
@@ -22,6 +23,12 @@ let busy = false;
 let lastTracker = 0;
 let lastLogged = "";
 let lastTrackerLog = 0;
+let lastOffersKey = "";
+let lastChestsKey = "";
+/** offers seen during the current offer screen, with how many scans saw each */
+const remembered = new Map<string, { offer: SeenOffer; hits: number }>();
+let phase: "selecting" | "chosen" | null = null;
+let wave: number | null = null;
 
 export const hordesState = () => state;
 
@@ -47,6 +54,8 @@ async function checkTracker(rect: Rect) {
   const cap = await ocrRegion(r, 1.3);
   const text = cap.ocr?.text ?? "";
   const hit = looksLikeHordes(text);
+  if (hit) debugEvent("hordes", "detected", { via: "quest tracker", aether: parseAether(text) });
+  else debugEventEvery("hordes-tracker", 30_000, "hordes", "tracker-check", { hit: false, text: text.replace(/\s+/g, " ").slice(0, 120) });
   if (hit) {
     activeUntil = Date.now() + 120_000;
     const a = parseAether(text);
@@ -73,15 +82,48 @@ async function scanArena(rect: Rect) {
   const r = { x: Math.round(gx + gw * x0), y: Math.round(gy + gh * 0.04), w: Math.round(gw * (x1 - x0)), h: Math.round(gh * 0.8) };
   const cap = await ocrRegion(r);
   const lines = cap.ocr?.lines ?? [];
-  const offers = findOffers(lines, cap.region, settings.hordes.style);
+  const seenNow = findOffers(lines, cap.region, settings.hordes.style);
   const chestsSeen = findChests(lines, cap.region);
   const text = cap.ocr?.text ?? "";
-  const a = parseAether(text);
+  const a = trackerAether(lines) ?? parseAether(text);
   if (a != null) state.aether = a;
+
+  // the offer screen: labels come and go as you walk between the pillars, so remember every offer
+  // seen while choosing and rank that set; start over once one is chosen
+  const ph = offerPhase(text);
+  if (ph && ph !== phase) {
+    debugEvent("hordes", ph === "chosen" ? "offer-chosen" : "offer-select", { pick: state.lastPick, seen: [...remembered.keys()] });
+    remembered.clear();
+    phase = ph;
+  }
+  // a new wave number means a new offer screen, even if the "You've chosen" banner was missed
+  const w = trackerWave(text);
+  if (w != null && w !== wave) {
+    if (wave != null) remembered.clear();
+    wave = w;
+  }
+  if (phase !== "chosen") for (const o of seenNow) remembered.set(o.key, { offer: o, hits: (remembered.get(o.key)?.hits ?? 0) + 1 });
+  const nowKeys = new Set(seenNow.map((o) => o.key));
+  const offers: SeenOffer[] =
+    phase === "chosen"
+      ? []
+      : [...remembered.values()]
+          .sort((x, y) => y.hits - x.hits)
+          .slice(0, 3) // three pillars per wave
+          .map(({ offer }) => ({ ...(seenNow.find((o) => o.key === offer.key) ?? offer), visible: nowKeys.has(offer.key) }))
+          .sort((x, y) => y.score - x.score)
+          .map((o, i) => ({ ...o, rank: i + 1 }));
   const { variant, prog } = getActiveVariant();
   const adv = chestAdvice(variant, prog, state.aether);
   const chests = chestsSeen.map((c) => ({ ...c, order: adv.order.indexOf(c.name) + 1 || 99 })).sort((x, y) => x.order - y.order);
-  if (offers.length || chests.length) activeUntil = Date.now() + 120_000;
+  if ((offers.length || chests.length) && !state.active) debugEvent("hordes", "detected", { via: offers.length ? "offers on screen" : "chests on screen" });
+  if (seenNow.length || chests.length) activeUntil = Date.now() + 120_000;
+  const offersKey = offers.map((o) => o.key).join(",");
+  if (offersKey && offersKey !== lastOffersKey) debugEvent("hordes", "offers-seen", { offers: offers.map((o) => `${o.rank}. ${o.title}`), aether: state.aether });
+  lastOffersKey = offersKey || lastOffersKey;
+  const chestsKey = chests.map((c) => c.key).join(",");
+  if (chestsKey && chestsKey !== lastChestsKey) debugEvent("hordes", "chests-seen", { chests: chests.map((c) => `${c.order < 99 ? c.order : "skip"}. ${c.name}`), aether: state.aether });
+  lastChestsKey = chestsKey || lastChestsKey;
   // log each new set of offers/chests (screenshot + OCR) so the matcher can be tuned on real screens
   const sig = [...offers.map((o) => o.key), ...chests.map((c) => c.key)].sort().join(",");
   if (sig && sig !== lastLogged) {
@@ -119,10 +161,18 @@ export function startHordes(isFocused: () => boolean, gameRect: () => Rect | nul
           await checkTracker(rect);
         }
         if (Date.now() < activeUntil) await scanArena(rect);
-        else if (state.active) state = { active: false, aether: null, offers: [], chests: [], advice: [], lastPick: null };
+        else if (state.active) {
+          debugEvent("hordes", "ended", { why: "nothing Hordes-like seen for 2 min", lastPick: state.lastPick });
+          state = { active: false, aether: null, offers: [], chests: [], advice: [], lastPick: null };
+          lastOffersKey = lastChestsKey = "";
+          remembered.clear();
+          phase = null;
+          wave = null;
+        }
         push();
       }
     } catch (e) {
+      debugEvent("hordes", "error", { error: String(e) });
       console.warn("hordes tick failed", e);
     } finally {
       busy = false;

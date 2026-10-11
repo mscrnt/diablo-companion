@@ -90,37 +90,51 @@ export interface SeenOffer {
   score: number;
   rank: number;
   why: string;
+  /** label on screen in the latest scan (remembered offers still rank, but get no badge) */
+  visible?: boolean;
 }
 
 /** Find offer labels in an OCR'd frame (titles or their exact boon/bane lines). */
 export function findOffers(lines: OcrLine[], region: { x: number; y: number }, style: Playstyle): SeenOffer[] {
   const found = new Map<string, SeenOffer>();
   const candidates = OFFERS.filter((o) => !/^(SelectBartuc|SelectCouncil)$/.test(o.key));
+  const boxOf = (l: OcrLine) => ({ x: region.x + l.x, y: region.y + l.y, w: l.w, h: l.h });
+  // 1) only an offer's title line creates an offer: description text also shows in other places
+  //    (the "View Prior Choices" panel, the chosen banner), and a boss name like "THE FELL COUNCIL"
+  //    must not pass for "The Exalted Council"
   for (const l of lines) {
     const t = l.text.trim();
     if (t.length < 8) continue;
     let best: Offer | null = null;
     let bestS = 0;
     for (const o of candidates) {
-      const s = Math.max(trigramSim(t, o.title), o.bane.length > 12 ? trigramSim(t, o.bane) * 0.95 : 0, o.boon.length > 12 ? trigramSim(t, o.boon) * 0.95 : 0);
+      if (t.length > o.title.length + 8) continue;
+      // offer titles read "The …": a wrapped description fragment ("Aether Goblins") must not pass for one
+      if (/^the /i.test(o.title) && !/^\W{0,3}the/i.test(t)) continue;
+      const s = trigramSim(t, o.title);
       if (s > bestS) {
         bestS = s;
         best = o;
       }
     }
-    if (!best || bestS < 0.72) continue;
-    const box = { x: region.x + l.x, y: region.y + l.y, w: l.w, h: l.h };
-    const prev = found.get(best.key);
-    if (prev) {
-      // grow the box to cover title + description lines
-      const x0 = Math.min(prev.box.x, box.x),
-        y0 = Math.min(prev.box.y, box.y);
-      prev.box = { x: x0, y: y0, w: Math.max(prev.box.x + prev.box.w, box.x + box.w) - x0, h: Math.max(prev.box.y + prev.box.h, box.y + box.h) - y0 };
-      continue;
-    }
+    // the "The" prefix and length checks above keep this loose enough for OCR slips ("The Wrath 0fHell")
+    if (!best || bestS < 0.68 || found.has(best.key)) continue;
     const sc = scoreOffer(best, style);
     const why = sc.note ?? `${best.boon} — but ${best.bane.toLowerCase()}`;
-    found.set(best.key, { key: best.key, title: best.title, boon: best.boon, bane: best.bane, box, score: sc.score, rank: 0, why });
+    found.set(best.key, { key: best.key, title: best.title, boon: best.boon, bane: best.bane, box: boxOf(l), score: sc.score, rank: 0, why });
+  }
+  // 2) description lines only grow the box of an offer already found by its title
+  for (const l of lines) {
+    const t = l.text.trim();
+    if (t.length < 12) continue;
+    for (const o of found.values()) {
+      const def = candidates.find((c) => c.key === o.key)!;
+      if (Math.max(def.bane.length > 12 ? trigramSim(t, def.bane) : 0, def.boon.length > 12 ? trigramSim(t, def.boon) : 0) < 0.72) continue;
+      const box = boxOf(l);
+      const x0 = Math.min(o.box.x, box.x),
+        y0 = Math.min(o.box.y, box.y);
+      o.box = { x: x0, y: y0, w: Math.max(o.box.x + o.box.w, box.x + box.w) - x0, h: Math.max(o.box.y + o.box.h, box.y + box.h) - y0 };
+    }
   }
   const list = [...found.values()].sort((a, b) => b.score - a.score);
   list.forEach((o, i) => (o.rank = i + 1));
@@ -204,8 +218,33 @@ export function looksLikeHordes(text: string) {
 }
 
 export function parseAether(text: string): number | null {
-  const m = text.match(/(\d{1,4})\s*(?:burning\s+)?aether/i) ?? text.match(/aether[:\s]+(\d{1,4})/i);
+  // "+2 Aether" / "15-24 additional Aether" are offer descriptions, not your count
+  const m = text.match(/(?<![+\-\d])(\d{1,4})\s*(?:burning\s+)?aether/i) ?? text.match(/aether[:\s]+(\d{1,4})/i);
   return m ? Number(m[1]) : null;
+}
+
+/** The Aether count from the tracker: the number on its own just below "WAVE: 6/10" (and the timer). */
+export function trackerAether(lines: { text: string }[]): number | null {
+  const i = lines.findIndex((l) => /wave[:\s]*\d+\s*\/\s*\d+/i.test(l.text));
+  if (i < 0) return null;
+  for (const l of lines.slice(i + 1, i + 4)) {
+    const m = l.text.trim().match(/^(\d{1,4})$/);
+    if (m) return Number(m[1]);
+  }
+  return null;
+}
+
+/** The wave number from the tracker ("WAVE: 6/10" → 6). */
+export function trackerWave(text: string): number | null {
+  const m = text.match(/wave[:\s]*(\d{1,2})\s*\/\s*\d{1,2}/i);
+  return m ? Number(m[1]) : null;
+}
+
+/** Where a Hordes wave is: choosing an offer, offer just chosen / wave running, or unknown. */
+export function offerPhase(text: string): "selecting" | "chosen" | null {
+  if (/you['’]?ve\s*chosen|begin\s*wave/i.test(text)) return "chosen";
+  if (/select\s*an\s*[il1]nfe(?:rn|m|r)al\s*offer/i.test(text)) return "selecting";
+  return null;
 }
 
 export const offerByTitle = (t: string) => OFFERS.find((o) => normName(o.title) === normName(t));
