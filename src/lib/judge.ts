@@ -4,7 +4,7 @@ import { Archive, Box, CircleHelp, Coins, Gem, Hammer, ShieldCheck, Shirt, Spark
 import { normName, similarity, trigramSim } from "./names";
 import { knownWord, ocrVocabReady } from "./ocrfix";
 import { buildProfile, compareValue, rowsFromItems, standaloneValue, statKey, statWeight, type BuildProfile } from "./statvalue";
-import type { BuildVariant, GearSlot, JudgeResult, ParsedItem, SlotProgress, Verdict } from "./types";
+import type { BuildVariant, CompareRow, GearSlot, JudgeResult, ParsedItem, SlotProgress, Verdict } from "./types";
 
 // ---- decision -------------------------------------------------------------------
 // Everything below turns a parsed tooltip into ONE plain instruction:
@@ -90,6 +90,8 @@ export interface Ctx {
   cubeHint?: (slot: GearSlot) => { recipe: string; baseType: string; pool: string[] } | undefined;
   /** the aspect (by slug) is already in your Codex of Power (Collection page) */
   inCodex?: (slug: string) => boolean;
+  /** keep rare items for other builds instead of scrapping them (Settings → Auto-judge) */
+  keep?: "off" | "rare" | "plenty";
 }
 
 type Out = Omit<JudgeResult, "id" | "at" | "ms" | "thumb">;
@@ -219,6 +221,14 @@ function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSl
     ? gear.find((g) => g.kind === "aspect" && (sameItem(item.aspect!.name, g.itemName) || similarity(item.aspect!.name, g.itemName) > 0.75))
     : undefined;
   if (r === "mythic") return out(item, "STASH", "Stash it — mythics are rare; keep it for other builds.", why, slot, q);
+  // rare rolls are worth more than their materials, even when this build has no use for them
+  const ga = item.affixes.filter((a) => a.greater).length;
+  const keep = ctx?.keep ?? "rare";
+  const uniq = r === "unique";
+  if (keep !== "off" && (ga >= 3 || (uniq && ga >= 2)))
+    return out(item, "STASH", `Stash it — ${ga}★ greater affixes is rare; another build may want it.`, reasons, slot, q);
+  if (keep === "plenty" && (uniq || (r === "legendary" && ga >= 2)))
+    return out(item, "STASH", uniq ? "Stash it — you have plenty of materials, so keep uniques for other builds." : `Stash it — ${ga}★ greater affixes; you have plenty of materials, so keep it for other builds.`, reasons, slot, q);
   const notes: string[] = [];
   if (buildAspect && item.aspect?.imprinted) {
     // an imprinted power came from your Codex already — salvaging it adds nothing new
@@ -345,12 +355,13 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
 
   // ---- which build slot would it go in? ----
   const named = gear.find((g) => (g.kind === "unique" || g.kind === "mythic") && sameItem(item.name, g.itemName));
-  let candidates = named ? [named] : ((SLOT_MAP[item.slot] ?? []).map((k) => gear.find((g) => g.slot === k)).filter(Boolean) as GearSlot[]);
-  // rings/weapons: the game says which of your two it's comparing against (Alt switches)
-  if (!named && item.compareKind && candidates.length > 1) {
-    const want = candidates.filter((g) => (item.compareKind === "unique") === (g.kind === "unique" || g.kind === "mythic"));
-    if (want.length) candidates = want;
-  }
+  const candidates = named ? [named] : ((SLOT_MAP[item.slot] ?? []).map((k) => gear.find((g) => g.slot === k)).filter(Boolean) as GearSlot[]);
+  // rings/weapons: the game compares with ONE of your two (Alt switches) and says which kind it is;
+  // the other one is still judged, against what you were last seen wearing there
+  const isUniq = (g: GearSlot) => g.kind === "unique" || g.kind === "mythic";
+  const compared =
+    !named && item.compareKind && candidates.length > 1 ? candidates.filter((g) => (item.compareKind === "unique") === isUniq(g)) : candidates;
+  const gameCompares = (c: GearSlot) => !compared.length || compared.includes(c);
   if (!candidates.length) return dispose(item, gear, ["Your build doesn't use this kind of item."], null, undefined, ctx);
 
   // the same name/aspect and stat values as what you wear there: it IS your item, opened from the
@@ -366,12 +377,12 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   let best: { slot: GearSlot; q: Quality; gain: number; w: ParsedItem | null; wornQ: Quality | null; cmp: Swap | null } | null = null;
   for (const c of candidates) {
     const q = quality(item, c);
-    const w = (compareTo && compareTo.slot === item.slot ? compareTo : null) ?? ctx.worn?.(c.slot) ?? null;
+    const w = (compareTo && compareTo.slot === item.slot && gameCompares(c) ? compareTo : null) ?? ctx.worn?.(c.slot) ?? null;
     const wornQ = w ? quality(w, c) : null;
     // the game's comparison doesn't name your piece: what you were last seen wearing does
     const remembered = ctx.worn?.(c.slot);
     if (wornQ && w!.rarity === "unknown" && remembered && !wornQ.isTarget) wornQ.isTarget = quality(remembered, c).isTarget;
-    const cmp = swapValue(item, c, q, w, wornQ, prof);
+    const cmp = swapValue(item, c, q, w, wornQ, prof, gameCompares(c) ? item.compareRows : undefined, workOn(c, w, ctx));
     const gain = cmp ? cmp.score : standaloneValue(item, c, prof) - 99;
     if (!best || gain > best.gain) best = { slot: c, q, gain, w, wornQ, cmp };
   }
@@ -393,19 +404,20 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   if (cmp) {
     const wornItem = ctx.worn?.(slot.slot) ?? w;
     const upgraded = !!wornItem?.affixes.some((a) => a.masterwork || a.tempered || a.enchanted) || p.masterwork > 0;
-    const need = upgraded ? 0.9 : 0.35; // swapping off a masterworked/tempered piece costs materials
+    // yours is compared without its masterwork/temper, so redoing them is the only extra cost
+    const need = upgraded ? 0.6 : 0.35;
     const top = cmp.lines.slice(0, 4);
     const yours = w && w.rarity !== "unknown" && !/^your equipped item$/i.test(w.name) ? ` (${itemLabel(w)})` : "";
     const verdictLine = `For your build: ${cmp.score >= 1.5 ? "clearly better" : cmp.score >= need ? "better" : cmp.score > 0.15 ? "slightly better" : cmp.score > -0.15 ? "about the same as" : cmp.score > -1 ? "a bit worse" : "worse"}${cmp.score > -0.15 && cmp.score <= 0.15 ? "" : " than"} yours${yours}.`;
     if (cmp.score >= need) {
       const extra = slot.kind === "aspect" && !q.isTarget ? ` Then put "${slot.itemName}" on it at the Occultist.` : "";
       const stand = slotIsUnique && !q.isTarget ? ` Use it until you find ${slot.itemName}.` : "";
-      const why = [verdictLine, ...top];
-      if (upgraded) why.push("You'll lose your masterwork/temper on the old one — worth it here, but budget the materials.");
+      const why = [verdictLine, ...(cmp.work ? [cmp.work] : []), ...top];
+      if (upgraded) why.push("Masterwork and temper it like your old one — budget the materials.");
       return out(item, "WEAR", `Wear this — it's better than yours.${extra}${stand}`, why, slot, q);
     }
-    const why = [verdictLine, ...top];
-    if (cmp.score > 0.15 && upgraded) why.push("Not enough to give up the masterwork/temper on yours.");
+    const why = [verdictLine, ...(cmp.work ? [cmp.work] : []), ...top];
+    if (cmp.score > 0.15 && upgraded) why.push("Not enough to be worth redoing the masterwork/temper.");
     if (!top.length) why.push(better);
     return dispose(item, gear, why, slot, q, ctx);
   }
@@ -419,7 +431,32 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   return dispose(item, gear, [`Only ${hasStr(q)} for your ${slot.slotLabel}.`], slot, q, ctx, better);
 }
 
+/** What's been done to the piece you wear in this slot: masterwork rank, tempered and masterwork-crit stats. */
+interface Work {
+  rank: number;
+  tempered: Set<string>;
+  crit: Set<string>;
+}
+
+function workOn(slot: GearSlot, w: ParsedItem | null, ctx: Ctx): Work | null {
+  const remembered = ctx.worn?.(slot.slot);
+  const src = [...(w?.affixes ?? []), ...(remembered?.affixes ?? [])];
+  const key = (a: { text: string; match?: string | null }) => (a.match ? normName(a.match) : statKey(a.text));
+  const crit = new Set(src.filter((a) => a.masterwork).map(key));
+  const tempered = new Set(src.filter((a) => a.tempered).map(key));
+  const p = ctx.prog(slot.slot);
+  if (p.tempered) for (const t of slot.tempers) tempered.add(normName(t.name.replace(/\s*\(.*\)\s*$/, "")));
+  // a crit lands every 4th rank: seeing one means at least rank 4
+  const rank = Math.max(p.masterwork ?? 0, 4 * Math.min(3, crit.size));
+  return rank || tempered.size ? { rank, tempered, crit } : null;
+}
+
+// Masterworking (estimate): each non-crit rank adds ~5% to every affix, each crit (ranks 4/8/12) +25% to one.
+const masterworkFactor = (rank: number, crit: boolean) => (1 + 0.05 * (rank - Math.floor(rank / 4))) * (crit ? 1.25 : 1);
+
 interface Swap {
+  /** "Yours is masterworked +12 and tempered: compared as if this one gets the same." */
+  work?: string;
   score: number;
   /** the biggest differences first, ready to show */
   lines: string[];
@@ -430,12 +467,29 @@ interface Swap {
  * when there are some, else the two parsed items stat by stat. Uniques, build aspects and
  * greater affixes add to it. null when nothing is known about your piece.
  */
-function swapValue(item: ParsedItem, slot: GearSlot, q: Quality, w: ParsedItem | null, wornQ: Quality | null, prof: BuildProfile): Swap | null {
-  const rows = item.compareRows?.length ? item.compareRows : w ? rowsFromItems(item, w) : null;
-  if (!rows) return null;
+function swapValue(item: ParsedItem, slot: GearSlot, q: Quality, w: ParsedItem | null, wornQ: Quality | null, prof: BuildProfile, gameRows?: CompareRow[], work?: Work | null): Swap | null {
+  const raw = gameRows?.length ? gameRows : w ? rowsFromItems(item, w) : null;
+  if (!raw) return null;
+  // compare like with like: yours without its masterwork, and a temper this one can get too doesn't count against it
+  const canTemper = (item.tempersUsed ?? 0) < 2 && !item.affixes.some((a) => a.tempered);
+  const shown = new WeakMap<CompareRow, number | null>(); // the number the game shows, for the reasons
+  const rows = !work
+    ? raw
+    : raw.flatMap((r) => {
+        const key = r.match ? normName(r.match) : statKey(r.label);
+        if (canTemper && r.mine == null && work.tempered.has(key)) return [];
+        if (r.yours == null || !work.rank) return [r];
+        const adj = { ...r, yours: Math.round((r.yours / masterworkFactor(work.rank, work.crit.has(key))) * 10) / 10 };
+        shown.set(adj, r.yours);
+        return [adj];
+      });
+  const workNote = work
+    ? `Yours is ${[work.rank ? `masterworked +${work.rank}` : "", work.tempered.size ? "tempered" : ""].filter(Boolean).join(" and ")}: compared as if this one gets the same work (masterwork bonus estimated).`
+    : undefined;
   // a cut-off tooltip hides "Properties lost when equipped": its "yours has none" stats are only half the story
-  const oneSided = !!item.compareRows?.length && !!item.truncated && !rows.some((r) => r.mine == null);
-  const { score: stats, deltas } = compareValue(oneSided ? rows.filter((r) => r.yours != null) : rows, slot, prof);
+  const oneSided = !!gameRows?.length && !!item.truncated && !rows.some((r) => r.mine == null);
+  const used = oneSided ? rows.filter((r) => r.yours != null) : rows;
+  const { score: stats, deltas } = compareValue(used, slot, prof);
   let score = stats;
   const notes: { v: number; text: string }[] = [];
   // the build's unique (its power is the point of the slot)
@@ -459,19 +513,20 @@ function swapValue(item: ParsedItem, slot: GearSlot, q: Quality, w: ParsedItem |
     notes.push({ v: gaMine - gaYours, text: gaMine > gaYours ? "+ More ★ greater affixes on stats you want" : "− Yours has more ★ greater affixes on stats you want" });
   }
   const fmt = (v: number | null, u: string) => (v == null ? "—" : `${v.toLocaleString()}${u}`);
-  for (const d of deltas) {
+  for (const [i, d] of deltas.entries()) {
     if (Math.abs(d.value) < 0.05) continue;
+    const yours = shown.has(used[i]) ? shown.get(used[i])! : d.yours;
     const name = shortStat(d.label.replace(/^to /i, "Ranks to ").replace(/\b\w/g, (c) => c.toUpperCase()).replace(/ (To|Of) /g, (m) => m.toLowerCase()));
     const minor = d.weight <= 0.1 ? " (minor for your build)" : "";
     const text =
       d.mine != null && d.yours == null
         ? `+ ${name} ${fmt(d.mine, d.unit)} (yours has none)${minor}`
         : d.mine == null
-          ? `− ${name}: yours has ${fmt(d.yours, d.unit)}, this has none${minor}`
-          : `${d.value > 0 ? "+" : "−"} ${name} ${fmt(d.mine, d.unit)} vs yours ${fmt(d.yours, d.unit)}${minor}`;
+          ? `− ${name}: yours has ${fmt(yours, d.unit)}, this has none${minor}`
+          : `${d.value > 0 ? "+" : "−"} ${name} ${fmt(d.mine, d.unit)} vs yours ${fmt(yours, d.unit)}${minor}`;
     notes.push({ v: d.value, text });
   }
-  return { score, lines: notes.sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).map((n) => n.text) };
+  return { score, work: workNote, lines: notes.sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).map((n) => n.text) };
 }
 
 /** Back-compat wrapper. */

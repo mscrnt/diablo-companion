@@ -24,6 +24,9 @@ The release workflow publishes each version's section as its GitHub release note
 
 ### Changed
 - **The loot judge weighs every stat for your build**, not just the few the guide lists for that slot. Stats the build wants on that slot count most. Stats it wants elsewhere, your main stat and ranks to your skills still count. Generic offence and defence count a little; another element's damage or another class's skills barely count. A bigger roll beats a smaller one by how much bigger it is. So a piece with better numbers, or useful stats off the guide's list, is now recognised as an upgrade. The verdict says how it compares ("For your build: better than yours (…)") and lists the biggest differences with numbers.
+- Rings are weighed against both of your rings. The game compares a new ring with only one of yours (Alt switches); the judge now also checks your other ring, using what it last saw you wear there.
+- Gear you've masterworked and tempered no longer beats a fresh drop just because of that work. Your piece is compared without its masterwork bonus (estimated), and a temper the new item can get too doesn't count against it. The verdict says so.
+- **Keep for other builds** (Setup & Guide → Auto-judge): items with 3★ or more greater affixes, and uniques with 2★, are stashed instead of scrapped. Choose "I have plenty of materials" to also keep every unique and 2★ legendaries, or "Nothing" to scrap whatever your builds don't use.
 - A copy with a cut-off tooltip isn't called better on stats your piece might also have; scroll down to see the full comparison.
 - The app is now called **Sanctuary Toolkit**, with a new flaming-sword icon for the window, taskbar, tray and installer. Your settings and data carry over.
 - Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.

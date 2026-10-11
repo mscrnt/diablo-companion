@@ -102,6 +102,8 @@ export interface Settings {
     worldDwellMs: number;
     worldBadgeSeconds: number;
     snoozeSeconds: number;
+    /** instead of scrapping: "rare" keeps 3★+ items and 2★+ uniques; "plenty" (enough materials) also keeps every unique and 2★ items */
+    keepForOther: "off" | "rare" | "plenty";
   };
   /** record every auto-judge scan with its frame and display context (test-mode log folder, capped) */
   testMode: { enabled: boolean; maxMB: number };
@@ -196,7 +198,7 @@ export const defaultSettings: Settings = {
   timers: { source: "auto", pollSeconds: 60 },
   hordes: { enabled: true, style: "balanced" },
   autoRuns: true,
-  autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30 },
+  autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30, keepForOther: "rare" },
   testMode: { enabled: false, maxMB: 500 },
   mapPins: {
     enabled: true,

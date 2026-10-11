@@ -80,6 +80,14 @@ export default function GuidePage() {
               Snooze length ({settings.hotkeys.snoozeJudge} / {settings.padChords.snoozeJudge.join("+") || "no chord"}): {settings.autoJudge.snoozeSeconds}s
               <input type="range" min={10} max={120} step={5} value={settings.autoJudge.snoozeSeconds} onChange={(e) => update((s) => void (s.autoJudge.snoozeSeconds = Number(e.target.value)))} />
             </label>
+            <label className="field">
+              Keep for other builds instead of scrapping
+              <select value={settings.autoJudge.keepForOther} onChange={(e) => update((s) => void (s.autoJudge.keepForOther = e.target.value as typeof s.autoJudge.keepForOther))}>
+                <option value="rare">Rare rolls: 3★+ items and 2★+ uniques</option>
+                <option value="plenty">I have plenty of materials: also every unique and 2★ legendaries</option>
+                <option value="off">Nothing: scrap whatever my builds don't use</option>
+              </select>
+            </label>
             <Check checked={settings.autoJudge.sounds} onChange={(v) => update((s) => void (s.autoJudge.sounds = v))} label={'Sound for every verdict ("Wear this" and "Cube it" always chime)'} />
             <div className="small muted">
               Last scan {autoStatus.lastTickMs} ms · tooltip {autoStatus.tooltip ? "visible" : "—"} · {autoStatus.judged} judged this session{" "}

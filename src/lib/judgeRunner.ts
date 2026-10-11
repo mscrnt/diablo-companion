@@ -116,7 +116,7 @@ export async function judgeTooltips(
     }
     const worn = (slot: string) => useBuilds.getState().worn[slot];
     const inCodex = (slug: string) => !!useBuilds.getState().owned[slug];
-    let scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex }, equipped ?? hovered.compare ?? null);
+    let scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex, keep: settings.autoJudge.keepForOther }, equipped ?? hovered.compare ?? null);
     // junk for the active build — but maybe great for another build you've bookmarked?
     if ((scored.verdict === "SCRAP" || scored.verdict === "SELL") && !hovered.equipped) {
       const bs = useBuilds.getState();
