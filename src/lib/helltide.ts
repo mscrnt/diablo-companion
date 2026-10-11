@@ -45,6 +45,8 @@ export function parseHelltideHud(lines: OcrLine[]): { cinders: number | null; se
   const below = lines
     .filter((l) => l.y > label.y + label.h * 0.8 && l.y < label.y + label.h * 6 && /^\s*\d{1,4}\s*$/.test(l.text))
     .filter((l) => l.x + l.w > label.x - label.w * 0.3 && l.x < label.x + label.w * 1.6)
+    // cinders sit under the label's left half; the right-hand counter (another currency) never counts
+    .filter((l) => l.x + l.w / 2 < label.x + label.w * 0.55)
     .sort((a, b) => a.x - b.x);
   const cinders = below.length ? Number(below[0].text.trim()) : null;
   return { cinders, secondsLeft };

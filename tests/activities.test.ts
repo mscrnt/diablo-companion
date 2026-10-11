@@ -195,3 +195,12 @@ describe("Hordes compass", () => {
     expect(looksLikeHordes("Infernal Hordes | WAVE: 3/10 | Burning Aether 120")).toBe(true);
   });
 });
+
+describe("Helltide cinders", () => {
+  it("never takes the right-hand counter for cinders", () => {
+    // HUD as OCR'd in a real Helltide: label, then 24 (cinders, left) and 97 (another currency, right)
+    expect(parseHelltideHud([line("Helitide: 01:16", 1057, 36, 190), line("24", 1051, 160, 30), line("97", 1161, 178, 30)])!.cinders).toBe(24);
+    // the left number missed this frame: no cinders rather than the wrong ones
+    expect(parseHelltideHud([line("Helitide: 01:16", 1057, 36, 190), line("97", 1161, 178, 30)])!.cinders).toBeNull();
+  });
+});

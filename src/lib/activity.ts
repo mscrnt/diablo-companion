@@ -94,8 +94,10 @@ async function readCinders(): Promise<number | null> {
   };
   for (const maxCh of [false, true]) {
     const cap = await captureRegion(r, { ocr: true, ocrScale: 3, ocrMaxChannel: maxCh, maxEdge: 64, quality: 50 });
+    // the capture spans both counters; cinders are the left one (under the label's left half), the right is another currency
     const nums = (cap.ocr?.lines ?? [])
       .flatMap((l) => [...l.text.matchAll(/\d{1,4}/g)].map((m) => ({ n: Number(m[0]), x: l.x + (m.index ?? 0) * (l.w / Math.max(1, l.text.length)) })))
+      .filter((v) => v.x < cap.region.w * 0.47)
       .sort((a, b) => a.x - b.x);
     if (nums.length) return nums[0].n;
   }
@@ -157,8 +159,9 @@ async function helltideTick() {
         json: JSON.stringify({ parsed: hud, info: ht, lines: trackerLines.map((l) => ({ t: l.text, x: Math.round(l.x), y: Math.round(l.y), w: Math.round(l.w), h: Math.round(l.h) })) }, null, 1),
       }).catch(() => {});
     }
-  } else if (ht.active && now - htLastSeen > 20000) {
-    debugEvent("activity", "helltide-end", { why: "Helltide HUD gone for 20 s", cinders: ht.cinders });
+  } else if (ht.active && now - htLastSeen > 90_000) {
+    // the bag and the map cover the HUD: only 90 s without it means the Helltide is over (or you left)
+    debugEvent("activity", "helltide-end", { why: "Helltide HUD gone for 90 s", cinders: ht.cinders });
     ht = { active: false, cinders: null, secondsLeft: null, best: null, plan: [] };
     htAffordAlerted = "";
     emitOverlay("helltide", ht);
@@ -287,7 +290,8 @@ export interface UndercityState {
   timeBonus: string | null;
   torment: string | null;
 }
-let uc: (UndercityState & { lastSeen: number; lowRun: number; lowWarned: boolean }) | null = null;
+/** `resumed`: rebuilt after an app restart mid-run; the first tracker read sets floor and upgrades quietly */
+let uc: (UndercityState & { lastSeen: number; lowRun: number; lowWarned: boolean; resumed?: boolean }) | null = null;
 /** when the last run was cleared: the end area still shows the floor block, which mustn't start a new run */
 let ucDoneAt = 0;
 /** the tracker hides behind the map, the inventory and loading screens; only this long without it means you left */
@@ -334,6 +338,13 @@ function undercityTick() {
       }
     } else {
       uc.lastSeen = now;
+      if (uc.resumed) {
+        // picked up again after a restart: take the floor and upgrades as they are, no toasts or splits
+        uc.resumed = false;
+        uc.floor = hud.floor ?? uc.floor;
+        uc.upgrades = hud.upgrades ?? uc.upgrades;
+        debugEvent("activity", "undercity-resumed", { floor: uc.floor, upgrades: uc.upgrades });
+      }
       if (torment) uc.torment = torment;
       if (hud.floor != null && hud.floor > uc.floor) {
         debugEvent("activity", "undercity-floor", { from: uc.floor, to: hud.floor, upgrades: uc.upgrades, secondsLeft: hud.secondsLeft });
@@ -562,6 +573,10 @@ export function startActivityWatcher(isFocused: () => boolean, gameRect: () => R
   let busy = false;
   // a boss timer left over from before a restart can't be closed correctly — drop it
   if (useRuns.getState().active?.activity.startsWith("Boss:")) useRuns.setState({ active: null });
+  // an Undercity run left open by a restart: pick it up when its tracker shows again, or close it after the
+  // usual 90 s (ending at the restart) instead of leaving it running forever
+  if (useRuns.getState().active?.activity === "Undercity" && !uc)
+    uc = { floor: 1, floors: 3, upgrades: 0, upgradesMax: 4, secondsLeft: null, attunement: null, timeBonus: null, torment: null, lastSeen: Date.now(), lowRun: 0, lowWarned: false, resumed: true };
   emitOverlay("boss", null);
   setInterval(async () => {
     const rect = gameRect();

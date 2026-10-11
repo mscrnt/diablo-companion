@@ -37,6 +37,8 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Helltide: the cinder count no longer jumps to the HUD's other counter when the cinders aren't read, and opening the bag or the map no longer ends the Helltide (it ends after 90 s without the HUD).
+- An Undercity run left open by an app restart is picked up again when its tracker shows, or closed after 90 s, instead of its timer running forever.
 - Keys are never told to scrap: an Infernal Hordes compass ("it opens the Infernal Hordes"), Escalation sigils (an Escalating Nightmare) and Nightmare sigils (a Nightmare Dungeon) each say what they open, and the bottom half of a Chronicle tooltip is no longer taken for a ring. Hovering a compass in the bag no longer starts a Hordes run.
 - Tribute advice comes from what the tribute earns, not from other text on screen (a Tribute of Armaments was called a charm tribute).
 - Greater affixes (★) were missed on some items, so a 4★ legendary could be told to scrap: the starburst can be pale peach rather than orange, and OCR sometimes reads it as a "*" in front of the stat. Both now count.
