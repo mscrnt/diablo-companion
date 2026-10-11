@@ -93,3 +93,12 @@ describe("greater affixes read as a star character", () => {
     expect(r.action).toMatch(/Save it for later — 4★ greater affixes/);
   });
 });
+
+describe("unique names read through OCR slips", () => {
+  it("Tyrael's Might from \"TYRÄEL'S rn1Gi4T\"", async () => {
+    const { canonicalUnique, loadStaticData } = await import("../src/lib/names");
+    await loadStaticData();
+    expect(canonicalUnique("TYRÄEL'S rn1Gi4T")).toBe("Tyrael's Might");
+    expect(canonicalUnique("Shard of Verathiel")).toBe("Shard of Verathiel");
+  });
+});

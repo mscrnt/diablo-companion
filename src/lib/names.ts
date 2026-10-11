@@ -1,7 +1,7 @@
 // Slug → display-name resolution backed by src/generated/static-slim.json
 // (built from Mobalytics static data by scripts/slim-static.mjs). Falls back to
 // humanising the slug when an entry is missing.
-import { setOcrVocab, type OcrVocabData } from "./ocrfix";
+import { confusionKey, setOcrVocab, type OcrVocabData } from "./ocrfix";
 
 export interface SlimEntry {
   n: string; // name
@@ -219,9 +219,12 @@ export function trigramSim(a: string, b: string): number {
 export function canonicalUnique(name: string): string | null {
   let best: string | null = null;
   let bestS = 0;
+  // OCR slips in the stylised title font ("TYRÄEL'S rn1Gi4T" = Tyrael's Might): compare glyph-confusion keys too
+  const key = (t: string) => confusionKey(t).replace(/4/g, "h");
+  const k = key(name);
   for (const u of Object.values(table("uniques"))) {
     if (u.x) continue;
-    const s = trigramSim(name, u.n);
+    const s = Math.max(trigramSim(name, u.n), trigramSim(k, key(u.n)));
     if (s > bestS) {
       bestS = s;
       best = u.n;

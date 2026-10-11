@@ -37,6 +37,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Unique and mythic names misread in the title font are matched to the real name ("TYRÄEL'S rn1Gi4T" is Tyrael's Might).
 - When an item can't be read (a failed AI read, or a tooltip that isn't an item), the card says "Couldn't read this item" with what to do, instead of disappearing.
 - Helltide: the cinder count no longer jumps to the HUD's other counter when the cinders aren't read, and opening the bag or the map no longer ends the Helltide (it ends after 90 s without the HUD).
 - An Undercity run left open by an app restart is picked up again when its tracker shows, or closed after 90 s, instead of its timer running forever.
