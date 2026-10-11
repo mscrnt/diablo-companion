@@ -26,7 +26,40 @@ export interface Calibration {
 /** Kinds of map pins, each with its own checkbox (see src/lib/mappins.ts). */
 export type MapPinGroup = "journal" | "collectible" | "dungeon" | "cellar" | "stronghold" | "side_quest" | "helltide_chest" | "undercity" | "boss_dungeon";
 
-export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdit" | "coachSnap" | "overlayToggle" | "mapCharacter" | "snoozeJudge";
+/** What the map pins show; the hotkey / chord steps through the ones in `mapPins.cycle`. */
+export type MapPinPreset = "custom" | "collectibles" | "dungeons" | "quests" | "helltide" | "everything" | "off";
+
+export const MAP_PIN_PRESETS: { id: MapPinPreset; label: string; desc: string; groups: MapPinGroup[] | null }[] = [
+  { id: "custom", label: "Custom", desc: "The kinds ticked below.", groups: null },
+  { id: "collectibles", label: "Collectibles", desc: "Deckard's journals, altars and regional collectibles.", groups: ["journal", "collectible"] },
+  { id: "dungeons", label: "Dungeons & cellars", desc: "Dungeon and cellar entrances.", groups: ["dungeon", "cellar"] },
+  { id: "quests", label: "Quests", desc: "Side quests and strongholds.", groups: ["side_quest", "stronghold"] },
+  { id: "helltide", label: "Helltide", desc: "Possible chest spots, while a Helltide runs, in its zone.", groups: ["helltide_chest"] },
+  {
+    id: "everything",
+    label: "Everything",
+    desc: "Every kind.",
+    groups: ["journal", "collectible", "dungeon", "cellar", "stronghold", "side_quest", "helltide_chest", "undercity", "boss_dungeon"],
+  },
+  { id: "off", label: "Off", desc: "No pins (and no screen capture for them).", groups: [] },
+];
+
+/** The kinds a preset shows (`custom`: the per-kind checkboxes). */
+export function presetGroups(preset: MapPinPreset, custom: Record<MapPinGroup, boolean>): Partial<Record<MapPinGroup, boolean>> {
+  const p = MAP_PIN_PRESETS.find((x) => x.id === preset);
+  if (!p || !p.groups) return custom;
+  return Object.fromEntries(p.groups.map((g) => [g, true]));
+}
+
+/** The preset after `cur` in the cycle (the first one if `cur` isn't in it). */
+export function nextPreset(cur: MapPinPreset, cycle: MapPinPreset[]): MapPinPreset {
+  const list = MAP_PIN_PRESETS.map((p) => p.id).filter((id) => cycle.includes(id));
+  if (!list.length) return cur;
+  const i = list.indexOf(cur);
+  return list[(i + 1) % list.length];
+}
+
+export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdit" | "coachSnap" | "overlayToggle" | "mapCharacter" | "snoozeJudge" | "mapPinsPreset";
 
 export interface Settings {
   llm: { baseUrl: string; model: string; apiKey: string; thinkingForCoach: boolean };
@@ -73,7 +106,21 @@ export interface Settings {
   /** record every auto-judge scan with its frame and display context (test-mode log folder, capped) */
   testMode: { enabled: boolean; maxMB: number };
   /** pins on the in-game map: which kinds to draw */
-  mapPins: { enabled: boolean; groups: Record<MapPinGroup, boolean> };
+  mapPins: {
+    enabled: boolean;
+    /** what's shown now */
+    preset: MapPinPreset;
+    /** the presets the hotkey / chord steps through */
+    cycle: MapPinPreset[];
+    /** the "Custom" preset */
+    groups: Record<MapPinGroup, boolean>;
+    /** hide altars and regional collectibles the map already shows as found (off: draw them faded) */
+    unfoundOnly: boolean;
+    /** a small chip on the map with the preset's name (it always shows for a moment after switching) */
+    chip: boolean;
+    /** settings version, for one-off migrations */
+    v: number;
+  };
   hordes: { enabled: boolean; style: "safe" | "balanced" | "greedy" };
   /** start/split/finish runs automatically from the quest tracker */
   autoRuns: boolean;
@@ -99,6 +146,7 @@ export const defaultSettings: Settings = {
     coachSnap: "CommandOrControl+Shift+K",
     mapCharacter: "F7",
     snoozeJudge: "F6",
+    mapPinsPreset: "Alt+M",
   },
   padChords: {
     judge: ["View", "RS"],
@@ -110,6 +158,7 @@ export const defaultSettings: Settings = {
     coachSnap: [],
     mapCharacter: ["View", "Y"],
     snoozeJudge: ["View", "X"],
+    mapPinsPreset: ["View", "LS"],
   },
   padEnabled: true,
   capture: { width: 2800, height: 0, maxEdge: 1600, quality: 88, ocrAssist: true, equippedCompare: true },
@@ -148,17 +197,23 @@ export const defaultSettings: Settings = {
   testMode: { enabled: false, maxMB: 500 },
   mapPins: {
     enabled: true,
+    preset: "custom",
+    cycle: ["custom", "collectibles", "dungeons", "quests", "helltide", "everything", "off"],
+    // quiet by default: collectibles and dungeons
     groups: {
       journal: true,
       collectible: true,
       dungeon: true,
-      cellar: true,
-      stronghold: true,
-      side_quest: true,
-      helltide_chest: true,
+      cellar: false,
+      stronghold: false,
+      side_quest: false,
+      helltide_chest: false,
       undercity: false,
       boss_dungeon: false,
     },
+    unfoundOnly: true,
+    chip: false,
+    v: 2,
   },
   calibration: null,
   activities: ["The Pit", "Infernal Hordes", "The Tower", "Nightmare Dungeon", "Helltide", "World Boss", "Lair Boss", "Undercity", "Leveling"],
@@ -172,6 +227,30 @@ function deepMerge<T>(base: T, over: any): T {
     out[k] = b && typeof b === "object" && !Array.isArray(b) ? deepMerge(b, over[k]) : over[k];
   }
   return out;
+}
+
+/**
+ * Map pins v2 (presets): the first map pins drew nearly everything by default, which was too busy.
+ * Once, move settings still on those old defaults to the new quiet ones, and keep the new
+ * hotkey / chord off any combination already used by another action.
+ */
+export function migrateMapPins(m: Settings, persisted: any): Settings {
+  const old = persisted?.mapPins;
+  if (old && !(old.v >= 2)) {
+    const g = old.groups ?? {};
+    const oldDefault = g.journal && g.collectible && g.dungeon && g.cellar && g.stronghold && g.side_quest && g.helltide_chest && !g.undercity && !g.boss_dungeon;
+    m.mapPins = { ...m.mapPins, preset: "custom", v: 2, groups: oldDefault ? { ...defaultSettings.mapPins.groups } : m.mapPins.groups };
+  }
+  if (!persisted?.hotkeys?.mapPinsPreset) {
+    const taken = Object.entries(m.hotkeys).some(([a, k]) => a !== "mapPinsPreset" && k && k === m.hotkeys.mapPinsPreset);
+    if (taken) m.hotkeys = { ...m.hotkeys, mapPinsPreset: "" };
+  }
+  if (!persisted?.padChords?.mapPinsPreset) {
+    const key = (c: string[]) => [...c].sort().join("+");
+    const mine = key(m.padChords.mapPinsPreset);
+    if (Object.entries(m.padChords).some(([a, c]) => a !== "mapPinsPreset" && c.length && key(c) === mine)) m.padChords = { ...m.padChords, mapPinsPreset: [] };
+  }
+  return m;
 }
 
 interface SettingsState {
@@ -203,7 +282,7 @@ export const useSettings = create<SettingsState>()(
           if (m.capture.height === 1300 || m.capture.width === 2200) m.capture = { ...m.capture, width: 2800, height: 0 };
           // Ctrl+Shift+M is Discord's mute shortcut
           if (m.hotkeys.mapCharacter === "CommandOrControl+Shift+M") m.hotkeys = { ...m.hotkeys, mapCharacter: "F7" };
-          return m;
+          return migrateMapPins(m, persisted?.settings);
         })(),
       }),
     },

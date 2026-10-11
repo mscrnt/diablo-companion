@@ -281,4 +281,6 @@ input[type="checkbox"] { accent-color: var(--blood2); width: 16px; height: 16px;
 .ov-pin svg.i { vertical-align: 0; }
 .ov-pin-label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; white-space: nowrap; font-size: 11px; font-weight: 700; line-height: 1.2; padding: 0 5px; border-radius: 4px; background: #0d0a08d0; text-shadow: 0 1px 1px #000; }
 .ov-pin-dot { position: absolute; width: 8px; height: 8px; transform: translate(-50%, -50%); border-radius: 50%; box-shadow: 0 0 0 1.5px #000c; }
+.ov-pin-chip { position: absolute; display: flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 10px; background: #0d0a08b8; border: 1px solid #6d5a4888; color: #d9c9a8; font-size: 11px; font-weight: 700; opacity: .55; pointer-events: none; white-space: nowrap; text-shadow: 0 1px 1px #000; }
+.ov-pin-chip.flash { opacity: 1; font-size: 13px; padding: 4px 10px; border-color: #d9a86a; color: #f3e2bd; animation: pop .15s ease-out; }
 @keyframes bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }

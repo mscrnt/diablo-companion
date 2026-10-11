@@ -125,6 +125,12 @@ u = 2560/4096 + (y - x) / (6144·√2)      v = 2212/4096 + (x + y) / (6144·√
 
 **Settled (in-game captures, `src/lib/mappins.ts`):** the map UI draws the art unrotated and unmirrored: screen-right is +u, screen-down is +v, screen px = s·(u, v) + t. The zoom levels are discrete; at 1440p s ≈ 2793, 4530, 8490 and about 13450 and 20300 (s / image height 1.94, 3.15, 5.90, 9.34, 14.1). The note below is the pre-capture reasoning.
 
+**Overlay notes (from in-game sessions, `src/lib/mappins.ts`):**
+- **Viewport.** The map fills the game image between the dark nav bar (top 5.8 % of the height) and the hint bar (bottom 5.6 %). A dark neutral-grey side panel sits on the right edge, collapsed about 0.07 of the height wide from 15 % to 85 % of the height, with a round red collapse tab sticking out of it at mid height (46 % to 57 %). Dark map art is brown or red, so the panel can be told apart by colour. HUD boxes drawn over the map: the season header, the seasonal progress bar and the event panel.
+- **Closest zoom.** At 14.1 only one to three waypoints are in view, too few to register from scratch. Since the zoom levels are discrete, a zoomed-in view shrunk by the ladder ratio is a patch of the earlier zoomed-out view: masked normalised cross-correlation (FFT) finds it, and the waypoints and dungeon icons in view confirm it. On the test session (zooming from 1.94 straight to 14.1 and panning around), 23 of 26 closest-zoom frames register, all correct. The rest are an empty stretch of sea and frames mid zoom animation.
+- **Found altars.** Found altars get an icon (a grey glyph with a black outline, centred about 3 px above the spot at 720 p). Tenets and Chronicles get a narrow grey statue. Unfound ones show nothing. Zoomed out to 1.94 they are tiny dots.
+- **Is the map still open?** The nav bar's labels and its red active-tab highlight make a stable signature. It changes when another tab is picked or the menu closes, and also in a dark scene that passes a simple "dark rows" test.
+
 **Not settled: screen orientation.** Geography says screen-right is about +(x+y) (that is, +v) and screen-up is about +(y−x) (+u). Scosglen comes out west, Fractured Peaks north, Hawezar north-east and Kehjistan south-east. The map UI may therefore draw the art rotated or flipped relative to texture UV. The overlay should not assume it: an affine fit against detected waypoints absorbs it.
 
 No map texture was read. The `snoMagMaxBoxMap` texture SNO is named in the data, but its meta is not under `base:meta` and we don't need it.

@@ -10,7 +10,7 @@ import type { HelltideInfo } from "../lib/helltide";
 import type { BossInfo } from "../lib/boss";
 import type { MapPinsFrame } from "../lib/mapPinsRunner";
 import type { PoiKind } from "../lib/mappins";
-import { BookOpen, Castle, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, Package, ScrollText, Skull, Sparkles, Star, TreeDeciduous, Warehouse, type LucideIcon } from "lucide-react";
+import { BookOpen, Castle, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, MapPin, Package, ScrollText, Skull, Sparkles, Star, TreeDeciduous, Warehouse, type LucideIcon } from "lucide-react";
 import { VERDICT_STYLE } from "../lib/judge";
 import { EVENT_META, fmtCountdown, isActive } from "../lib/timers";
 import type { JudgeResult } from "../lib/types";
@@ -44,10 +44,11 @@ export default function Overlay() {
   const [advisor, setAdvisor] = useState<AdvisorState | null>(null);
   const [helltide, setHelltide] = useState<HelltideInfo | null>(null);
   const [boss, setBoss] = useState<BossInfo | null>(null);
-  const [mapPins, setMapPins] = useState<MapPinsFrame | null>(null);
+  const [mapPins, setMapPins] = useState<(MapPinsFrame & { labelUntil?: number }) | null>(null);
   const [now, setNow] = useState(Date.now());
   const vTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const tipTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pinTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const stRef = useRef(st);
   stRef.current = st;
 
@@ -77,7 +78,12 @@ export default function Overlay() {
       onOverlay<AdvisorState | null>("advisor", setAdvisor),
       onOverlay<HelltideInfo>("helltide", setHelltide),
       onOverlay<BossInfo | null>("boss", setBoss),
-      onOverlay<MapPinsFrame | null>("mappins", setMapPins),
+      onOverlay<MapPinsFrame | null>("mappins", (m) => {
+        // pins that aren't refreshed go by themselves (the map may have closed while the main window stalled)
+        clearTimeout(pinTimer.current);
+        setMapPins(m && { ...m, labelUntil: m.labelMs != null ? Date.now() + m.labelMs : undefined });
+        if (m) pinTimer.current = setTimeout(() => setMapPins(null), m.ttl || 1500);
+      }),
     ];
     emitMain("overlay-ready", true);
     return () => {
@@ -211,7 +217,7 @@ export default function Overlay() {
 
       {guideOn && guide && <GuidePanel g={guide} toCss={toCss} />}
 
-      {mapPins && st.visible && !guideOn && <MapPinsLayer m={mapPins} toCss={toCss} />}
+      {mapPins && st.visible && !guideOn && <MapPinsLayer m={mapPins} toCss={toCss} now={now} />}
     </div>
   );
 }
@@ -721,31 +727,52 @@ const PIN_STYLE: Record<PoiKind, { icon: LucideIcon; color: string; minor?: bool
 /**
  * Pins over the open in-game map. Positions arrive in absolute physical screen px (frame px
  * mapped through the capture region) and go through the same toCss as every other badge,
- * inside a box clipped to the visible map area (between the nav bar and the hint bar).
+ * inside a box clipped to the visible map area (between the nav bar and the hint bar, left of
+ * the side panel), with the HUD boxes over the map cut out of it: nothing is drawn outside the
+ * map. The preset's name shows in the map's top-left corner for a moment after switching.
  */
-function MapPinsLayer({ m, toCss }: { m: MapPinsFrame; toCss: (b: { x: number; y: number; w: number; h: number }) => CSSProperties }) {
+function MapPinsLayer({ m, toCss, now }: { m: MapPinsFrame & { labelUntil?: number }; toCss: (b: { x: number; y: number; w: number; h: number }) => CSSProperties; now: number }) {
   const clip = toCss(m.clip);
-  const ox = Number(clip.left), oy = Number(clip.top);
+  const ox = Number(clip.left), oy = Number(clip.top), cw = Number(clip.width), ch = Number(clip.height);
+  // the visible area minus the HUD boxes (even-odd: each box is a hole)
+  const holes = (m.hud ?? [])
+    .map((h) => {
+      const b = toCss(h);
+      const x0 = Number(b.left) - ox, y0 = Number(b.top) - oy, x1 = x0 + Number(b.width), y1 = y0 + Number(b.height);
+      return `M${x0.toFixed(1)} ${y0.toFixed(1)} H${x1.toFixed(1)} V${y1.toFixed(1)} H${x0.toFixed(1)} Z`;
+    })
+    .join(" ");
+  const clipPath = holes ? `path(evenodd, "M0 0 H${cw.toFixed(1)} V${ch.toFixed(1)} H0 Z ${holes}")` : undefined;
   // zoomed out, the minor kinds (cellars, side quests, chests) shrink to dots so the map stays readable
   const far = m.zoom < 2.5;
+  const flash = m.labelUntil != null && now < m.labelUntil;
   return (
-    <div style={{ position: "absolute", ...clip, overflow: "hidden", pointerEvents: "none" }}>
-      {m.pins.map((p, i) => {
-        const sty = PIN_STYLE[p.k] ?? PIN_STYLE.waypoint;
-        const at = toCss({ x: p.x, y: p.y, w: 0, h: 0 });
-        const left = Number(at.left) - ox, top = Number(at.top) - oy;
-        if (far && sty.minor) {
-          return <div key={i} className="ov-pin-dot" style={{ left, top, background: sty.color, opacity: p.approx ? 0.5 : 0.85 }} />;
-        }
-        const size = sty.minor ? 20 : 24;
-        return (
-          <div key={i} className="ov-pin" style={{ left, top, width: size, height: size, borderColor: sty.color, color: sty.color, opacity: p.approx ? 0.6 : 1 }}>
-            <Ico icon={sty.icon} size={sty.minor ? 11 : 13} />
-            {p.label && <span className="ov-pin-label" style={{ color: sty.color }}>{p.label}</span>}
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <div style={{ position: "absolute", ...clip, overflow: "hidden", clipPath, pointerEvents: "none" }}>
+        {m.pins.map((p, i) => {
+          const sty = PIN_STYLE[p.k] ?? PIN_STYLE.waypoint;
+          const at = toCss({ x: p.x, y: p.y, w: 0, h: 0 });
+          const left = Number(at.left) - ox, top = Number(at.top) - oy;
+          // found altars and collectibles (with "unfound only" off) and approximate spots are drawn faded
+          const fade = p.found ? 0.35 : p.approx ? 0.6 : 1;
+          if (far && sty.minor) {
+            return <div key={i} className="ov-pin-dot" style={{ left, top, background: sty.color, opacity: p.approx ? 0.5 : 0.85 }} />;
+          }
+          const size = sty.minor ? 20 : 24;
+          return (
+            <div key={i} className="ov-pin" style={{ left, top, width: size, height: size, borderColor: sty.color, color: sty.color, opacity: fade }}>
+              <Ico icon={sty.icon} size={sty.minor ? 11 : 13} />
+              {p.label && <span className="ov-pin-label" style={{ color: sty.color }}>{p.label}</span>}
+            </div>
+          );
+        })}
+      </div>
+      {m.label && (flash || m.labelMs == null) && (
+        <div className={"ov-pin-chip" + (flash ? " flash" : "")} style={{ left: ox + 12, top: oy + 10 }}>
+          <Ico icon={MapPin} size={flash ? 13 : 11} /> {m.label}
+        </div>
+      )}
+    </>
   );
 }
 

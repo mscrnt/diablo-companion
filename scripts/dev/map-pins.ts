@@ -1,14 +1,16 @@
 // Run the in-app map registration (src/lib/mappins.ts) on screenshots of the open map
 // and write each with the pins drawn, to check it against the game's own icons.
-//   node scripts/dev/run.mjs map-pins <out-dir> <screen.png>... [--height 720] [--no-jpeg] [--all] [--no-quests] [--force]
+//   node scripts/dev/run.mjs map-pins <out-dir> <screen.png>... [--height 720] [--no-jpeg] [--all] [--no-quests] [--force] [--seq] [--quiet]
 // The frame goes through the same steps as in the app: crop to the game image (black
 // bars removed), downscale to the capture size, a 4:2:0 chroma pass standing in for
 // the JPEG step, then detection, registration and projection.
+// --seq: the screenshots are consecutive frames of one session: one tracker runs over them in
+// order (pans, zoom carry-over), as in the app, with a summary at the end. --quiet: summary only.
 // Screenshots of the game stay local: don't commit them or the output.
 import { basename, join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { chroma420, readPng, resize, writePng, type Rgba } from "./png";
-import { GROUP_OF, MapTracker, detect, makeCtx, mapArea, pinsFor, registerFrame, type PinGroup } from "../../src/lib/mappins";
+import { GROUP_OF, MapTracker, detect, makeCtx, mapArea, pinsFor, registerFrame, type PinGroup, type TrackOut } from "../../src/lib/mappins";
 
 const args = process.argv.slice(2);
 const flag = (n: string) => args.includes(n);
@@ -16,7 +18,7 @@ const opt = (n: string, d: number) => {
   const i = args.indexOf(n);
   return i >= 0 ? Number(args[i + 1]) : d;
 };
-const files = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && !["--no-jpeg", "--all", "--force", "--no-quests"].includes(args[i - 1])));
+const files = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && !["--no-jpeg", "--all", "--force", "--no-quests", "--seq", "--quiet"].includes(args[i - 1])));
 const [outDir, ...shots] = files;
 const TARGET_H = opt("--height", 720);
 mkdirSync(outDir, { recursive: true });
@@ -77,6 +79,12 @@ function rect(img: Rgba, x0: number, y0: number, x1: number, y1: number, c: [num
 const groups: Partial<Record<PinGroup, boolean>> = { journal: true, collectible: true, dungeon: true, cellar: true, stronghold: true, side_quest: !flag("--no-quests") };
 if (flag("--all")) for (const g of Object.values(GROUP_OF)) groups[g!] = true;
 
+const seq = flag("--seq"), quiet = flag("--quiet");
+const log = (...a: unknown[]) => void (quiet || console.log(...a));
+const seqTracker = new MapTracker();
+const counts: Record<string, number> = {};
+const times: number[] = [];
+
 for (const shot of shots) {
   const img = readPng(shot);
   const [gx0, gx1] = gameBounds(img);
@@ -93,43 +101,50 @@ for (const shot of shots) {
   const det = detect(frame, k, area);
   const t3 = performance.now();
   const ctx = makeCtx(det, area, k);
-  const tracker = new MapTracker();
+  const tracker = seq ? seqTracker : new MapTracker();
   const fit = registerFrame(ctx, H, tracker.zooms);
   const t4 = performance.now();
-  // the tracker as the app runs it (two frames: an "ok" fit needs a second agreeing frame)
-  tracker.step(frame, H, area, k);
+  // the tracker as the app runs it (alone, two frames: an "ok" fit needs a second agreeing frame)
+  let tr: TrackOut = tracker.step(frame, H, area, k);
   const t5 = performance.now();
-  const tr = tracker.step(frame, H, area, k);
+  if (!seq) tr = tracker.step(frame, H, area, k);
+  counts[tr.how] = (counts[tr.how] ?? 0) + 1;
+  times.push(t5 - t4);
   const toScreen = (x: number, y: number): [number, number] => [gx0 + x / f, y / f];
   const sc = fit?.score;
-  console.log(
-    `${basename(shot)}: game ${gw}×${gh} → frame ${W}×${H} | area y ${area.y0.toFixed(0)}..${area.y1.toFixed(0)} | blobs: ${det.waypoints.length} cyan, ${det.icons.length} outlined`,
+  log(
+    `${basename(shot)}: game ${gw}×${gh} → frame ${W}×${H} | area x ${area.x0.toFixed(0)}..${area.x1.toFixed(0)} y ${area.y0.toFixed(0)}..${area.y1.toFixed(0)} | blobs: ${det.waypoints.length} cyan, ${det.icons.length} outlined`,
   );
   if (sc)
-    console.log(
+    log(
       `  fit (${fit!.source}) ${fit!.verdict}: waypoints ${sc.wpInliers}/${sc.wpExpected} err ${(sc.wpErr / f).toFixed(2)} px · icons ${sc.iconInliers}/${sc.iconExpected} err ${(sc.iconErr / f).toFixed(2)} px · s ${(sc.xf.s / f).toFixed(0)} (zoom ${(sc.xf.s / H).toFixed(3)})`,
     );
-  console.log(`  tracker: ${tr.how}${tr.xf ? "" : " (no pins)"}`);
-  console.log(`  time: downscale ${(t1 - t0).toFixed(0)} ms · area ${(t2 - t1).toFixed(1)} ms · detect ${(t3 - t2).toFixed(1)} ms · register ${(t4 - t3).toFixed(1)} ms · tracker step ${(t5 - t4).toFixed(1)} ms`);
+  log(`  tracker: ${tr.how}${tr.xf ? ` zoom ${(tr.xf.s / H).toFixed(2)}` : " (no pins)"}${tr.carry ? ` · carry ${JSON.stringify(tr.carry)}` : ""}`);
+  log(`  time: downscale ${(t1 - t0).toFixed(0)} ms · area ${(t2 - t1).toFixed(1)} ms · detect ${(t3 - t2).toFixed(1)} ms · register ${(t4 - t3).toFixed(1)} ms · tracker step ${(t5 - t4).toFixed(1)} ms`);
 
   const out: Rgba = { data: new Uint8ClampedArray(img.data), width: img.width, height: img.height };
   const [ax0, ay0] = toScreen(area.x0, area.y0);
   const [ax1, ay1] = toScreen(area.x1, area.y1);
   rect(out, ax0, ay0, ax1, ay1, [255, 255, 0]);
+  for (const h of area.hud) rect(out, ...toScreen(h.x0, h.y0), ...toScreen(h.x1, h.y1), [255, 140, 0]);
   for (const b of det.waypoints) ring(out, ...toScreen(b.x, b.y), 4, [0, 120, 255], 3);
   for (const b of det.icons) ring(out, ...toScreen(b.x, b.y), 3, [120, 120, 120], 2);
   // --force: draw the best fit even when the tracker wouldn't show it (to inspect rejected fits)
   const xf = tr.xf ?? (flag("--force") ? sc?.xf ?? null : null);
   if (xf) {
-    const pins = pinsFor(xf, area, H, { groups, helltideRegion: null }, toScreen);
+    // the app keeps a whole pin (13 CSS px from its centre) inside the area: about 13 frame px at 720 p on a 1440 p screen
+    const pins = pinsFor(xf, area, H, { groups, helltideRegion: null, margin: 13 * f * 2, found: { fr: frame, k, hide: false } }, toScreen);
     const kinds: Record<string, number> = {};
     for (const p of pins) {
-      kinds[p.k] = (kinds[p.k] ?? 0) + 1;
-      ring(out, p.x, p.y, p.k === "side_quest" ? 16 : 22, COLORS[p.k] ?? [255, 255, 255], 4);
+      const key = p.found ? `${p.k} (found)` : p.k;
+      kinds[key] = (kinds[key] ?? 0) + 1;
+      ring(out, p.x, p.y, p.k === "side_quest" ? 16 : 22, p.found ? [140, 140, 140] : COLORS[p.k] ?? [255, 255, 255], 4);
     }
     // matched waypoints, so the fit itself is visible too
     for (const uv of sc ? sc.pairs.filter((q) => q.w === 1).map((q) => q.uv) : []) ring(out, ...toScreen(xf.s * uv[0] + xf.tx, xf.s * uv[1] + xf.ty), 30, COLORS.waypoint, 4);
-    console.log(`  pins: ${JSON.stringify(kinds)}`);
+    log(`  pins: ${JSON.stringify(kinds)}`);
   }
-  writePng(join(outDir, basename(shot).replace(/\.png$/, "-pins.png")), out);
+  if (!quiet) writePng(join(outDir, basename(shot).replace(/\.png$/, "-pins.png")), out);
 }
+times.sort((a, b) => a - b);
+console.log(`${shots.length} frames: ${Object.entries(counts).map(([h, n]) => `${h} ${n}`).join(", ")} · tracker step median ${times[times.length >> 1]?.toFixed(0)} ms, max ${times[times.length - 1]?.toFixed(0)} ms`);

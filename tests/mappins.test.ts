@@ -7,23 +7,36 @@ import {
   POIS,
   WAYPOINT_UV,
   ZOOM_LADDER,
+  PROBE_BAND,
   detect,
+  foundAt,
   judge,
+  lumaOf,
   makeCtx,
   mapArea,
+  navBar,
+  navSignature,
   phaseShift,
+  pickCarry,
   pinsFor,
   project,
   registerFrame,
   regionKey,
+  sameNav,
+  sidePanel,
+  stripMoved,
+  stripSignature,
   thumb,
   toUv,
+  visible,
+  zoomCarry,
   type Blob,
   type Box,
   type Detection,
   type Frame,
   type Xf,
 } from "../src/lib/mappins";
+import { MAP_PIN_PRESETS, defaultSettings, migrateMapPins, nextPreset, presetGroups, type Settings } from "../src/lib/store";
 
 const W = 2160, H = 720, K = H / 1440;
 const AREA: Box & { hud: Box[] } = { x0: 6, y0: 50, x1: 2112, y1: 674, hud: [] };
@@ -326,5 +339,364 @@ describe("pins", () => {
     const pins = pinsFor(near, AREA, H, { groups: { journal: true, collectible: true }, helltideRegion: null }, id);
     expect(pins.find((p) => p.id === j.id)?.label).toMatch(/^Journal \d+$/);
     expect(pins.filter((p) => p.k === "altar").every((p) => !p.label)).toBe(true);
+  });
+});
+
+// ---- clipping: nothing outside the map viewport -----------------------------------------------
+
+/** The map's side panel on the right edge (dark neutral grey) with its round red collapse tab. */
+function withPanel(fr: Frame, left = W - 46): Frame {
+  const out = { ...fr, data: new Uint8ClampedArray(fr.data) };
+  for (let y = 100; y < 610; y++) for (let x = left; x < W; x++) out.data.set([22, 24, 26, 255], (y * W + x) * 4);
+  for (let y = 345; y < 380; y++) for (let x = left - 26; x < left + 2; x++) if (Math.hypot(x - (left - 12), y - 362) < 14) out.data.set([170, 30, 25, 255], (y * W + x) * 4);
+  return out;
+}
+
+describe("clipping", () => {
+  const truth = viewAt(regionCentre("Kehjistan"), ZOOM_LADDER[1]);
+
+  it("measures the side panel and keeps the map area (and its collapse tab) clear of it", () => {
+    const fr = withPanel(paint(truth));
+    const left = sidePanel(fr);
+    expect(left).not.toBeNull();
+    expect(Math.abs(left! - (W - 46))).toBeLessThanOrEqual(1);
+    const area = mapArea(fr);
+    expect(area.x1).toBeLessThan(W - 46);
+    // the tab sticks out of the panel at mid height: a HUD box covers it
+    expect(area.hud.some((h) => h.x0 <= W - 38 && h.x1 >= W - 46 && h.y0 <= 362 && h.y1 >= 362)).toBe(true);
+  });
+
+  it("an expanded (wider) panel is measured too; dark brown map art at the edge is not a panel", () => {
+    expect(Math.abs(sidePanel(withPanel(paint(truth), W - 400))! - (W - 400))).toBeLessThanOrEqual(1);
+    const fr = paint(truth);
+    const brown = { ...fr, data: new Uint8ClampedArray(fr.data) };
+    for (let y = 0; y < H; y++) for (let x = W - 200; x < W; x++) brown.data.set([28, 10, 2, 255], (y * W + x) * 4);
+    expect(sidePanel(brown)).toBeNull();
+    // no panel found: the right edge falls back to a fixed strip
+    expect(mapArea(brown).x1).toBeLessThan(W - 40);
+  });
+
+  it("keeps every pin's whole footprint inside the area and off the HUD boxes", () => {
+    const hud: Box = { x0: 800, y0: 50, x1: 1400, y1: 120 };
+    const area = { ...AREA, hud: [hud] };
+    const m = 14;
+    const pins = pinsFor(truth, area, H, { groups: { dungeon: true, cellar: true, collectible: true, side_quest: true, stronghold: true }, helltideRegion: null, margin: m }, (x, y) => [x, y]);
+    expect(pins.length).toBeGreaterThan(10);
+    for (const p of pins) {
+      expect(p.x - m >= AREA.x0 - 0.5 && p.x + m <= AREA.x1 + 0.5 && p.y - m >= AREA.y0 - 0.5 && p.y + m <= AREA.y1 + 0.5).toBe(true);
+      expect(p.x + m - 0.5 > hud.x0 && p.x - m + 0.5 < hud.x1 && p.y + m - 0.5 > hud.y0 && p.y - m + 0.5 < hud.y1).toBe(false);
+    }
+    // without the margin, pins right at the edges would be kept
+    const loose = pinsFor(truth, area, H, { groups: { dungeon: true, cellar: true, collectible: true, side_quest: true, stronghold: true }, helltideRegion: null }, (x, y) => [x, y]);
+    expect(loose.length).toBeGreaterThan(pins.length);
+  });
+});
+
+// ---- the fast probe: is the map still open, still where it was? -------------------------------
+
+/** Nav bar with tab labels (bright blocks) and the active tab's red highlight, like the game's. */
+function withNav(fr: Frame, active = 3): Frame {
+  const out = { ...fr, data: new Uint8ClampedArray(fr.data) };
+  const tabs = [600, 760, 920, 1080, 1240, 1400, 1560];
+  for (let y = 0; y < 42; y++) for (let x = 0; x < W; x++) out.data.set([20, 19, 18, 255], (y * W + x) * 4);
+  tabs.forEach((tx, i) => {
+    for (let y = 8; y < 34; y++)
+      for (let x = tx; x < tx + 90; x++) {
+        if (i === active) out.data.set([150, 25, 25, 255], (y * W + x) * 4);
+        if (y > 14 && y < 26 && (x - tx) % 9 < 6) out.data.set([215, 205, 185, 255], (y * W + x) * 4);
+      }
+  });
+  return out;
+}
+
+/** The top band of a frame as the probe captures it (downscaled, `f` < 1). */
+function band(fr: Frame, f: number): Frame {
+  const bw = Math.round(W * f), bh = Math.round(H * PROBE_BAND * f);
+  const data = new Uint8ClampedArray(bw * bh * 4);
+  for (let y = 0; y < bh; y++)
+    for (let x = 0; x < bw; x++) {
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let yy = Math.floor(y / f); yy < Math.floor((y + 1) / f); yy++)
+        for (let xx = Math.floor(x / f); xx < Math.floor((x + 1) / f); xx++) {
+          const i = (yy * W + xx) * 4;
+          r += fr.data[i];
+          g += fr.data[i + 1];
+          b += fr.data[i + 2];
+          n++;
+        }
+      data.set([r / n, g / n, b / n, 255], (y * bw + x) * 4);
+    }
+  return { data, width: bw, height: bh };
+}
+
+describe("close probe", () => {
+  const truth = viewAt(regionCentre("Scosglen"), ZOOM_LADDER[1]);
+  const open = withNav(paint(truth));
+  const ref = navSignature(open);
+
+  it("the probe band of the open map matches the full frame's nav bar", () => {
+    const b = band(open, 0.3);
+    const Hs = b.height / PROBE_BAND;
+    expect(navBar(b, Hs)).toBeGreaterThanOrEqual(Math.floor(Hs * 0.04));
+    expect(sameNav(ref, navSignature(b, Hs))).toBe(true);
+  });
+
+  it("fails when the map closes, even in a dark scene that passes the dark-rows test", () => {
+    const world = paint(truth);
+    for (let i = 0; i < world.data.length; i += 4) world.data.set([120, 110, 95], i);
+    expect(sameNav(ref, navSignature(world))).toBe(false);
+    const dark = { ...world, data: new Uint8ClampedArray(world.data.length).fill(12) };
+    for (let i = 3; i < dark.data.length; i += 4) dark.data[i] = 255;
+    expect(navBar(dark)).toBeGreaterThanOrEqual(Math.floor(H * 0.04));
+    expect(sameNav(ref, navSignature(dark))).toBe(false);
+  });
+
+  it("fails when another tab is picked, but not when a tooltip overlaps one spot of the bar", () => {
+    expect(sameNav(ref, navSignature(withNav(paint(truth), 4)))).toBe(false);
+    const tip = { ...open, data: new Uint8ClampedArray(open.data) };
+    for (let y = 10; y < 42; y++) for (let x = 1010; x < 1060; x++) tip.data.set([90, 200, 210, 255], (y * W + x) * 4);
+    expect(sameNav(ref, navSignature(tip))).toBe(true);
+  });
+
+  it("sees a pan or zoom in the strip under the nav bar, and not a still map", () => {
+    const strip = stripSignature(open);
+    const still = band(open, 0.3);
+    expect(stripMoved(strip, stripSignature(still, still.height / PROBE_BAND))).toBe(false);
+    const panned = band(withNav(paint({ ...truth, tx: truth.tx + 120, ty: truth.ty - 40 })), 0.3);
+    expect(stripMoved(strip, stripSignature(panned, panned.height / PROBE_BAND))).toBe(true);
+  });
+
+  it("the tracker drops the fit as soon as a frame has no nav bar", () => {
+    const tr = new MapTracker();
+    expect(tr.step(open, H, mapArea(open), K).xf).not.toBeNull();
+    const closed = paint(truth);
+    for (let i = 0; i < W * 45 * 4; i += 4) closed.data.set([140, 120, 90], i);
+    const o = tr.step(closed, H, mapArea(closed), K);
+    expect(o.how).toBe("closed");
+    expect(o.xf).toBeNull();
+    expect(tr.tracking).toBe(false);
+  });
+});
+
+// ---- zoom carry-over -------------------------------------------------------------------------
+
+/** Smooth value noise on a lattice, deterministic. */
+function noise(u: number, v: number) {
+  const h = (i: number, j: number) => {
+    let x = (i * 374761393 + j * 668265263) | 0;
+    x = (x ^ (x >>> 13)) * 1274126177;
+    return ((x ^ (x >>> 16)) >>> 0) / 2 ** 32;
+  };
+  const i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j;
+  const su = fu * fu * (3 - 2 * fu), sv = fv * fv * (3 - 2 * fv);
+  return (h(i, j) * (1 - su) + h(i + 1, j) * su) * (1 - sv) + (h(i, j + 1) * (1 - su) + h(i + 1, j + 1) * su) * sv;
+}
+
+/** A map frame whose art scales with the zoom (texture in map-art units), icons at their fixed screen size. */
+function paintMap(xf: Xf): Frame {
+  const data = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const u = (x - xf.tx) / xf.s, v = (y - xf.ty) / xf.s;
+      const t = 0.5 * noise(u / 0.04, v / 0.04) + 0.3 * noise(u / 0.012, v / 0.012) + 0.2 * noise(u / 0.004, v / 0.004);
+      data.set([90 + 110 * t, 80 + 90 * t, 60 + 70 * t, 255], (y * W + x) * 4);
+    }
+  const icons = paint(xf);
+  // copy the icons and chrome from paint() (anything it drew that isn't parchment)
+  for (let i = 0; i < data.length; i += 4) {
+    const r = icons.data[i], g = icons.data[i + 1], b = icons.data[i + 2];
+    if (g > 200 || (r < 60 && g < 60)) data.set([r, g, b, 255], i);
+  }
+  return { data, width: W, height: H };
+}
+
+/** A spot where, at the closest zoom, exactly one waypoint and a dungeon or two are in view. */
+function sparseSpot(): Xf | null {
+  const z = ZOOM_LADDER[4];
+  for (const p of POIS.filter((q) => q.k === "dungeon")) {
+    const xf = viewAt(toUv(p), z);
+    const inner = { x0: AREA.x0 + 20, y0: AREA.y0 + 20, x1: AREA.x1 - 20, y1: AREA.y1 - 20 };
+    const wps = WAYPOINT_UV.filter((uv) => visible(inner, ...project(xf, uv))).length;
+    const ics = ICON_UV.filter((uv) => visible(inner, ...project(xf, uv))).length;
+    if (wps === 1 && ics >= 1 && ics <= 3) return xf;
+  }
+  return null;
+}
+
+describe("zoom carry-over", () => {
+  const near = sparseSpot()!;
+  // the same spot two zoom levels out: registered from its many waypoints
+  const centre: [number, number] = [((AREA.x0 + AREA.x1) / 2 - near.tx) / near.s, ((AREA.y0 + AREA.y1) / 2 - near.ty) / near.s];
+  const wide = viewAt(centre, ZOOM_LADDER[1]);
+
+  it("finds a spot with a single waypoint at the closest zoom (too few to register alone)", () => {
+    expect(near).not.toBeNull();
+    const fr = paintMap(near);
+    const fit = registerFrame(makeCtx(detect(fr, K, mapArea(fr)), mapArea(fr), K), H, ZOOM_LADDER);
+    expect(fit?.verdict === "strong" || fit?.verdict === "ok").toBe(false);
+  });
+
+  it("matches the zoomed-in view inside the zoomed-out one at the right zoom level", () => {
+    const a = paintMap(wide), b = paintMap(near);
+    const ca = mapArea(a), cb = mapArea(b);
+    const cands = zoomCarry(lumaOf(a, ca), wide, lumaOf(b, cb), H, ZOOM_LADDER);
+    expect(cands[0].z).toBe(ZOOM_LADDER[4]);
+    expect(cands[0].ncc).toBeGreaterThan(0.6);
+    expect(maxDev(cands[0].xf, near)).toBeLessThan(25);
+    const pick = pickCarry(makeCtx(detect(b, K, cb), cb, K), cands)!;
+    expect(pick).not.toBeNull();
+    expect(maxDev(pick.xf, near)).toBeLessThan(4);
+  });
+
+  it("the tracker carries the fit over the zoom change and keeps it while the map pans", () => {
+    const tr = new MapTracker();
+    const a = paintMap(wide);
+    expect(tr.step(a, H, mapArea(a), K).how).toBe("fit");
+    const b = paintMap(near);
+    const o = tr.step(b, H, mapArea(b), K);
+    expect(o.how).toBe("zoom");
+    expect(maxDev(o.xf!, near)).toBeLessThan(4);
+    const moved = { ...near, tx: near.tx - 60, ty: near.ty + 25 };
+    const c = paintMap(moved);
+    const o2 = tr.step(c, H, mapArea(c), K);
+    expect(o2.xf).not.toBeNull();
+    expect(maxDev(o2.xf!, moved)).toBeLessThan(4);
+  });
+
+  it("never carries the fit to a view that isn't inside the registered one", () => {
+    const tr = new MapTracker();
+    const a = paintMap(wide);
+    tr.step(a, H, mapArea(a), K);
+    // the closest zoom somewhere else on the map
+    for (const p of POIS.filter((q) => q.k === "waypoint").slice(0, 12)) {
+      const far = viewAt(toUv(p), ZOOM_LADDER[4]);
+      if (Math.abs(far.tx - near.tx) < W && Math.abs(far.ty - near.ty) < H) continue;
+      const fr = paintMap(far);
+      const o = tr.step(fr, H, mapArea(fr), K);
+      if (o.xf) expect(maxDev(o.xf, far)).toBeLessThan(4);
+    }
+  });
+});
+
+// ---- found altars ----------------------------------------------------------------------------
+
+describe("unfound only", () => {
+  const glyph = (fr: Frame, x: number, y: number) => {
+    // a grey glyph with a black outline, its centre 6.4·k above the spot (as the game draws a found altar)
+    const cy = y - 6.4 * K;
+    for (let dy = -10; dy <= 10; dy++)
+      for (let dx = -10; dx <= 10; dx++) {
+        const r = Math.hypot(dx, dy);
+        const px = Math.round(x + dx), py = Math.round(cy + dy);
+        if (r <= 7) fr.data.set([66, 62, 68, 255], (py * W + px) * 4);
+        else if (r <= 9) fr.data.set([12, 10, 12, 255], (py * W + px) * 4);
+      }
+  };
+  const truth = viewAt(regionCentre("Scosglen"), ZOOM_LADDER[2]);
+
+  it("tells a found altar's icon from bare map, and from dark brown map art", () => {
+    const fr = paint(truth);
+    glyph(fr, 500, 300);
+    expect(foundAt(fr, "altar", 500, 300, K)).toBe(true);
+    expect(foundAt(fr, "altar", 900, 300, K)).toBe(false);
+    for (let y = 280; y < 320; y++) for (let x = 1180; x < 1220; x++) fr.data.set([40, 18, 8, 255], (y * W + x) * 4);
+    expect(foundAt(fr, "altar", 1200, 300, K)).toBe(false);
+  });
+
+  it("hides found altars (or marks them found), zoomed in only", () => {
+    const fr = paint(truth);
+    const id = (x: number, y: number): [number, number] => [x, y];
+    const all = pinsFor(truth, AREA, H, { groups: { collectible: true }, helltideRegion: null }, id);
+    expect(all.length).toBeGreaterThan(2);
+    const target = all[0];
+    glyph(fr, target.x, target.y);
+    const hidden = pinsFor(truth, AREA, H, { groups: { collectible: true }, helltideRegion: null, found: { fr, k: K, hide: true } }, id);
+    expect(hidden.some((p) => p.id === target.id)).toBe(false);
+    expect(hidden.length).toBe(all.length - 1);
+    const marked = pinsFor(truth, AREA, H, { groups: { collectible: true }, helltideRegion: null, found: { fr, k: K, hide: false } }, id);
+    expect(marked.find((p) => p.id === target.id)?.found).toBe(true);
+    // zoomed out to the widest level the icons are dots: nothing is hidden
+    const wideXf = viewAt(regionCentre("Scosglen"), ZOOM_LADDER[0]);
+    const w = pinsFor(wideXf, AREA, H, { groups: { collectible: true }, helltideRegion: null, found: { fr, k: K, hide: true } }, id);
+    expect(w.length).toBe(pinsFor(wideXf, AREA, H, { groups: { collectible: true }, helltideRegion: null }, id).length);
+  });
+});
+
+// ---- presets ---------------------------------------------------------------------------------
+
+describe("presets", () => {
+  const custom = { ...defaultSettings.mapPins.groups };
+
+  it("each preset shows its kinds; Custom shows the checkboxes; Off shows nothing", () => {
+    expect(presetGroups("collectibles", custom)).toEqual({ journal: true, collectible: true });
+    expect(presetGroups("dungeons", custom)).toEqual({ dungeon: true, cellar: true });
+    expect(presetGroups("quests", custom)).toEqual({ side_quest: true, stronghold: true });
+    expect(presetGroups("helltide", custom)).toEqual({ helltide_chest: true });
+    expect(Object.keys(presetGroups("everything", custom))).toHaveLength(9);
+    expect(presetGroups("off", custom)).toEqual({});
+    expect(presetGroups("custom", custom)).toBe(custom);
+  });
+
+  it("the new defaults are quiet: collectibles and dungeons", () => {
+    const on = Object.entries(defaultSettings.mapPins.groups).filter(([, v]) => v).map(([k]) => k);
+    expect(on.sort()).toEqual(["collectible", "dungeon", "journal"]);
+    expect(defaultSettings.mapPins.preset).toBe("custom");
+    expect(defaultSettings.mapPins.unfoundOnly).toBe(true);
+  });
+
+  it("the hotkey steps through the presets in the cycle, in order, wrapping around", () => {
+    const cycle = ["custom", "dungeons", "off"] as const;
+    expect(nextPreset("custom", [...cycle])).toBe("dungeons");
+    expect(nextPreset("dungeons", [...cycle])).toBe("off");
+    expect(nextPreset("off", [...cycle])).toBe("custom");
+    // not in the cycle (picked on the Overlay page): the first one
+    expect(nextPreset("quests", [...cycle])).toBe("custom");
+    expect(nextPreset("quests", [])).toBe("quests");
+    expect(MAP_PIN_PRESETS.map((p) => p.id)).toEqual(defaultSettings.mapPins.cycle);
+  });
+
+  it("has a default hotkey and pad chord that no other action uses", () => {
+    const keys = Object.entries(defaultSettings.hotkeys).filter(([a]) => a !== "mapPinsPreset").map(([, k]) => k);
+    expect(defaultSettings.hotkeys.mapPinsPreset).toBeTruthy();
+    expect(keys).not.toContain(defaultSettings.hotkeys.mapPinsPreset);
+    expect(defaultSettings.hotkeys.mapPinsPreset).not.toBe("CommandOrControl+Shift+M");
+    const chord = defaultSettings.padChords.mapPinsPreset.join("+");
+    expect(chord).toBeTruthy();
+    expect(Object.entries(defaultSettings.padChords).filter(([a]) => a !== "mapPinsPreset").map(([, c]) => c.join("+"))).not.toContain(chord);
+  });
+
+  // settings as the store loads them: saved values over the defaults, then the migration
+  const merged = (persisted: any): Settings =>
+    migrateMapPins(
+      structuredClone({
+        ...defaultSettings,
+        mapPins: { ...defaultSettings.mapPins, ...persisted.mapPins },
+        hotkeys: { ...defaultSettings.hotkeys, ...persisted.hotkeys },
+        padChords: { ...defaultSettings.padChords, ...persisted.padChords },
+      }),
+      persisted,
+    );
+  const { mapPinsPreset: _k, ...oldHotkeys } = defaultSettings.hotkeys;
+  const { mapPinsPreset: _c, ...oldChords } = defaultSettings.padChords;
+  const oldDefaults = { journal: true, collectible: true, dungeon: true, cellar: true, stronghold: true, side_quest: true, helltide_chest: true, undercity: false, boss_dungeon: false };
+
+  it("moves the old everything-on defaults to the quiet ones, once", () => {
+    const m = merged({ mapPins: { enabled: true, groups: oldDefaults } });
+    expect(m.mapPins.groups).toEqual(defaultSettings.mapPins.groups);
+    expect(m.mapPins.v).toBe(2);
+    // already migrated: whatever the user ticks since stays
+    const again = merged({ mapPins: { enabled: true, groups: oldDefaults, v: 2 } });
+    expect(again.mapPins.groups).toEqual(oldDefaults);
+  });
+
+  it("keeps settings the user had changed, and keeps the new keys off ones already taken", () => {
+    const mine = { ...oldDefaults, side_quest: false };
+    expect(merged({ mapPins: { enabled: true, groups: mine } }).mapPins.groups).toEqual(mine);
+    const taken = merged({ mapPins: { groups: mine }, hotkeys: { ...oldHotkeys, clip: "Alt+M" }, padChords: { ...oldChords, clip: ["LS", "View"] } });
+    expect(taken.hotkeys.mapPinsPreset).toBe("");
+    expect(taken.padChords.mapPinsPreset).toEqual([]);
+    const free = merged({ mapPins: { groups: mine }, hotkeys: oldHotkeys, padChords: oldChords });
+    expect(free.hotkeys.mapPinsPreset).toBe(defaultSettings.hotkeys.mapPinsPreset);
+    expect(free.padChords.mapPinsPreset).toEqual(defaultSettings.padChords.mapPinsPreset);
   });
 });

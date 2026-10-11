@@ -17,12 +17,12 @@ import { detectPillarbox, hamming, sceneSignature } from "./vision";
 import { scanSkillBar, useSkillBar } from "./skillbar";
 import { startHordes } from "./hordesRunner";
 import { startActivityWatcher } from "./activity";
-import { startMapPins } from "./mapPinsRunner";
+import { mapPinsPresetChanged, startMapPins } from "./mapPinsRunner";
 import { regionKey } from "./mappins";
 import { toggleMapCharacter } from "./charmap";
 import { obsSaveReplay } from "./obs";
 import { noteBars, onGameStatus, watchTestContext } from "./testmode";
-import { getActiveVariant, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
+import { MAP_PIN_PRESETS, getActiveVariant, nextPreset, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
 import { EVENT_META, fetchLive, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
 import type { GameEvent, JudgeResult } from "./types";
 
@@ -91,6 +91,16 @@ export async function runAction(a: ActionId) {
       const secs = s.autoJudge.snoozeSeconds || 30;
       snoozeJudge(secs);
       overlayToast("Loot judge snoozed", `Quiet for ${secs} seconds.`, "#9a8f86", 2500);
+      break;
+    }
+    case "mapPinsPreset": {
+      // step to the next map pins preset; its name shows on the map (or as a toast if no map is open)
+      const mp = s.mapPins;
+      const next = nextPreset(mp.preset, mp.cycle);
+      useSettings.getState().update((st) => void (st.mapPins.preset = next));
+      const label = MAP_PIN_PRESETS.find((p) => p.id === next)?.label ?? next;
+      if (!mp.enabled) overlayToast("Map pins are off", "Turn them on on the Overlay page.", "#9a8f86", 2500);
+      else if (!mapPinsPresetChanged()) overlayToast(`Map pins: ${label}`, undefined, "#d9a86a", 1800);
       break;
     }
     case "coachSnap": {

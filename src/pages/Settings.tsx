@@ -17,6 +17,7 @@ const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "overlayToggle", label: "Hide / show overlay" },
   { id: "mapCharacter", label: "Map my character (start / pause / resume)" },
   { id: "snoozeJudge", label: "Snooze the loot judge (30 s)" },
+  { id: "mapPinsPreset", label: "Map pins: next preset" },
 ];
 
 export default function SettingsPage() {

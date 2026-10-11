@@ -6,7 +6,11 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
-- **Map pins:** open the in-game map and the overlay pins Deckard's journals, Altars of Lilith and the regional collectibles, dungeons, cellars, strongholds and side quests (dimmer, as their spots are approximate) at their real places, at every zoom level. Helltide chest spots show during a Helltide in its zone. The app finds the map from its waypoint icons by screen capture only, and draws nothing when it isn't sure. Pick the kinds on the **Overlay** page.
+- **Map pins:** open the in-game map and the overlay pins Deckard's journals, Altars of Lilith and the regional collectibles, dungeons, cellars, strongholds and side quests (dimmer, as their spots are approximate) at their real places, at every zoom level. Helltide chest spots show during a Helltide in its zone. The app finds the map from its waypoint icons by screen capture only, and draws nothing when it isn't sure.
+  - **Presets:** switch what the pins show in game with **Alt+M** or **View + left stick click** on a controller: Custom, Collectibles, Dungeons & cellars, Quests, Helltide, Everything or Off. The preset's name shows briefly in the map's corner. On the **Overlay** page you pick which presets the key steps through and which kinds Custom shows. The default is quiet: journals, altars and collectibles, and dungeons. If you had the old everything-on defaults, they switch to the quiet ones once.
+  - **Unfound only:** altars and regional collectibles the map already shows as found are hidden (or drawn faded, if you turn the option off).
+  - Pins stay on the map: they are clipped to the map itself, clear of the side panel, its tab and the boxes drawn over the map. They disappear within a fraction of a second when you close the map or switch to another tab, and while you pan or zoom, then come back when the map settles.
+  - The closest zoom works: when you zoom in from a view the app already knows, it follows you in, even with only one waypoint in sight.
 - **In-app updates:** when a new version is out, **Settings → About** shows an "Update to vX" button. It downloads the update, checks its signature, installs it and restarts the app. (This version still needs the new installer once; updates are automatic from here on.)
 - The app version now shows under the sidebar logo, in **Settings → About** and in the tray icon's tooltip.
 - The app checks GitHub for a newer release at start and every 6 hours. When one exists, the sidebar version turns into a link to it.

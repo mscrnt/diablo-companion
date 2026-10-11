@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Card, Check, PageHead } from "../components/ui";
 import { runAction, setOverlayEdit, useRuntime } from "../lib/engine";
 import { captureMonitor, gameStatus, setOverlayCapturable } from "../lib/native";
-import { useMapPins } from "../lib/mapPinsRunner";
-import { defaultSettings, useSettings, type MapPinGroup } from "../lib/store";
+import { mapPinsPresetChanged, useMapPins } from "../lib/mapPinsRunner";
+import { MAP_PIN_PRESETS, defaultSettings, useSettings, type MapPinGroup, type MapPinPreset } from "../lib/store";
 import { detectPillarbox } from "../lib/vision";
 
 const WIDGETS: { id: keyof typeof defaultSettings.overlay.widgets; label: string; desc: string }[] = [
@@ -18,7 +18,7 @@ const WIDGETS: { id: keyof typeof defaultSettings.overlay.widgets; label: string
 
 const PIN_GROUPS: { id: MapPinGroup; label: string; desc: string }[] = [
   { id: "journal", label: "Deckard's journals", desc: "The season's journal pages, labelled with their part number." },
-  { id: "collectible", label: "Altars of Lilith & regional collectibles", desc: "Altars, Tenets of Akarat (Nahantu) and Chronicles of Creation (Skovos), found or not." },
+  { id: "collectible", label: "Altars of Lilith & regional collectibles", desc: "Altars, Tenets of Akarat (Nahantu) and Chronicles of Creation (Skovos)." },
   { id: "dungeon", label: "Dungeons", desc: "Dungeon entrances." },
   { id: "cellar", label: "Cellars", desc: "Cellar entrances (the map hides these until you find them)." },
   { id: "stronghold", label: "Strongholds", desc: "Where each stronghold starts." },
@@ -33,43 +33,122 @@ function MapPinsCard() {
   const status = useMapPins((s) => s.status);
   const mp = settings.mapPins;
   const ms = (v?: number) => (v == null ? "–" : `${Math.round(v)} ms`);
+  const key = settings.hotkeys.mapPinsPreset?.replace("CommandOrControl", "Ctrl");
+  const chord = settings.padChords.mapPinsPreset?.join("+");
   const state = !mp.enabled
     ? "Off"
-    : {
-        off: "Waiting for the game",
-        idle: "Waiting for the map",
-        menu: "A menu is open, but the map isn't recognised (yet)",
-        paused: "Paused: the overlay is set to show in screenshots, so the pins would read themselves. Turn that off above.",
-        tracking: `Map found: ${status.pins ?? 0} pins (${status.waypoints ?? 0} waypoints and ${status.icons ?? 0} dungeon icons matched${status.how === "pan" ? ", following the pan" : ""})`,
-      }[status.state];
+    : mp.preset === "off"
+      ? "Preset: Off (nothing is captured)"
+      : {
+          off: "Waiting for the game",
+          idle: "Waiting for the map",
+          menu: "A menu is open, but the map isn't recognised (yet)",
+          paused: "Paused: the overlay is set to show in screenshots, so the pins would read themselves. Turn that off above.",
+          tracking: `Map found: ${status.pins ?? 0} pins (${status.waypoints ?? 0} waypoints and ${status.icons ?? 0} dungeon icons matched${status.how === "pan" ? ", following the pan" : status.how === "zoom" ? ", carried over the zoom change" : ""})`,
+        }[status.state];
+  const pick = (id: MapPinPreset) => {
+    update((s) => void (s.mapPins.preset = id));
+    mapPinsPresetChanged();
+  };
   return (
     <Card title="Map pins" style={{ marginTop: 14 }}>
       <div className="col">
         <Check checked={mp.enabled} onChange={(v) => update((s) => void (s.mapPins.enabled = v))} label="Draw pins on the in-game map when you open it" />
         <div className="small muted">
-          Finds the map from its waypoint icons (screen capture only) and pins what you pick below at its real place. Pins disappear while you zoom and come back when the map
-          settles. Zoomed all the way in, it needs a couple of waypoints or dungeons in view. Nothing is drawn unless the map is recognised for sure.
+          Finds the map from its waypoint icons (screen capture only) and pins what the preset shows at its real place. Pins disappear while you pan or zoom and come back when
+          the map settles. Zoomed all the way in, it follows you in from a wider view, or needs a couple of waypoints or dungeons in view. Nothing is drawn unless the map is
+          recognised for sure.
         </div>
-        <div className="table-wrap" style={{ opacity: mp.enabled ? 1 : 0.5 }}>
-          <table className="table">
-            <tbody>
-              {PIN_GROUPS.map((g) => (
-                <tr key={g.id}>
-                  <td style={{ width: 30 }}>
-                    <input type="checkbox" disabled={!mp.enabled} checked={mp.groups[g.id]} onChange={(e) => update((s) => void (s.mapPins.groups[g.id] = e.target.checked))} />
-                  </td>
-                  <td>
-                    <b>{g.label}</b>
-                    <div className="small muted">{g.desc}</div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ opacity: mp.enabled ? 1 : 0.5 }}>
+          <div className="small" style={{ marginBottom: 6 }}>
+            <b>Preset</b>
+            <span className="muted">
+              {" "}
+              · next preset in game: {key ? <span className="kbd">{key}</span> : "no hotkey"} {chord ? <> or <span className="kbd">{chord}</span> on the pad</> : null} (change them in
+              Settings). Tick "in cycle" for the ones it steps through.
+            </span>
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <tbody>
+                {MAP_PIN_PRESETS.map((p) => (
+                  <tr key={p.id}>
+                    <td style={{ width: 30 }}>
+                      <input type="radio" name="map-pin-preset" disabled={!mp.enabled} checked={mp.preset === p.id} onChange={() => pick(p.id)} />
+                    </td>
+                    <td>
+                      <b>{p.label}</b>
+                      <div className="small muted">{p.desc}</div>
+                    </td>
+                    <td style={{ width: 110 }}>
+                      <label className="small row" style={{ gap: 6 }}>
+                        <input
+                          type="checkbox"
+                          disabled={!mp.enabled}
+                          checked={mp.cycle.includes(p.id)}
+                          onChange={(e) =>
+                            update((s) => {
+                              const set = new Set(s.mapPins.cycle);
+                              if (e.target.checked) set.add(p.id);
+                              else set.delete(p.id);
+                              s.mapPins.cycle = MAP_PIN_PRESETS.map((x) => x.id).filter((id) => set.has(id));
+                            })
+                          }
+                        />
+                        in cycle
+                      </label>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+        <div style={{ opacity: mp.enabled ? 1 : 0.5 }}>
+          <div className="small" style={{ margin: "6px 0" }}>
+            <b>Custom preset</b> <span className="muted">· the kinds it shows</span>
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <tbody>
+                {PIN_GROUPS.map((g) => (
+                  <tr key={g.id}>
+                    <td style={{ width: 30 }}>
+                      <input
+                        type="checkbox"
+                        disabled={!mp.enabled}
+                        checked={mp.groups[g.id]}
+                        onChange={(e) => {
+                          update((s) => void (s.mapPins.groups[g.id] = e.target.checked));
+                          if (mp.preset === "custom") mapPinsPresetChanged();
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <b>{g.label}</b>
+                      <div className="small muted">{g.desc}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <Check
+          checked={mp.unfoundOnly}
+          onChange={(v) => update((s) => void (s.mapPins.unfoundOnly = v))}
+          label="Unfound only: hide altars and regional collectibles the map already shows as found (off: draw them faded)"
+        />
+        <Check checked={mp.chip} onChange={(v) => update((s) => void (s.mapPins.chip = v))} label="Keep a small chip with the preset's name on the map" />
         <div className="small dim">
           {state}
-          {status.captureMs != null && <> · capture {ms(status.captureMs)} · decode {ms(status.decodeMs)} · fit {ms(status.fitMs)}</>}
+          {status.captureMs != null && (
+            <>
+              {" "}
+              · capture {ms(status.captureMs)} · decode {ms(status.decodeMs)} · fit {ms(status.fitMs)}
+              {status.probeMs != null && <> · probe {ms(status.probeMs)}</>}
+            </>
+          )}
         </div>
       </div>
     </Card>

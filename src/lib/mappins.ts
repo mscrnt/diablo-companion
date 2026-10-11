@@ -11,6 +11,10 @@
 // outline. Near-black blobs near their predicted positions verify a fit, refine it,
 // and stand in for waypoints when few are visible (zoomed in).
 //
+// Zoomed all the way in, even that is often too little: the fit is then carried over from
+// the last registered frame (the zoom levels are discrete, so the new view is a patch of the
+// old one at a known ratio) and confirmed by the anchors in view. See zoomCarry.
+//
 // Pure module: no DOM, no Tauri. The capture loop lives in mapPinsRunner.ts.
 import poiData from "../generated/map-pois.json";
 import type { MapPinGroup } from "./store";
@@ -282,15 +286,132 @@ export function navBar(f: Frame, H = f.height, gx0 = 0, gx1 = f.width): number {
   return darkBand(f, Math.floor(H * 0.02), Math.min(f.height, Math.floor(H * 0.1)), 1, gx0, gx1);
 }
 
+/**
+ * The map's side panel on the right edge (dark, neutral grey; collapsed it's a strip about 0.07 of
+ * the image height wide, expanded much wider): its left edge in frame px, or null if not found.
+ * Dark map art is brownish, so it doesn't pass for the panel.
+ */
+export function sidePanel(f: Frame, gx0 = 0, gx1 = f.width): number | null {
+  const H = f.height, W = f.width, d = f.data;
+  const ys: number[] = [];
+  for (let y = Math.floor(H * 0.2); y < H * 0.8; y += Math.max(1, Math.floor(H / 120))) ys.push(y);
+  const panelish = (x: number) => {
+    let n = 0;
+    for (const y of ys) {
+      const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+      const mx = r > g ? (r > b ? r : b) : g > b ? g : b, mn = r < g ? (r < b ? r : b) : g < b ? g : b;
+      if (r + g + b < 130 && mx - mn < 18 && b + 4 >= r) n++;
+    }
+    return n / ys.length;
+  };
+  let left = -1, gap = 0;
+  for (let x = gx1 - 1 - Math.round(H * 0.004); x > gx1 - (gx1 - gx0) * 0.45; x--) {
+    if (panelish(x) >= 0.75) {
+      left = x;
+      gap = 0;
+    } else if (++gap > H * 0.006) break;
+  }
+  return left >= 0 && gx1 - left >= H * 0.03 ? left : null;
+}
+
 export function mapArea(f: Frame, gx0 = 0, gx1 = f.width): MapArea {
   const H = f.height;
   const t = navBar(f, H, gx0, gx1);
   const b = darkBand(f, Math.ceil(H * 0.98), Math.floor(H * 0.9), -1, gx0, gx1);
   const top = t >= 0 ? t + 1 : Math.round(H * 0.0625);
   const bottom = b >= 0 ? b : Math.round(H * 0.944);
-  // a little margin so pins don't touch the bars; the map's side panel strip sits at the right edge
+  // a little margin so pins don't touch the bars
   const m = H * 0.008;
-  return { x0: gx0 + m, y0: top + m, x1: gx1 - (gx1 - gx0) * 0.022, y1: bottom - m, chrome: t >= Math.floor(H * 0.04), hud: hudBoxes(f, gx0, gx1) };
+  const hud = hudBoxes(f, gx0, gx1);
+  // the side panel on the right edge, and its collapse tab (a round button sticking out of it at mid height)
+  const panel = sidePanel(f, gx0, gx1);
+  const right = panel ?? gx1 - (gx1 - gx0) * 0.022;
+  hud.push({ x0: right - H * 0.05, y0: H * 0.46, x1: right, y1: H * 0.57 });
+  return { x0: gx0 + m, y0: top + m, x1: right - H * 0.004, y1: bottom - m, chrome: t >= Math.floor(H * 0.04), hud };
+}
+
+/**
+ * A coarse picture of the nav bar (mean grey of 48 × 2 cells over the rows of its labels). It
+ * stays the same while the map stays open, and changes when another menu tab is picked or the
+ * menu closes (a dark scene can pass the "dark rows" test, but not this). `H` is the image
+ * height in frame px; the frame may be just the top band of it.
+ */
+export function navSignature(f: Frame, H = f.height, gx0 = 0, gx1 = f.width): Float32Array {
+  const C = 48, R = 2, out = new Float32Array(C * R);
+  const y0 = H * 0.01, y1 = Math.min(f.height, H * 0.052);
+  const cw = (gx1 - gx0) / C, rh = (y1 - y0) / R;
+  const step = Math.max(1, Math.floor(Math.min(cw, rh) / 4));
+  for (let r = 0; r < R; r++)
+    for (let c = 0; c < C; c++) {
+      let s = 0, n = 0;
+      for (let y = Math.floor(y0 + r * rh); y < y0 + (r + 1) * rh; y += step)
+        for (let x = Math.floor(gx0 + c * cw); x < gx0 + (c + 1) * cw; x += step) {
+          const i = (y * f.width + x) * 4;
+          s += f.data[i] * 0.3 + f.data[i + 1] * 0.59 + f.data[i + 2] * 0.11;
+          n++;
+        }
+      out[r * C + c] = n ? s / n : 0;
+    }
+  return out;
+}
+
+/**
+ * Same nav bar? Small differences pass (JPEG, and a tooltip near the top of the map overlaps the
+ * bar in one spot); another tab picked (the highlight leaves one spot and lands in another) or
+ * no menu at all doesn't.
+ */
+export function sameNav(a: Float32Array, b: Float32Array): boolean {
+  if (a.length !== b.length || !a.length) return false;
+  const C = a.length / 2;
+  let sum = 0, lo = C, hi = -1;
+  for (let i = 0; i < a.length; i++) {
+    const d = Math.abs(a[i] - b[i]);
+    sum += d;
+    if (d > 16) {
+      lo = Math.min(lo, i % C);
+      hi = Math.max(hi, i % C);
+    }
+  }
+  return sum / a.length < 8 && hi - lo <= 2;
+}
+
+/** The band of the image (from the top) the fast probe captures: the nav bar and a strip of map below it. */
+export const PROBE_BAND = 0.2;
+
+/**
+ * A coarse picture (32 × 4 cells of mean grey) of the strip of map just below the nav bar, rows
+ * 0.07–0.2 of the image height. `H` is the image height in frame px; the frame may be the probe band.
+ */
+export function stripSignature(f: Frame, H = f.height): Float32Array {
+  const C = 32, R = 4, out = new Float32Array(C * R);
+  const y0 = H * 0.07, y1 = Math.min(f.height, H * 0.2);
+  const cw = f.width / C, rh = (y1 - y0) / R;
+  const step = Math.max(1, Math.floor(Math.min(cw, rh) / 4));
+  for (let r = 0; r < R; r++)
+    for (let c = 0; c < C; c++) {
+      let s = 0, n = 0;
+      for (let y = Math.floor(y0 + r * rh); y < y0 + (r + 1) * rh; y += step)
+        for (let x = Math.floor(c * cw); x < (c + 1) * cw; x += step) {
+          const i = (y * f.width + x) * 4;
+          s += f.data[i] * 0.3 + f.data[i + 1] * 0.59 + f.data[i + 2] * 0.11;
+          n++;
+        }
+      out[r * C + c] = n ? s / n : 0;
+    }
+  return out;
+}
+
+/**
+ * Has the map moved (pan or zoom) between two strip signatures? A pan or zoom changes most cells;
+ * the cursor or a tooltip only some (and the HUD boxes in the strip never change).
+ */
+export function stripMoved(a: Float32Array, b: Float32Array): boolean {
+  if (a.length !== b.length) return true;
+  let n = 0;
+  for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) > 6) n++;
+  // measured on a session: a still map with the cursor and tooltips moving stays under 0.3, a pan of
+  // 50 px (720 p) or more and any zoom go over it; smaller pans wait for the next full frame
+  return n > a.length * 0.33;
 }
 
 /** The nav bar test on a capture of just the top band (`frac` of the image height): cheap "is a menu open?". */
@@ -719,22 +840,40 @@ export function registerFrame(c: Ctx, H: number, zooms: number[], prior?: Xf | n
   return best;
 }
 
-/** Pull a predicted transform onto nearby anchors (the pan estimate can be a few px off after a big move). */
-function snap(c: Ctx, xf: Xf): Xf {
-  const pairs: Score["pairs"] = [];
-  for (const uv of WAYPOINT_UV) {
-    const [x, y] = project(xf, uv);
-    if (!visible(c.area, x, y)) continue;
-    const [i] = c.wpGrid.nearest(x, y, c.tolW * 2.5);
-    if (i >= 0) pairs.push({ uv, b: c.det.waypoints[i], w: 1 });
+/**
+ * Pull a predicted transform onto nearby anchors (the pan estimate can be a few px off after a
+ * big move, a zoom carry-over more). Every anchor blob within `reach` × tolerance of a predicted
+ * waypoint or dungeon votes for a shift; the shift most of them agree on wins (so stray dark
+ * blobs nearby can't drag it off), refined by least squares over its supporters.
+ */
+export function snap(c: Ctx, xf: Xf, reach = 2.5): Xf {
+  const cand: { uv: [number, number]; b: Blob; w: number; dx: number; dy: number }[] = [];
+  const collect = (uvs: [number, number][], blobs: Blob[], tol: number, w: number) => {
+    const R = tol * reach;
+    for (const uv of uvs) {
+      const [x, y] = project(xf, uv);
+      if (!visible(c.area, x, y)) continue;
+      for (const b of blobs) {
+        const dx = b.x - x, dy = b.y - y;
+        if (dx * dx + dy * dy <= R * R) cand.push({ uv, b, w, dx, dy });
+      }
+    }
+  };
+  collect(WAYPOINT_UV, c.det.waypoints, c.tolW, 1);
+  collect(ICON_UV, c.det.icons, c.tolI, 0.35);
+  if (!cand.length) return xf;
+  const agree = 7 * c.k;
+  let best = cand[0], bestW = -1;
+  for (const p of cand) {
+    let W = 0;
+    for (const q of cand) if (Math.abs(q.dx - p.dx) <= agree && Math.abs(q.dy - p.dy) <= agree) W += q.w;
+    if (W > bestW) {
+      bestW = W;
+      best = p;
+    }
   }
-  for (const uv of ICON_UV) {
-    const [x, y] = project(xf, uv);
-    if (!visible(c.area, x, y)) continue;
-    const [i] = c.iconGrid.nearest(x, y, c.tolI * 2.5);
-    if (i >= 0) pairs.push({ uv, b: c.det.icons[i], w: 0.35 });
-  }
-  return (pairs.length && refineShift(pairs, xf.s)) || xf;
+  const sup = cand.filter((q) => Math.abs(q.dx - best.dx) <= agree && Math.abs(q.dy - best.dy) <= agree);
+  return refineShift(sup, xf.s) || xf;
 }
 
 /** Least-squares translation only, scale fixed. */
@@ -757,14 +896,36 @@ function better(a: Score, b: Score, k: number, zooms: number[], va = judge(a, k,
 
 // ---- pan between frames (phase correlation) -----------------------------------------------
 
-function fft1(re: Float64Array, im: Float64Array, n: number, off: number, stride: number, inv: boolean) {
-  // iterative radix-2 on a strided view
-  for (let i = 1, j = 0; i < n; i++) {
-    let bit = n >> 1;
-    for (; j & bit; bit >>= 1) j ^= bit;
-    j ^= bit;
+/** Bit-reversal permutation and twiddles for an n-point FFT, cached per n. */
+const fftTables = new Map<number, { rev: Uint32Array; cos: Float64Array; sin: Float64Array }>();
+function tables(n: number) {
+  let t = fftTables.get(n);
+  if (!t) {
+    const rev = new Uint32Array(n);
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      rev[i] = j;
+    }
+    const cos = new Float64Array(n / 2), sin = new Float64Array(n / 2);
+    for (let i = 0; i < n / 2; i++) {
+      cos[i] = Math.cos((2 * Math.PI * i) / n);
+      sin[i] = -Math.sin((2 * Math.PI * i) / n);
+    }
+    t = { rev, cos, sin };
+    fftTables.set(n, t);
+  }
+  return t;
+}
+
+/** In-place iterative radix-2 FFT of re/im[off .. off+n) (contiguous). Unnormalised both ways. */
+function fft1(re: Float64Array, im: Float64Array, n: number, off: number, inv: boolean) {
+  const { rev, cos, sin } = tables(n);
+  for (let i = 1; i < n; i++) {
+    const j = rev[i];
     if (i < j) {
-      const a = off + i * stride, b = off + j * stride;
+      const a = off + i, b = off + j;
       let t = re[a];
       re[a] = re[b];
       re[b] = t;
@@ -773,29 +934,38 @@ function fft1(re: Float64Array, im: Float64Array, n: number, off: number, stride
       im[b] = t;
     }
   }
+  const sg = inv ? -1 : 1;
   for (let len = 2; len <= n; len <<= 1) {
-    const ang = ((inv ? 2 : -2) * Math.PI) / len;
-    const wr = Math.cos(ang), wi = Math.sin(ang);
+    const half = len >> 1, step = n / len;
     for (let i = 0; i < n; i += len) {
-      let cr = 1, ci = 0;
-      for (let j = 0; j < len / 2; j++) {
-        const a = off + (i + j) * stride, b = off + (i + j + len / 2) * stride;
+      for (let j = 0, k = 0; j < half; j++, k += step) {
+        const cr = cos[k], ci = sg * sin[k];
+        const a = off + i + j, b = a + half;
         const xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr;
         re[b] = re[a] - xr;
         im[b] = im[a] - xi;
         re[a] += xr;
         im[a] += xi;
-        const nr = cr * wr - ci * wi;
-        ci = cr * wi + ci * wr;
-        cr = nr;
       }
     }
   }
 }
 
+/** 2-D FFT, W × H row-major (both powers of two); columns go through a contiguous scratch buffer. */
 function fft2(re: Float64Array, im: Float64Array, W: number, H: number, inv: boolean) {
-  for (let y = 0; y < H; y++) fft1(re, im, W, y * W, 1, inv);
-  for (let x = 0; x < W; x++) fft1(re, im, H, x, W, inv);
+  for (let y = 0; y < H; y++) fft1(re, im, W, y * W, inv);
+  const cr = new Float64Array(H), ci = new Float64Array(H);
+  for (let x = 0; x < W; x++) {
+    for (let y = 0, p = x; y < H; y++, p += W) {
+      cr[y] = re[p];
+      ci[y] = im[p];
+    }
+    fft1(cr, ci, H, 0, inv);
+    for (let y = 0, p = x; y < H; y++, p += W) {
+      re[p] = cr[y];
+      im[p] = ci[y];
+    }
+  }
 }
 
 export interface Thumb {
@@ -811,8 +981,10 @@ export interface Thumb {
 }
 
 /** Downsampled grey copy of the map area, windowed, for phase correlation. */
-export function thumb(fr: Frame, area: Box, PW = 256, PH = 128): Thumb {
+export function thumb(fr: Frame, area: Box & { hud?: Box[] }, PW = 256, PH = 128): Thumb {
   const aw = area.x1 - area.x0, ah = area.y1 - area.y0;
+  // HUD boxes stay put while the map moves: leave them out, or they pull the peak to "no pan"
+  const hud = area.hud ?? [];
   const f = Math.max(aw / PW, ah / PH);
   const ox = area.x0 + (aw - PW * f) / 2, oy = area.y0 + (ah - PH * f) / 2;
   const g = new Float64Array(PW * PH);
@@ -825,11 +997,12 @@ export function thumb(fr: Frame, area: Box, PW = 256, PH = 128): Thumb {
       for (let yy = fy0; yy < fy0 + f; yy += step)
         for (let xx = fx0; xx < fx0 + f; xx += step) {
           if (xx < area.x0 || yy < area.y0 || xx >= area.x1 || yy >= area.y1) continue;
+          if (hud.length && hud.some((h) => xx >= h.x0 && xx < h.x1 && yy >= h.y0 && yy < h.y1)) continue;
           const i = (yy * fr.width + xx) * 4;
           s += fr.data[i] * 0.3 + fr.data[i + 1] * 0.59 + fr.data[i + 2] * 0.11;
           n++;
         }
-      // outside the map area: NaN for now, then the mean (so it adds nothing to the correlation)
+      // outside the map area or under a HUD box: NaN for now, then the mean (so it adds nothing to the correlation)
       const v = n ? s / n : NaN;
       g[y * PW + x] = v;
       if (n) {
@@ -892,25 +1065,355 @@ export function phaseShift(a: Thumb, b: Thumb): { dx: number; dy: number; peak: 
   return { dx: sx * a.f, dy: sy * a.f, peak: bv / (sum / N) };
 }
 
-// ---- tracker (hysteresis, zoom memory, pan tracking) --------------------------------------
+// ---- zoom carry-over (scale change between frames) ----------------------------------------
+//
+// Zoomed all the way in, only a waypoint or two is in view, too few to register the map
+// from scratch. But the zoom levels are discrete, so when the previous frame was registered
+// and this one changed scale, the ratio is one of a handful (ZOOM_LADDER). For each, the
+// zoomed-in view shrunk by that ratio is a patch of the zoomed-out view: normalised
+// cross-correlation finds where (and how well it matches), which gives the new fit. The
+// caller then checks it against whatever waypoints and dungeon icons are in view.
+
+/** Grey copy of a frame with a mask of what counts as map (inside the area, not under a HUD box). */
+export interface Luma {
+  y: Uint8Array;
+  ok: Uint8Array;
+  W: number;
+  H: number;
+  area: Box;
+  /** the search image for zoomCarry, kept while this frame is a reference */
+  search?: NccImage | null;
+}
+
+export function lumaOf(fr: Frame, area: Box & { hud?: Box[] }): Luma {
+  const W = fr.width, H = fr.height, d = fr.data;
+  const y = new Uint8Array(W * H), ok = new Uint8Array(W * H);
+  const x0 = Math.max(0, Math.ceil(area.x0)), x1 = Math.min(W, Math.floor(area.x1));
+  const y0 = Math.max(0, Math.ceil(area.y0)), y1 = Math.min(H, Math.floor(area.y1));
+  for (let yy = y0; yy < y1; yy++)
+    for (let x = x0, i = yy * W + x0; x < x1; x++, i++) {
+      y[i] = (d[i * 4] * 77 + d[i * 4 + 1] * 151 + d[i * 4 + 2] * 28) >> 8;
+      ok[i] = 1;
+    }
+  for (const h of area.hud ?? [])
+    for (let yy = Math.max(y0, Math.floor(h.y0)); yy < Math.min(y1, Math.ceil(h.y1)); yy++) ok.fill(0, yy * W + Math.max(x0, Math.floor(h.x0)), yy * W + Math.max(x0, Math.min(x1, Math.ceil(h.x1))));
+  return { y, ok, W, H, area: { x0: area.x0, y0: area.y0, x1: area.x1, y1: area.y1 } };
+}
+
+interface Img {
+  /** NaN = masked */
+  a: Float32Array;
+  w: number;
+  h: number;
+}
+
+/** Box-filtered copy: cell (i, j) averages frame px [ox + i·f, ox + (i+1)·f) × [oy + j·f, …); NaN when mostly masked. */
+function down(L: Luma, ox: number, oy: number, f: number, w: number, h: number): Img {
+  const a = new Float32Array(w * h);
+  const step = f > 6 ? 2 : 1;
+  for (let j = 0; j < h; j++) {
+    const ya = Math.max(0, Math.floor(oy + j * f)), yb = Math.min(L.H, Math.max(ya + 1, Math.floor(oy + (j + 1) * f)));
+    for (let i = 0; i < w; i++) {
+      const xa = Math.max(0, Math.floor(ox + i * f)), xb = Math.min(L.W, Math.max(xa + 1, Math.floor(ox + (i + 1) * f)));
+      let s = 0, n = 0, m = 0;
+      for (let y = ya; y < yb; y += step)
+        for (let x = xa, p = y * L.W + xa; x < xb; x += step, p += step) {
+          m++;
+          if (L.ok[p]) {
+            s += L.y[p];
+            n++;
+          }
+        }
+      a[j * w + i] = n * 2 > m ? s / n : NaN;
+    }
+  }
+  return { a, w, h };
+}
+
+const pow2 = (n: number) => 1 << Math.ceil(Math.log2(Math.max(2, n)));
+
+/** Split the spectrum of a + i·b (both real) into the spectra of a and b. */
+function splitSpectra(cr: Float64Array, ci: Float64Array, PW: number, PH: number) {
+  const N = PW * PH;
+  const ar = new Float64Array(N), ai = new Float64Array(N), br = new Float64Array(N), bi = new Float64Array(N);
+  for (let y = 0; y < PH; y++) {
+    const ny = ((PH - y) % PH) * PW;
+    for (let x = 0; x < PW; x++) {
+      const k = y * PW + x, q = ny + ((PW - x) % PW);
+      ar[k] = (cr[k] + cr[q]) / 2;
+      ai[k] = (ci[k] - ci[q]) / 2;
+      br[k] = (ci[k] + ci[q]) / 2;
+      bi[k] = (cr[q] - cr[k]) / 2;
+    }
+  }
+  return [ar, ai, br, bi];
+}
+
+/** A search image prepared for nccFind: spectra of the zero-mean image and its mask, plus integral images. */
+interface NccImage {
+  PW: number;
+  PH: number;
+  CW: number;
+  CH: number;
+  margin: number;
+  zr: Float64Array;
+  zi: Float64Array;
+  mr: Float64Array;
+  mi: Float64Array;
+  S1: Float64Array;
+  S2: Float64Array;
+  SM: Float64Array;
+}
+
+/** `margin`: how far (px) a template may stick out of the image. */
+function nccImage(img: Img, margin: number): NccImage | null {
+  const { w: iw, h: ih } = img;
+  let mean = 0, cnt = 0;
+  for (const v of img.a) if (v === v) (mean += v), cnt++;
+  if (cnt < (iw * ih) / 3) return null;
+  mean /= cnt;
+  const CW = iw + 2 * margin, CH = ih + 2 * margin;
+  const PW = pow2(CW), PH = pow2(CH), N = PW * PH;
+  const re = new Float64Array(N), im = new Float64Array(N);
+  const S1 = new Float64Array((CW + 1) * (CH + 1)), S2 = new Float64Array((CW + 1) * (CH + 1)), SM = new Float64Array((CW + 1) * (CH + 1));
+  for (let y = 0; y < CH; y++) {
+    let r1 = 0, r2 = 0, rm = 0;
+    for (let x = 0; x < CW; x++) {
+      const ix = x - margin, iy = y - margin;
+      let z = 0, m = 0;
+      if (ix >= 0 && iy >= 0 && ix < iw && iy < ih) {
+        const v = img.a[iy * iw + ix];
+        if (v === v) {
+          z = v - mean;
+          m = 1;
+          re[y * PW + x] = z;
+          im[y * PW + x] = 1;
+        }
+      }
+      r1 += z;
+      r2 += z * z;
+      rm += m;
+      const q = (y + 1) * (CW + 1) + x + 1;
+      S1[q] = S1[q - CW - 1] + r1;
+      S2[q] = S2[q - CW - 1] + r2;
+      SM[q] = SM[q - CW - 1] + rm;
+    }
+  }
+  fft2(re, im, PW, PH, false);
+  const [zr, zi, mr, mi] = splitSpectra(re, im, PW, PH);
+  return { PW, PH, CW, CH, margin, zr, zi, mr, mi, S1, S2, SM };
+}
+
+export interface NccPeak {
+  /** template top-left in image px (sub-pixel) */
+  u: number;
+  v: number;
+  ncc: number;
+}
+
+/**
+ * Where does `tpl` sit in the image? Masked normalised cross-correlation over every placement
+ * (FFT; NaN pixels in either don't count). Returns the best few peaks, at least a fifth of
+ * the template's size apart, best first (a flat or repeating view has several nearly equal).
+ */
+function nccFind(P: NccImage, tpl: Img, peaks = 3): NccPeak[] {
+  const { PW, PH, CW, CH, margin } = P, { w: tw, h: th } = tpl, N = PW * PH;
+  if (tw > CW || th > CH || tw < 4 || th < 4) return [];
+  let tmean = 0, tn = 0;
+  for (const v of tpl.a) if (v === v) (tmean += v), tn++;
+  if (tn < tw * th * 0.4) return [];
+  tmean /= tn;
+  // template t and t² packed into one transform
+  const re = new Float64Array(N), im = new Float64Array(N);
+  let E = 0;
+  for (let y = 0; y < th; y++)
+    for (let x = 0; x < tw; x++) {
+      const v = tpl.a[y * tw + x];
+      if (v === v) {
+        const t = v - tmean;
+        re[y * PW + x] = t;
+        im[y * PW + x] = t * t;
+        E += t * t;
+      }
+    }
+  if (E <= 0) return [];
+  fft2(re, im, PW, PH, false);
+  // corr(z, t) + i·corr(m, t) in one inverse transform, corr(m, t²) in another; the spectra of
+  // t and t² are split out of the packed one on the fly
+  const ar = new Float64Array(N), ai = new Float64Array(N), br = new Float64Array(N), bi = new Float64Array(N);
+  const { zr, zi, mr, mi } = P;
+  for (let y = 0; y < PH; y++) {
+    const ny = ((PH - y) % PH) * PW;
+    for (let x = 0; x < PW; x++) {
+      const k = y * PW + x, q = ny + ((PW - x) % PW);
+      const tr = (re[k] + re[q]) / 2, ti = (im[k] - im[q]) / 2;
+      const t2r = (im[k] + im[q]) / 2, t2i = (re[q] - re[k]) / 2;
+      const p1r = zr[k] * tr + zi[k] * ti, p1i = zi[k] * tr - zr[k] * ti;
+      const p2r = mr[k] * tr + mi[k] * ti, p2i = mi[k] * tr - mr[k] * ti;
+      ar[k] = p1r - p2i;
+      ai[k] = p1i + p2r;
+      br[k] = mr[k] * t2r + mi[k] * t2i;
+      bi[k] = mi[k] * t2r - mr[k] * t2i;
+    }
+  }
+  fft2(ar, ai, PW, PH, true);
+  fft2(br, bi, PW, PH, true);
+  const UW = CW - tw + 1, UH = CH - th + 1;
+  const score = new Float32Array(UW * UH).fill(-2);
+  const { S1, S2, SM } = P;
+  const box = (S: Float64Array, x: number, y: number) => S[(y + th) * (CW + 1) + x + tw] - S[y * (CW + 1) + x + tw] - S[(y + th) * (CW + 1) + x] + S[y * (CW + 1) + x];
+  const minN = tw * th * 0.5;
+  for (let v = 0; v < UH; v++)
+    for (let u = 0; u < UW; u++) {
+      const n = box(SM, u, v);
+      if (n < minN) continue;
+      const k = v * PW + u;
+      // template energy over the overlap: at least half of it must land on valid image px
+      const eov = br[k] / N;
+      if (eov < 0.5 * E) continue;
+      const s1 = box(S1, u, v);
+      const vr = box(S2, u, v) - (s1 * s1) / n;
+      if (vr <= 1e-6 * n) continue;
+      const num = ar[k] / N - (s1 / n) * (ai[k] / N);
+      score[v * UW + u] = num / Math.sqrt(eov * vr);
+    }
+  // best peaks, suppressing a neighbourhood around each
+  const R = Math.max(3, Math.round(Math.min(tw, th) / 5));
+  const out: NccPeak[] = [];
+  const sc = score.slice();
+  const at = (u: number, v: number, c: number) => (u >= 0 && v >= 0 && u < UW && v < UH && score[v * UW + u] > -2 ? score[v * UW + u] : c);
+  const sub = (l: number, c: number, r: number) => {
+    const d = l - 2 * c + r;
+    return d < 0 ? Math.max(-0.5, Math.min(0.5, (0.5 * (l - r)) / d)) : 0;
+  };
+  for (let p = 0; p < peaks; p++) {
+    let best = -2, bu = 0, bv = 0;
+    for (let i = 0; i < sc.length; i++)
+      if (sc[i] > best) {
+        best = sc[i];
+        bu = i % UW;
+        bv = (i - bu) / UW;
+      }
+    if (best < -1) break;
+    out.push({ u: bu + sub(at(bu - 1, bv, best), best, at(bu + 1, bv, best)) - margin, v: bv + sub(at(bu, bv - 1, best), best, at(bu, bv + 1, best)) - margin, ncc: best });
+    for (let v = Math.max(0, bv - R); v <= Math.min(UH - 1, bv + R); v++) sc.fill(-2, v * UW + Math.max(0, bu - R), v * UW + Math.min(UW, bu + R + 1));
+  }
+  return out;
+}
+
+export interface CarryCand {
+  xf: Xf;
+  /** zoom level (s / image height) it moved to */
+  z: number;
+  ncc: number;
+  /** rank of this peak among the peaks for its zoom (0 = best) */
+  rank: number;
+}
+
+/**
+ * Where `cur` is, given a registered frame `ref` (fit `refXf`), if the zoom changed between
+ * them: for each other zoom level, the best few placements, best match first. Both lumas at
+ * image height `H`.
+ */
+export function zoomCarry(ref: Luma, refXf: Xf, cur: Luma, H: number, zooms: number[]): CarryCand[] {
+  const zr = refXf.s / H;
+  const A = cur.area, B = ref.area;
+  // search images at about 240 rows per image height (a 720 p frame: every 3 px)
+  const d = Math.max(1, H / 240);
+  const out: CarryCand[] = [];
+  const prep = (L: Luma) => {
+    if (L.search === undefined) {
+      const a = L.area, img = down(L, a.x0, a.y0, d, Math.floor((a.x1 - a.x0) / d), Math.floor((a.y1 - a.y0) / d));
+      L.search = nccImage(img, Math.round(0.1 * img.h));
+    }
+    return L.search;
+  };
+  for (const zc of zooms) {
+    const r = zc / zr;
+    if (Math.abs(Math.log(r)) < 0.15) continue;
+    if (r > 1) {
+      // zoomed in: this frame, shrunk by r, is a patch of the reference
+      const refImg = prep(ref);
+      if (!refImg) continue;
+      const tpl = down(cur, A.x0, A.y0, d * r, Math.floor((A.x1 - A.x0) / (d * r)), Math.floor((A.y1 - A.y0) / (d * r)));
+      nccFind(refImg, tpl).forEach((m, rank) =>
+        out.push({ xf: { s: zc * H, tx: r * (refXf.tx - B.x0 - m.u * d) + A.x0, ty: r * (refXf.ty - B.y0 - m.v * d) + A.y0 }, z: zc, ncc: m.ncc, rank }),
+      );
+    } else {
+      // zoomed out: the reference, shrunk, is a patch of this frame
+      const curImg = prep(cur);
+      if (!curImg) continue;
+      const q = 1 / r;
+      const tpl = down(ref, B.x0, B.y0, d * q, Math.floor((B.x1 - B.x0) / (d * q)), Math.floor((B.y1 - B.y0) / (d * q)));
+      nccFind(curImg, tpl).forEach((m, rank) =>
+        out.push({ xf: { s: zc * H, tx: r * (refXf.tx - B.x0) + A.x0 + m.u * d, ty: r * (refXf.ty - B.y0) + A.y0 + m.v * d }, z: zc, ncc: m.ncc, rank }),
+      );
+    }
+  }
+  return out.sort((a, b) => b.ncc - a.ncc);
+}
+
+/// ---- tracker (hysteresis, zoom memory, pan tracking, zoom carry-over) ----------------------
 
 export interface TrackOut {
   /** transform to draw pins with, or null (nothing confident) */
   xf: Xf | null;
   fit: FitResult | null;
-  /** how this frame was resolved */
-  how: "fit" | "pan" | "none" | "closed";
+  /** how this frame was resolved ("zoom": carried over a zoom change from an earlier frame) */
+  how: "fit" | "pan" | "zoom" | "none" | "closed";
   pan?: { dx: number; dy: number; peak: number } | null;
+  /** the carry-over that was accepted or the best one rejected, for logs */
+  carry?: { z: number; ncc: number; wp: number; icons: number; ok: boolean } | null;
 }
 
 /** A sharp phase-correlation peak; zoom changes and big scene changes give flat surfaces. */
 const PAN_PEAK = 14;
+/** How many frames a registered frame stays a reference for carrying the fit over a zoom change. */
+const REF_FRAMES = 30;
+
+/** Predicted waypoints or dungeons visible on screen but nothing detected there. */
+export function contradicts(sc: Score, c: Ctx): boolean {
+  if (sc.wpExpected >= 2 && sc.wpInliers === 0) return true;
+  if (sc.wpExpected >= 1 && sc.wpInliers === 0 && c.det.waypoints.length >= 2) return true;
+  if (sc.wpExpected >= 3 && sc.wpInliers / sc.wpExpected < 0.34) return true;
+  if (sc.iconExpected >= 4 && sc.iconInliers / sc.iconExpected < 0.2) return true;
+  return false;
+}
+
+/**
+ * Choose among zoom carry-over candidates, or none. Each is pulled onto nearby anchors and
+ * checked against them: it needs anchors where predicted (no anchors in view proves nothing),
+ * nothing predicted that isn't there, and no other placement nearly as good with as much support.
+ */
+export function pickCarry(c: Ctx, cands: CarryCand[]): { xf: Xf; sc: Score; cand: CarryCand } | null {
+  if (!cands.length) return null;
+  const k = c.k;
+  const top = cands.filter((x) => x.ncc >= Math.max(0.4, cands[0].ncc - 0.2)).slice(0, 9);
+  const ev = top.map((cand) => {
+    const xf = snap(c, cand.xf, 4);
+    const sc = score(c, xf);
+    const errOk = (sc.wpInliers === 0 || sc.wpErr <= 4.5 * k) && (sc.iconInliers === 0 || sc.iconErr <= 6 * k);
+    return { cand, xf, sc, sup: sc.wpInliers * 2 + sc.iconInliers, bad: contradicts(sc, c) || !errOk };
+  });
+  const far = (a: Xf, b: Xf) => Math.abs(a.s - b.s) / b.s > 0.02 || Math.hypot(a.tx - b.tx, a.ty - b.ty) > 24 * k;
+  const ok = ev.filter((e) => !e.bad && e.sup >= 1).sort((a, b) => b.sup - a.sup || b.cand.ncc - a.cand.ncc);
+  const best = ok[0];
+  if (!best || best.cand.ncc < 0.5) return null;
+  // another placement nearly as good and as well supported: ambiguous
+  if (ok.some((e) => e !== best && far(e.xf, best.xf) && e.sup >= best.sup && e.cand.ncc >= best.cand.ncc - 0.1)) return null;
+  const rival = Math.max(-1, ...ev.filter((e) => far(e.xf, best.xf)).map((e) => e.cand.ncc));
+  const sc = best.sc;
+  const anchored = sc.wpInliers >= 2 || (sc.wpInliers >= 1 && sc.iconInliers >= 1) || sc.iconInliers >= 3;
+  if (!anchored && best.cand.ncc - rival < 0.12) return null;
+  return { xf: best.xf, sc, cand: best.cand };
+}
 
 /**
  * Per-frame state. Shows pins only from confident fits; an "ok" fit needs a second
  * agreeing frame (or a running track); across frames with too few anchors the fit is
- * carried by the estimated pan while the anchors on screen support it; anything else
- * clears the pins at once; zoom levels seen on two frames in a row are remembered.
+ * carried by the estimated pan while the anchors on screen support it, and over a zoom
+ * change by matching the view against the last registered frames; anything else clears
+ * the pins at once; zoom levels seen on two frames in a row are remembered.
  */
 export class MapTracker {
   /** zoom levels (s / image height); seeded from 1440p captures, refined and extended at runtime */
@@ -922,12 +1425,18 @@ export class MapTracker {
   /** frames carried by the pan alone since the last anchored fit */
   private panOnly = 0;
   private lastStrongZoom = 0;
+  /** recent registered frames, one per zoom level (most recent first), to carry the fit over a zoom change */
+  private refs: { L: Luma; xf: Xf; H: number; age: number }[] = [];
+  /** the view hasn't changed since a carry-over failed on it */
+  private carryFailed = false;
 
   reset() {
     this.cur = null;
     this.lastThumb = null;
     this.pending = null;
     this.panOnly = 0;
+    this.refs = [];
+    this.carryFailed = false;
   }
 
   get tracking() {
@@ -945,29 +1454,42 @@ export class MapTracker {
     const th = thumb(fr, area);
     let pan: TrackOut["pan"] = null;
     let prior: Xf | null = null;
-    if (this.cur && this.lastThumb && this.curH === H) {
+    if (this.lastThumb && this.curH === H) {
       pan = phaseShift(this.lastThumb, th);
-      if (pan && pan.peak > PAN_PEAK) prior = { s: this.cur.s, tx: this.cur.tx + pan.dx, ty: this.cur.ty + pan.dy };
+      if (this.cur && pan && pan.peak > PAN_PEAK) prior = { s: this.cur.s, tx: this.cur.tx + pan.dx, ty: this.cur.ty + pan.dy };
     }
+    if (this.curH !== H) this.refs = [];
+    const still = !!pan && pan.peak > 30 && Math.hypot(pan.dx, pan.dy) < 2;
+    if (!still) this.carryFailed = false;
     this.lastThumb = th;
     this.curH = H;
+    for (const r of this.refs) r.age++;
+    this.refs = this.refs.filter((r) => r.age <= REF_FRAMES);
+    let luma: Luma | null = null;
+    const getLuma = () => (luma ??= lumaOf(fr, area));
+    const show = (xf: Xf, how: TrackOut["how"], o: TrackOut) => {
+      this.cur = xf;
+      this.pending = null;
+      this.carryFailed = false;
+      this.keepRef(getLuma(), xf, H);
+      o.xf = xf;
+      o.how = how;
+      return o;
+    };
+
     const fit = registerFrame(c, H, this.zooms, prior);
     const v = fit?.verdict ?? "none";
-    const out: TrackOut = { xf: null, fit, how: "none", pan };
+    const out: TrackOut = { xf: null, fit, how: "none", pan: this.cur ? pan : null };
     const agrees = (a: Xf, b: Xf | null) => !!b && Math.abs(a.s - b.s) / b.s < 0.015 && Math.hypot(a.tx - b.tx, a.ty - b.ty) < 10 * k;
     const xf = fit?.score.xf;
 
     const tracked = !!prior && (fit?.source === "track" || (!!xf && agrees(xf, prior)));
     if (fit && xf && (v === "strong" || (v === "ok" && (tracked || agrees(xf, this.pending))) || (v === "weak" && tracked))) {
       const sc = fit.score;
-      this.cur = xf;
-      this.pending = null;
       this.panOnly = sc.wpInliers >= 2 || sc.iconInliers >= 4 ? 0 : this.panOnly + 1;
       if ((sc.wpInliers >= 6 && sc.wpErr < 3 * k) || (sc.wpInliers >= 2 && sc.iconInliers >= 6)) this.learnZoom(xf.s / H);
       else this.lastStrongZoom = 0;
-      out.xf = xf;
-      out.how = v === "weak" ? "pan" : "fit";
-      return out;
+      return show(xf, v === "weak" ? "pan" : "fit", out);
     }
     if (prior && pan) {
       // too few anchors to fit: follow the pan while what is on screen supports it. The pan alone can be
@@ -977,13 +1499,31 @@ export class MapTracker {
       const ps = score(c, snapped);
       const support = ps.wpInliers >= 1 || ps.iconInliers >= 2;
       const empty = ps.wpExpected + ps.iconExpected === 0;
-      if (!this.contradicts(ps, c) && ((support && this.panOnly < 15) || (empty && pan.peak > 30 && this.panOnly < 4))) {
-        this.cur = snapped;
+      if (!contradicts(ps, c) && ((support && this.panOnly < 15) || (empty && pan.peak > 30 && this.panOnly < 4))) {
         this.panOnly++;
-        out.xf = snapped;
-        out.how = "pan";
-        return out;
+        return show(snapped, "pan", out);
       }
+    }
+    // the zoom changed (or the pan was lost): match the view against recent registered frames at other zooms
+    if (this.refs.length && !(still && this.carryFailed)) {
+      const L = getLuma();
+      // the widest view first: zoomed in from it, this frame is a patch of it
+      for (const r of [...this.refs].sort((a, b) => a.xf.s - b.xf.s).slice(0, 2)) {
+        const cands = zoomCarry(r.L, r.xf, L, H, this.zooms);
+        const pick = pickCarry(c, cands);
+        if (pick) {
+          out.carry = { z: pick.cand.z, ncc: pick.cand.ncc, wp: pick.sc.wpInliers, icons: pick.sc.iconInliers, ok: true };
+          this.panOnly = pick.sc.wpInliers >= 2 || pick.sc.iconInliers >= 4 ? 0 : 1;
+          this.lastStrongZoom = 0;
+          return show(pick.xf, "zoom", out);
+        }
+        // for logs: the best match that wasn't confirmed
+        if (cands[0] && (!out.carry || cands[0].ncc > out.carry.ncc)) {
+          const sc = score(c, cands[0].xf);
+          out.carry = { z: cands[0].z, ncc: cands[0].ncc, wp: sc.wpInliers, icons: sc.iconInliers, ok: false };
+        }
+      }
+      this.carryFailed = true;
     }
     // nothing confident: no pins (a stale fit after a pan or zoom would put them in the wrong place)
     this.pending = fit && v === "ok" && xf ? xf : null;
@@ -992,13 +1532,10 @@ export class MapTracker {
     return out;
   }
 
-  /** Predicted waypoints or dungeons visible on screen but nothing detected there. */
-  private contradicts(sc: Score, c: Ctx): boolean {
-    if (sc.wpExpected >= 2 && sc.wpInliers === 0) return true;
-    if (sc.wpExpected >= 1 && sc.wpInliers === 0 && c.det.waypoints.length >= 2) return true;
-    if (sc.wpExpected >= 3 && sc.wpInliers / sc.wpExpected < 0.34) return true;
-    if (sc.iconExpected >= 4 && sc.iconInliers / sc.iconExpected < 0.2) return true;
-    return false;
+  /** Keep this frame as the reference for its zoom level (one per level, most recent first). */
+  private keepRef(L: Luma, xf: Xf, H: number) {
+    const z = xf.s / H;
+    this.refs = [{ L, xf, H, age: 0 }, ...this.refs.filter((r) => Math.abs(Math.log(r.xf.s / H / z)) > 0.15)].slice(0, 3);
   }
 
   /** Remember a zoom level measured on two consecutive frames (a zoom animation never repeats). */
@@ -1039,12 +1576,21 @@ export interface Pin {
   label?: string;
   /** approximate position */
   approx?: boolean;
+  /** an altar or regional collectible the map already shows as found */
+  found?: boolean;
 }
 
 export interface PinFilter {
   groups: Partial<Record<PinGroup, boolean>>;
   /** region key (e.g. "Dry_Steppes") with an active Helltide, or null */
   helltideRegion: string | null;
+  /**
+   * How far (frame px) a pin's centre must stay from the edges of the map area and from HUD
+   * boxes, so the whole pin is on the map.
+   */
+  margin?: number;
+  /** the frame, to tell found altars and collectibles (k = image height / 1440): hide them, or mark them found */
+  found?: { fr: Frame; k: number; hide: boolean };
 }
 
 /** Short label for the kinds that get one. */
@@ -1058,21 +1604,69 @@ export function pinLabel(p: Poi, zoom: number): string | undefined {
   return undefined;
 }
 
+const COLLECTIBLE: Partial<Record<PoiKind, true>> = { altar: true, tenet_of_akarat: true, chronicle_of_creation: true };
+
 /**
- * Project POIs through a fit into absolute screen px, keeping those inside the map area.
- * `toScreen` maps frame px to absolute screen px.
+ * Does the map show a found altar (or Tenet, or Chronicle) at frame px (x, y)? Found ones get an
+ * icon: a grey glyph with a black outline (the altar's centre a little above the spot, the
+ * statues of the regional collectibles narrow and tall, centred on it); unfound ones show
+ * nothing. A shape check, no game art: most of the glyph's core is neutral grey (map art
+ * that dark is brown or red), ringed by near-black outline. Only meaningful zoomed in from
+ * the widest levels (zoom ≥ 2.5): further out they're tiny dots.
+ */
+export function foundAt(fr: Frame, kind: PoiKind, x: number, y: number, k: number): boolean {
+  const W = fr.width, H = fr.height, d = fr.data;
+  const statue = kind !== "altar";
+  const cx = x, cy = statue ? y - 2 * k : y - 6.4 * k;
+  const u = 2 * k; // 1 px at 720 p
+  let core = 0, coreN = 0, ink = 0, inkN = 0;
+  for (let dy = -10; dy <= 10; dy++)
+    for (let dx = -10; dx <= 10; dx++) {
+      const px = Math.round(cx + dx * u), py = Math.round(cy + dy * u);
+      if (px < 0 || py < 0 || px >= W || py >= H) continue;
+      const i = (py * W + px) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+      const l = 0.3 * r + 0.59 * g + 0.11 * b;
+      const mx = r > g ? (r > b ? r : b) : g > b ? g : b, mn = r < g ? (r < b ? r : b) : g < b ? g : b;
+      const inCore = statue ? Math.abs(dx) <= 3 && dy >= -6 && dy <= 6 : dx * dx + dy * dy <= 25;
+      const inRing = statue ? !inCore && Math.abs(dx) <= 7 && dy >= -9 && dy <= 9 : !inCore && dx * dx + dy * dy <= 90;
+      if (inCore) {
+        coreN++;
+        if (mx - mn <= 22 && l >= 20 && l <= 120) core++;
+      } else if (inRing) {
+        inkN++;
+        if (l < 40) ink++;
+      }
+    }
+  return coreN > 0 && inkN > 0 && core / coreN >= 0.6 && ink / inkN >= 0.12;
+}
+
+/**
+ * Project POIs through a fit into absolute screen px, keeping those inside the map area (with
+ * `filter.margin` to spare, and clear of HUD boxes by as much). `toScreen` maps frame px to
+ * absolute screen px.
  */
 export function pinsFor(xf: Xf, area: Box & { hud?: Box[] }, H: number, filter: PinFilter, toScreen: (x: number, y: number) => [number, number], pois: Poi[] = POIS): Pin[] {
   const out: Pin[] = [];
   const zoom = xf.s / H;
+  const m = filter.margin ?? 0;
+  const inner: Box & { hud?: Box[] } = {
+    x0: area.x0 + m,
+    y0: area.y0 + m,
+    x1: area.x1 - m,
+    y1: area.y1 - m,
+    hud: area.hud?.map((h) => ({ x0: h.x0 - m, y0: h.y0 - m, x1: h.x1 + m, y1: h.y1 + m })),
+  };
+  const f = filter.found && zoom >= 2.5 ? filter.found : null;
   for (const p of pois) {
     const g = GROUP_OF[p.k];
     if (!g || !filter.groups[g]) continue;
     if (p.k === "helltide_chest" && (!filter.helltideRegion || p.r !== filter.helltideRegion)) continue;
     const [fx, fy] = project(xf, toUv(p));
-    if (!visible(area, fx, fy)) continue;
+    if (!visible(inner, fx, fy)) continue;
+    const found = !!f && !!COLLECTIBLE[p.k] && foundAt(f.fr, p.k, fx, fy, f.k);
+    if (found && f!.hide) continue;
     const [x, y] = toScreen(fx, fy);
-    out.push({ id: p.id, k: p.k, x: Math.round(x), y: Math.round(y), label: pinLabel(p, zoom), approx: !!p.a || undefined });
+    out.push({ id: p.id, k: p.k, x: Math.round(x), y: Math.round(y), label: pinLabel(p, zoom), approx: !!p.a || undefined, found: found || undefined });
   }
   return out;
 }
