@@ -178,6 +178,11 @@ describe("issue link", () => {
     expect(u.searchParams.get("body")).toContain("v0.2.0");
   });
 
+  it("puts the user's note under \"What happened?\"", () => {
+    const body = new URL(issueUrl({ version: "0.2.0", reportId: "01K7", included: ["state"], note: "Card said scrap on a 4-star ring" })).searchParams.get("body")!;
+    expect(body).toContain("**What happened?**\nCard said scrap on a 4-star ring");
+  });
+
   it("after sending, names the report ID instead of asking for the zip", () => {
     const body = new URL(issueUrl({ version: "0.2.0", reportId: "01K7ABCDEF", included: ["state"] })).searchParams.get("body")!;
     expect(body).toContain("Report ID: `01K7ABCDEF`");

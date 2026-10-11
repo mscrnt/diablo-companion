@@ -331,10 +331,10 @@ export const ISSUES_NEW = "https://github.com/mscrnt/diablo-companion/issues/new
  * A pre-filled "new issue" link. With `reportId` the report was sent from the app and the issue only
  * names it; otherwise the user attaches the saved zip themselves.
  */
-export function issueUrl(o: { version: string; zipName?: string; reportId?: string; included: string[]; os?: string; title?: string }): string {
+export function issueUrl(o: { version: string; zipName?: string; reportId?: string; included: string[]; os?: string; title?: string; note?: string }): string {
   const body = [
     "**What happened?**",
-    "<!-- What did you expect, and what did the app do instead? -->",
+    o.note?.trim() ? o.note.trim().slice(0, 1500) : "<!-- What did you expect, and what did the app do instead? -->",
     "",
     "**When?**",
     "<!-- Roughly what time, and what you were doing in game (a Pit run, the map open, hovering an item...). If you pressed the \"mark this moment\" key, say which mark. -->",

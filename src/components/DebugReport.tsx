@@ -27,6 +27,7 @@ function DebugReportModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [done, setDone] = useState<Done | null>(null);
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -41,9 +42,9 @@ function DebugReportModal({ open, onClose }: { open: boolean; onClose: () => voi
     setBusy(what);
     setErr("");
     try {
-      if (what === "send") setDone(await sendReport(images));
+      if (what === "send") setDone(await sendReport(images, note));
       else {
-        const r = await saveReport(images);
+        const r = await saveReport(images, note);
         setDone({ saved: true, path: r.path, url: r.url });
       }
     } catch (e) {
@@ -65,6 +66,7 @@ function DebugReportModal({ open, onClose }: { open: boolean; onClose: () => voi
       open={open}
       onClose={() => {
         setDone(null);
+        setNote("");
         onClose();
       }}
       title="Send a debug report"
@@ -85,6 +87,10 @@ function DebugReportModal({ open, onClose }: { open: boolean; onClose: () => voi
             <div className="small dim">Looking at the logs…</div>
           )}
         </div>
+        <label className="field">
+          What went wrong? (optional)
+          <textarea rows={3} maxLength={4000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example: the card said scrap on a 4-star ring in my bag" disabled={!!done} />
+        </label>
         <Check checked={images} onChange={setImages} label="Include screenshots (they can show your character name or BattleTag)" />
         <div className="small dim">Your LLM address and API key, Discord webhook and OBS password are never included.</div>
         {err && <div className="err">{err}</div>}
