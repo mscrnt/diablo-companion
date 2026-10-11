@@ -10,6 +10,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, WindowEvent,
 };
+use tauri_plugin_opener::OpenerExt;
 
 fn err<E: std::fmt::Display>(e: E) -> String {
     e.to_string()
@@ -143,6 +144,215 @@ fn debug_log_dir(app: AppHandle, folder: Option<String>) -> Result<String, Strin
     Ok(judge_log_dir(&app, folder.as_deref())?.to_string_lossy().to_string())
 }
 
+// ---- debug system: <app log dir>/debug (state.json, events-*.jsonl, marks/) --------------
+
+/// Top-level folders under the app log dir that the debug commands may read. Only "debug" is writable.
+const LOG_READABLE: [&str; 3] = ["debug", "judge-log", "test-mode"];
+
+/// Resolve a relative path such as "debug/marks/2026-10-10T12-00-00" under the app log dir,
+/// segment by segment: plain names only (letters, digits, '-', '_', '.'), no "..", no drive letters.
+fn log_path(app: &AppHandle, rel: &str, write: bool) -> Result<std::path::PathBuf, String> {
+    let segs: Vec<&str> = rel.split(['/', '\\']).filter(|s| !s.is_empty()).collect();
+    let top = *segs.first().ok_or("empty path")?;
+    if !LOG_READABLE.contains(&top) || (write && top != "debug") {
+        return Err(format!("path not allowed: {rel}"));
+    }
+    let mut p = app.path().app_log_dir().map_err(err)?;
+    for s in &segs {
+        let plain = s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.');
+        if !plain || s.starts_with('.') {
+            return Err(format!("path not allowed: {rel}"));
+        }
+        p.push(s);
+    }
+    Ok(p)
+}
+
+/// The last `tail` bytes of a file (starting at a line break), or all of it.
+fn read_tail(p: &std::path::Path, tail: Option<u64>) -> std::io::Result<Vec<u8>> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = std::fs::File::open(p)?;
+    let len = f.metadata()?.len();
+    let cut = matches!(tail, Some(t) if len > t);
+    if let Some(t) = tail.filter(|_| cut) {
+        f.seek(SeekFrom::Start(len - t))?;
+    }
+    let mut buf = Vec::new();
+    f.read_to_end(&mut buf)?;
+    if cut {
+        if let Some(i) = buf.iter().position(|&b| b == b'\n') {
+            buf.drain(..=i);
+        }
+    }
+    Ok(buf)
+}
+
+/// Write text or a base64 image under <app log dir>/debug. Whole files are written atomically
+/// (temp file, then rename) so a reader never sees half a file; `append` adds to the end instead.
+#[tauri::command]
+fn debug_file_write(app: AppHandle, path: String, text: Option<String>, base64: Option<String>, append: Option<bool>) -> Result<String, String> {
+    use std::io::Write;
+    let p = log_path(&app, &path, true)?;
+    if let Some(dir) = p.parent() {
+        std::fs::create_dir_all(dir).map_err(err)?;
+    }
+    let bytes = match (text, base64) {
+        (Some(t), _) => t.into_bytes(),
+        (None, Some(b)) => {
+            let b64 = b.split_once(',').map(|(_, x)| x).unwrap_or(&b);
+            STANDARD.decode(b64.trim()).map_err(err)?
+        }
+        _ => return Err("nothing to write".into()),
+    };
+    if append.unwrap_or(false) {
+        let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&p).map_err(err)?;
+        f.write_all(&bytes).map_err(err)?;
+    } else {
+        let mut tmp = p.clone().into_os_string();
+        tmp.push(".tmp");
+        std::fs::write(&tmp, &bytes).map_err(err)?;
+        if let Err(e) = std::fs::rename(&tmp, &p) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(err(e));
+        }
+    }
+    Ok(p.to_string_lossy().to_string())
+}
+
+#[derive(serde::Serialize)]
+struct LogEntry {
+    name: String,
+    size: u64,
+    /// unix ms
+    modified: u64,
+    dir: bool,
+}
+
+#[derive(serde::Serialize)]
+struct LogListing {
+    dir: String,
+    entries: Vec<LogEntry>,
+}
+
+/// List a folder under the app log dir (debug, judge-log or test-mode). A missing folder lists as empty.
+#[tauri::command]
+fn debug_list(app: AppHandle, path: String) -> Result<LogListing, String> {
+    let p = log_path(&app, &path, false)?;
+    let mut entries = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(&p) {
+        for e in rd.flatten() {
+            let Ok(m) = e.metadata() else { continue };
+            let modified = m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis() as u64).unwrap_or(0);
+            entries.push(LogEntry { name: e.file_name().to_string_lossy().to_string(), size: m.len(), modified, dir: m.is_dir() });
+        }
+    }
+    Ok(LogListing { dir: p.to_string_lossy().to_string(), entries })
+}
+
+/// Read a text file under the app log dir (the last `max_bytes`, 1 MB by default).
+#[tauri::command]
+fn debug_file_read(app: AppHandle, path: String, max_bytes: Option<u64>) -> Result<String, String> {
+    let p = log_path(&app, &path, false)?;
+    let bytes = read_tail(&p, Some(max_bytes.unwrap_or(1024 * 1024))).map_err(err)?;
+    Ok(String::from_utf8_lossy(&bytes).to_string())
+}
+
+/// Delete a file or folder inside <app log dir>/debug (never the debug folder itself).
+#[tauri::command]
+fn debug_remove(app: AppHandle, path: String) -> Result<(), String> {
+    if path.split(['/', '\\']).filter(|s| !s.is_empty()).count() < 2 {
+        return Err("refusing to remove the debug folder".into());
+    }
+    let p = log_path(&app, &path, true)?;
+    let res = if p.is_dir() { std::fs::remove_dir_all(&p) } else { std::fs::remove_file(&p) };
+    match res {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(err(e)),
+        _ => Ok(()),
+    }
+}
+
+/// Open a folder under the app log dir in Explorer (created if missing).
+#[tauri::command]
+fn open_log_folder(app: AppHandle, path: String) -> Result<String, String> {
+    let p = log_path(&app, &path, false)?;
+    std::fs::create_dir_all(&p).map_err(err)?;
+    let s = p.to_string_lossy().to_string();
+    app.opener().open_path(s.clone(), None::<&str>).map_err(err)?;
+    Ok(s)
+}
+
+#[derive(serde::Deserialize)]
+struct ReportEntry {
+    /// path inside the zip
+    zip: String,
+    /// inline contents, or
+    text: Option<String>,
+    /// a file under the app log dir ("judge-log/x.json"), optionally only its last `tail` bytes
+    src: Option<String>,
+    tail: Option<u64>,
+}
+
+/// Build the debug report zip in Downloads (or Desktop) and return its path. Nothing is uploaded.
+#[tauri::command]
+async fn debug_report(app: AppHandle, name: String, entries: Vec<ReportEntry>) -> Result<String, String> {
+    let out_dir = app.path().download_dir().or_else(|_| app.path().desktop_dir()).or_else(|_| app.path().app_log_dir()).map_err(err)?;
+    enum Body {
+        Text(String),
+        File(std::path::PathBuf, Option<u64>),
+    }
+    let mut items = Vec::new();
+    for e in entries {
+        let zip_name: String = e
+            .zip
+            .split(['/', '\\'])
+            .filter(|s| !s.is_empty() && *s != "." && *s != "..")
+            .map(safe_name_dot)
+            .collect::<Vec<_>>()
+            .join("/");
+        let body = match (e.text, e.src) {
+            (Some(t), _) => Body::Text(t),
+            (None, Some(src)) => Body::File(log_path(&app, &src, false)?, e.tail),
+            _ => continue,
+        };
+        items.push((zip_name, body));
+    }
+    let base = safe_name(&name);
+    blocking(move || {
+        use std::io::Write;
+        std::fs::create_dir_all(&out_dir)?;
+        let mut path = out_dir.join(format!("{base}.zip"));
+        let mut n = 1;
+        while path.exists() {
+            path = out_dir.join(format!("{base}-{n}.zip"));
+            n += 1;
+        }
+        let mut zip = zip::ZipWriter::new(std::fs::File::create(&path)?);
+        let deflate = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let stored = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        for (zip_name, body) in items {
+            let bytes = match body {
+                Body::Text(t) => t.into_bytes(),
+                // a file pruned since it was listed is skipped
+                Body::File(p, tail) => match read_tail(&p, tail) {
+                    Ok(b) => b,
+                    Err(_) => continue,
+                },
+            };
+            let lower = zip_name.to_ascii_lowercase();
+            let opts = if lower.ends_with(".jpg") || lower.ends_with(".jpeg") || lower.ends_with(".png") { stored } else { deflate };
+            zip.start_file(zip_name, opts)?;
+            zip.write_all(&bytes)?;
+        }
+        zip.finish()?;
+        Ok(path.to_string_lossy().to_string())
+    })
+    .await
+}
+
+fn safe_name_dot(s: &str) -> String {
+    s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.' { c } else { '_' }).collect()
+}
+
 #[derive(serde::Serialize)]
 struct MonitorInfo {
     name: String,
@@ -206,6 +416,12 @@ pub fn run() {
             set_overlay_capturable,
             debug_log_write,
             debug_log_dir,
+            debug_file_write,
+            debug_list,
+            debug_file_read,
+            debug_remove,
+            open_log_folder,
+            debug_report,
             display_info,
         ])
         .setup(|app| {
