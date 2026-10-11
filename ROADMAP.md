@@ -66,6 +66,8 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 | **Seasonal collectibles** | Deckard's Journal (Season 15) and each new season's collectibles, mined automatically after each patch, with pins and a "found" checklist. | 📦🖥 | S per season |
 | **Side quest helper** | Every side quest per region with its giver's location; done vs left from the quest log; pins for what's left. Feeds renown. | 📦🖥 `Quest` | M |
 | **Dungeons, cellars, strongholds** | Entrances pinned, with what each dungeon unlocks (aspects) and completion tracked | 📦🖥 | M |
+| **War Plans overlay** | On the in-game War Plans screen, highlight the recommended next nodes (from the War Plans planner) right on the tree, the same way map pins sit on the map | 🖥📦 | M |
+| **Stitched reference map** | Stitch the player's own map captures into a full map stored locally, for registration at any zoom (even over open sea) and a fog-of-war view of explored areas | 🖥 | L |
 
 ## Next: be the best at each system
 
