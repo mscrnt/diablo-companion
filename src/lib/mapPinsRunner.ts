@@ -153,6 +153,18 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
   /** the map was moving: a full frame's pins wait here until a probe sees it still */
   let settling = false;
   let pending: Shown | null = null;
+  /** consecutive probe/frame results, so one noisy reading doesn't blank the pins (flicker) */
+  let closedRun = 0;
+  let movedRun = 0;
+  let missRun = 0;
+  /** the last probe saw the map still and open: shown pins are still right */
+  let stillOpen = false;
+  /** expiry the overlay applies, sized to the measured cycle so a slow capture can't blink pins */
+  const ttl = () => {
+    const st = useMapPins.getState().status;
+    const cycle = FULL_MS + (st.captureMs ?? 0) + (st.decodeMs ?? 0) + (st.fitMs ?? 0);
+    return Math.max(TTL_MS, Math.round(cycle * 2.5));
+  };
 
   const send = (f: MapPinsFrame | null) => {
     const key = f ? JSON.stringify(f) : "";
@@ -167,6 +179,8 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     navRef = stripRef = null;
     shown = pending = null;
     settling = false;
+    closedRun = movedRun = missRun = 0;
+    stillOpen = false;
     send(null);
   };
 
@@ -200,7 +214,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
       zoom: s.xf.s / s.H,
       label: left > 0 || mp.chip ? presetLabel(mp.preset) : undefined,
       labelMs: left > 0 ? left : undefined,
-      ttl: TTL_MS,
+      ttl: ttl(),
     };
   };
 
@@ -243,10 +257,23 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     // registered: fast probes between full frames
     if (tracker.tracking && performance.now() - lastFull < FULL_MS - PROBE_MS / 2) {
       const p = await probe(img);
-      if (p === "closed") {
+      closedRun = p === "closed" ? closedRun + 1 : 0;
+      movedRun = p === "moved" ? movedRun + 1 : 0;
+      stillOpen = p === "ok";
+      // act on two readings in a row (~0.36 s): a single noisy probe made the pins blink
+      if (closedRun >= 2) {
+        closedRun = 0;
         clear();
         setStatus({ state: "idle", how: "closed" });
         return PROBE_MS;
+      }
+      if (p === "closed") {
+        if (shown) send(frameFor(shown));
+        return Math.round(PROBE_MS / 2);
+      }
+      if (p === "moved" && movedRun < 2) {
+        if (shown) send(frameFor(shown));
+        return Math.round(PROBE_MS / 2);
       }
       if (p === "moved") {
         // being panned or zoomed: no pins until the map is still again (a full frame right away, and
@@ -300,7 +327,14 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
     const sx = cap.region.w / fr.width, sy = cap.region.h / fr.height;
     const toScreen = (x: number, y: number): [number, number] => [cap.region.x + x * sx, cap.region.y + y * sy];
     let frame: MapPinsFrame | null = null;
-    if (out.xf) {
+    if (!out.xf && shown && stillOpen && !settling && missRun < 2 && navRef && sameNav(navRef, nav)) {
+      // one frame didn't register, but the map is open and hasn't moved since the last good fit:
+      // those pins are still right, so keep them for a frame or two instead of blinking
+      missRun++;
+      frame = frameFor(shown);
+      send(frame);
+    } else if (out.xf) {
+      missRun = 0;
       navRef ??= nav;
       stripRef = stripSignature(fr);
       const s: Shown = { xf: out.xf, area, fr, H, toScreen, fps: 1 / sx };
@@ -317,6 +351,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
       navRef = stripRef = null;
       shown = pending = null;
       settling = false;
+      missRun = 0;
       send(null);
     }
 

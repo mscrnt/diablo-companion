@@ -44,3 +44,8 @@ windows = { version = "0.61", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_UI_Input_XboxController",
 ] }
+
+# dev builds: optimise dependencies (image capture, resize, JPEG) so screen reading runs at
+# near-release speed; the app crate itself stays unoptimised for quick rebuilds and debugging
+[profile.dev.package."*"]
+opt-level = 2
