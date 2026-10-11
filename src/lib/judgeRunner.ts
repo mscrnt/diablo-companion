@@ -88,16 +88,23 @@ export async function judgeTooltips(
   const dbg: { hovered?: ParseDebug; equipped?: ParseDebug } = {};
   try {
     // instant path: OCR + icon colours + rules; the LLM only when the rules aren't confident
-    const parse = async (t: TooltipText): Promise<{ item: ParsedItem | null; debug: ParseDebug }> => {
+    const parse = async (t: TooltipText, allowAi = true): Promise<{ item: ParsedItem | null; debug: ParseDebug }> => {
       const f0 = performance.now();
       if (t.fast && !settings.autoJudge.alwaysUseAi) {
         const item = fastParse(t.fast, t.equipped, variant);
         if (item && looksSane(item)) return { item, debug: { ocr: t.lines, raw: { fast: true, lines: t.fast }, ms: Math.round(performance.now() - f0) } };
       }
       if (!settings.llm.baseUrl) return { item: null, debug: { ocr: t.lines, raw: { fast: false, note: "no AI model configured" }, ms: 0 } };
+      if (!allowAi) return { item: null, debug: { ocr: t.lines, raw: { fast: false, note: "AI read deferred" }, ms: 0 } };
       return parseTooltipText(settings.llm, t, variant);
     };
-    const [h, e] = await Promise.all([parse(hov), eq ? parse(eq).catch(() => null) : Promise.resolve(null)]);
+    // the verdict never waits on an AI read of the EQUIPPED column: the hovered tooltip's own comparison
+    // and the worn-gear memory cover it; the AI reads it afterwards only to refresh that memory
+    const [h, e] = await Promise.all([parse(hov), eq ? parse(eq, false).catch(() => null) : Promise.resolve(null)]);
+    if (eq && !e?.item && settings.llm.baseUrl)
+      void parse(eq)
+        .then((late) => late.item && recordEquipped({ ...decide(late.item, variant, { prog }), id: "", at: 0, ms: 0 }, late.item))
+        .catch(() => {});
     dbg.hovered = h.debug;
     if (e) dbg.equipped = e.debug;
     const hovered = h.item;

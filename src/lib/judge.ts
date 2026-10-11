@@ -535,7 +535,8 @@ function swapValue(item: ParsedItem, slot: GearSlot, q: Quality, w: ParsedItem |
   const raw = gameRows?.length ? gameRows : w ? rowsFromItems(item, w) : null;
   if (!raw) return null;
   // compare like with like: yours without its masterwork, and a temper this one can get too doesn't count against it
-  const canTemper = (item.tempersUsed ?? 0) < 2 && !item.affixes.some((a) => a.tempered);
+  // an item takes one temper per temper slot; one that shows no tempered line yet can still take yours
+  const canTemper = !item.affixes.some((a) => a.tempered);
   const shown = new WeakMap<CompareRow, number | null>(); // the number the game shows, for the reasons
   const rows = !work
     ? raw

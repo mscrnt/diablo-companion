@@ -36,6 +36,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- A verdict no longer waits several seconds when the game's EQUIPPED column can't be read instantly: the hovered tooltip's own comparison and what you were last seen wearing are enough, and the AI reads that column afterwards only to refresh the app's memory of your gear.
 - **Undercity tributes** are no longer judged as gear (one was taken for an amulet). The verdict says what the tribute earns, how much harder it makes the run (Monster Power, starting time, time bonus penalty) and whether it's one for your build: tributes that earn charms and a Seal are marked "use it" for builds that wear them.
 - A tooltip whose title is cut off at the top of the screen is read instantly by its type ("Legendary Sword") instead of waiting several seconds for the AI, which couldn't see the name either.
 - A stack count under an item's title ("(2)") no longer ends up in its name, and an item title that reads like a type line ("MYTHIC TRIBUTE") no longer stops the quick read.
