@@ -101,7 +101,7 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 | World bosses and Uber bosses | Boss mode for every boss: mechanics notes, summon materials, wanted drops | 📦🌐 | S |
 | Lair boss materials | Track summon materials and how many kills you can afford | 🖥📦 | S |
 | Undercity map helper | Run tracking, floor splits, the countdown warning and reward upgrades are done. Next: point out beacons, Afflicted monsters and the exit on each floor's map (needs map captures from real runs), and suggest which tribute to offer | 🖥📦 | M |
-| Prime Evil Nightmares (Labyrinth, Worldstone Keep, Durance of Hate) | Run tracking and boss notes for the season's echoes; which Splinter you carry and what it changes | 🖥📦 | M |
+| The Tower | Timed leaderboard dungeon from the Pit's obelisk: tell it apart from the Pit, track tier and time, show your best per tier and what beats it | 🖥📦 | S |
 | Legion, strongholds | Run tracking like the Pit; stronghold, cellar and altar completion | 🖥📦 | M |
 | Seasonal mechanic module | One module per season (datamined each patch) so the app is ready on day one | 📦 | M per season |
 | Bounties and dailies | Read the active bounty or Grim Favor list and plan the shortest route | 🖥📦 `BountyData` | M |

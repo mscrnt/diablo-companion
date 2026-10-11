@@ -60,13 +60,13 @@ describe("Undercity tributes", () => {
   });
 });
 
-describe("Nightmare keys", () => {
+describe("Chronicles of Nightmares", () => {
   it("a Chronicle of Nightmares is a key, never sold as an off-hand", () => {
     // as the AI read one (slot: offhand), with the tooltip text it saw
     const raw = "DIABLO III - THE SCOURING OF CALDEUM\nCHRONICLE OF NIGHTMARES\nRare Chronicle of Nightmares\nMinor Nightmare\nDiablo III - The Scouring of Caldeum in Burning Hells\nDUNGEON AFFIXES\nDungeon Delve\nStormbane's Wrath\nA vivid account of horrors long past, penned by a trembling hand.\nAccount Bound";
     const r = decide({ name: "Rare Chronicle of Nightmares", slot: "offhand", rarity: "rare", itemType: "Rare Chronicle of Nightmares", affixes: [], rawText: raw } as any, ctx.variant, { prog: ctx.prog });
     expect(r.verdict).toBe("STASH");
-    expect(r.action).toMatch(/Nightmare key for Diablo III - The Scouring of Caldeum/);
+    expect(r.action).toMatch(/use it on a Waking Nightmare (Diablo III - The Scouring of Caldeum)/);
     expect(r.reasons.join(" ")).toMatch(/Dungeon Delve, Stormbane's Wrath/);
   });
 });
