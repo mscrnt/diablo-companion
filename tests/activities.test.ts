@@ -104,6 +104,13 @@ describe("Helltide", () => {
     expect(parseHelltideHud([line("Helltide: 51:37", 100, 100)])?.secondsLeft).toBe(3097);
   });
 
+  it("reads the label the way OCR really sees it in a Helltide", () => {
+    // from a real Helltide (Spider Forest): Windows OCR gives "Helitide: 01:16" and "e//tide."
+    expect(parseHelltideHud([line("Helitide: 01:16", 1057, 36), line("24", 1051, 160), line("97", 1161, 178)])).toMatchObject({ cinders: 24 });
+    expect(parseHelltideHud([line("e//tide.", 1057, 36)])).not.toBeNull();
+    expect(parseHelltideHud([line("Helitide:", 1070, 40)])).not.toBeNull();
+  });
+
   it("isn't fooled by other text with the word in it", () => {
     // seen in the Undercity: a ground label "Helltide Harv…" started a Helltide
     expect(parseHelltideHud([line("FLOOR", 100, 20), line("4/3", 100, 50), line("Helltide Harv", 500, 347)])).toBeNull();

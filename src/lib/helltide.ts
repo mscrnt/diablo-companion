@@ -27,11 +27,17 @@ export interface HelltideInfo {
   plan: string[];
 }
 
+/**
+ * The HUD label "Helltide:" (maybe with its timer) as OCR reads it: "Helitide: 01:16", "e//tide.".
+ * A line with more words ("Helltide Harvest…", "Helltide Kehjistan ends 24m") is never the HUD.
+ */
+export const isHelltideLabel = (text: string) => /^\W{0,3}h?e?[l1i|/]{1,3}t[il1]de\s*[:;.]?\s*(\d{1,2}\s*[:.]\s*\d{2})?\W{0,3}$/i.test(text.trim());
+
 /** Parse the HUD block: "Helltide: 51:37" with counters under the icons (cinders = the left one). */
 export function parseHelltideHud(lines: OcrLine[]): { cinders: number | null; secondsLeft: number | null } | null {
   // the HUD label is "Helltide" alone (maybe with ":" and its timer) — not an item or chest name
   // that contains the word ("Helltide Harvest…", "Tortured Gift of…" lists)
-  const label = lines.find((l) => /^\W{0,3}helltide\s*:?\s*(\d{1,2}\s*:\s*\d{2})?\W{0,3}$/i.test(l.text.trim()));
+  const label = lines.find((l) => isHelltideLabel(l.text));
   if (!label) return null;
   const tm = label.text.match(/(\d{1,2}):(\d{2})/) ?? lines.map((l) => l.text.match(/^\D{0,3}(\d{1,2}):(\d{2})\s*$/)).find(Boolean) ?? null;
   const secondsLeft = tm ? Number(tm[1]) * 60 + Number(tm[2]) : null;

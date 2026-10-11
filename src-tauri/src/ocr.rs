@@ -194,3 +194,21 @@ pub fn recognize(_img: &RgbaImage, _scale: f32) -> anyhow::Result<OcrOut> {
 pub fn recognize_opts(_img: &RgbaImage, _scale: f32, _max_channel: bool) -> anyhow::Result<OcrOut> {
     anyhow::bail!("OCR is only implemented on Windows")
 }
+
+#[cfg(all(test, windows))]
+mod probe {
+    /// Manual check: OCR an image both ways. `OCR_PROBE=path cargo test --lib ocr_probe -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn ocr_probe() {
+        let path = std::env::var("OCR_PROBE").expect("set OCR_PROBE to an image path");
+        let img = image::open(&path).unwrap().to_rgba8();
+        for mc in [true, false] {
+            let out = super::recognize_opts(&img, 1.3, mc).unwrap();
+            println!("== max_channel={mc}: {} lines", out.lines.len());
+            for l in out.lines.iter().take(12) {
+                println!("   {:>4},{:>4}  {}", l.x as i32, l.y as i32, l.text);
+            }
+        }
+    }
+}

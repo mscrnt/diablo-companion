@@ -11,7 +11,7 @@ import { captureRegion, type OcrLine } from "./native";
 import { emitOverlay } from "./bus";
 import { invoke } from "@tauri-apps/api/core";
 import { findWhisperCaches, parseGrimFavors, type RankedCache } from "./whispers";
-import { helltideAdvice, parseHelltideHud, type HelltideInfo } from "./helltide";
+import { helltideAdvice, isHelltideLabel, parseHelltideHud, type HelltideInfo } from "./helltide";
 import { localSchedule } from "./timers";
 import { bossInfo, findBoss } from "./boss";
 import { bestTrees, needs, parseWarPlan, useWarPlans } from "./warplans";
@@ -83,7 +83,7 @@ let trackerRegion = { x: 0, y: 0, w: 0, h: 0 };
 
 /** Zoomed OCR of the two counters under the "Helltide:" label; the left (flame) one is cinders. */
 async function readCinders(): Promise<number | null> {
-  const label = trackerLines.find((l) => /helltide/i.test(l.text));
+  const label = trackerLines.find((l) => isHelltideLabel(l.text));
   if (!label) return null;
   const r = {
     x: Math.round(trackerRegion.x + label.x - label.w * 0.25),
@@ -128,10 +128,10 @@ async function helltideTick() {
     const { variant, prog } = getActiveVariant();
     const cinders = hud.cinders ?? ht.cinders;
     // the HUD timer digits are orange + an hourglass icon and OCR poorly; the schedule knows the end (:55)
-    if (hud.secondsLeft == null) {
-      const cur = localSchedule(now, 2).find((e) => e.kind === "helltide" && e.start <= now && (e.end ?? 0) > now);
-      if (cur?.end) hud.secondsLeft = Math.round((cur.end - now) / 1000);
-    }
+    // ("Helitide: 01:16" for 31:16): when the read is off by more than two minutes, the schedule wins
+    const cur = localSchedule(now, 2).find((e) => e.kind === "helltide" && e.start <= now && (e.end ?? 0) > now);
+    const sched = cur?.end ? Math.round((cur.end - now) / 1000) : null;
+    if (sched != null && (hud.secondsLeft == null || Math.abs(hud.secondsLeft - sched) > 120)) hud.secondsLeft = sched;
     const adv = helltideAdvice(variant, prog, cinders);
     if (!ht.active) debugEvent("activity", "helltide-start", { cinders, secondsLeft: hud.secondsLeft, best: adv.best?.name ?? null });
     else if (cinders !== ht.cinders) debugEvent("activity", "helltide-cinders", { from: ht.cinders, to: cinders, read: hud.cinders != null ? "hud" : "kept" });
