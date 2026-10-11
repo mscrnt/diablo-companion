@@ -21,6 +21,8 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Screen reading could fail silently on some screen areas: when text was enlarged for reading, the image could end up a pixel off the size Windows expected and nothing was read. This affected the Infernal Hordes helper most, which never noticed a Hordes run.
+- The Infernal Hordes helper recognises the run despite common misreads ("Infemal Hordes", "WAVE: 10/10"), and reads text on the red Hordes arena.
 - AI Coach answers show proper headings, bullet lists and bold text instead of raw `###` and `**` marks.
 - The Pit run timer now syncs to the in-game countdown. The pattern that reads it could never match before.
 - The farm planner matches aspect names whether or not they include the word "Aspect".

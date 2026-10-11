@@ -44,6 +44,10 @@ describe("Infernal Hordes", () => {
   it("parses the tracker", () => {
     expect(looksLikeHordes("Infernal Hordes Wave 3/10 Burning Aether 245")).toBe(true);
     expect(looksLikeHordes("Helltide 12:00")).toBe(false);
+    // OCR slips seen in a real run
+    expect(looksLikeHordes("The Infemal Hordes in Buming Hells")).toBe(true);
+    expect(looksLikeHordes("WAVE: 10/10")).toBe(true);
+    expect(looksLikeHordes("lnfernal Hordes")).toBe(true);
     expect(parseAether("Burning Aether 245")).toBe(245);
     expect(parseAether("245 Aether")).toBe(245);
   });

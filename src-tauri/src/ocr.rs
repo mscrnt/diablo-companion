@@ -129,24 +129,26 @@ pub fn recognize_opts(img: &RgbaImage, scale: f32, max_channel: bool) -> anyhow:
         s = max_dim / long;
     }
     if (s - 1.0).abs() > 0.01 {
+        // resize_exact: `resize` keeps the aspect ratio and can land a pixel off the
+        // requested size, and SoftwareBitmap then rejects the buffer (OCR silently fails)
         src = DynamicImage::ImageRgba8(src)
-            .resize(
-                (img.width() as f32 * s) as u32,
-                (img.height() as f32 * s) as u32,
+            .resize_exact(
+                ((img.width() as f32 * s) as u32).max(1),
+                ((img.height() as f32 * s) as u32).max(1),
                 FilterType::CatmullRom,
             )
             .to_rgba8();
     }
+
+    // always describe the bitmap with the buffer's real size
+    let (w, h) = (src.width() as i32, src.height() as i32);
+    let s = src.width() as f32 / img.width() as f32;
 
     // RGBA -> BGRA for SoftwareBitmap
     let mut bgra = src.into_raw();
     for px in bgra.chunks_exact_mut(4) {
         px.swap(0, 2);
     }
-    let (w, h) = (
-        (img.width() as f32 * s) as i32,
-        (img.height() as f32 * s) as i32,
-    );
 
     let writer = DataWriter::new()?;
     writer.WriteBytes(&bgra)?;

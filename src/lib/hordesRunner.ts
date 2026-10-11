@@ -5,6 +5,7 @@ import { emitOverlay } from "./bus";
 import { chestAdvice, findChests, findOffers, looksLikeHordes, parseAether, type SeenChest, type SeenOffer } from "./hordes";
 import { captureRegion } from "./native";
 import { getActiveVariant, useSettings } from "./store";
+import { testModeOn } from "./testmode";
 
 export interface HordesState {
   active: boolean;
@@ -20,6 +21,7 @@ let activeUntil = 0;
 let busy = false;
 let lastTracker = 0;
 let lastLogged = "";
+let lastTrackerLog = 0;
 
 export const hordesState = () => state;
 
@@ -29,16 +31,35 @@ function push() {
 
 type Rect = [number, number, number, number];
 
+/** OCR a region. The max-channel boost that helps elsewhere washes out text on the red Hordes
+ *  arena (the background becomes as bright as the text), so fall back to plain OCR when it reads little. */
+async function ocrRegion(r: { x: number; y: number; w: number; h: number }, ocrScale?: number) {
+  const boosted = await captureRegion(r, { ocr: true, ocrMaxChannel: true, ocrScale, maxEdge: 64, quality: 50 });
+  if ((boosted.ocr?.text ?? "").replace(/\s/g, "").length >= 12) return boosted;
+  const plain = await captureRegion(r, { ocr: true, ocrMaxChannel: false, ocrScale, maxEdge: 64, quality: 50 });
+  return (plain.ocr?.text ?? "").length > (boosted.ocr?.text ?? "").length ? plain : boosted;
+}
+
 async function checkTracker(rect: Rect) {
   const [gx, gy, gw, gh] = rect;
   // quest tracker + minimap area (top-right of the game image)
   const r = { x: Math.round(gx + gw * 0.6), y: Math.round(gy + gh * 0.03), w: Math.round(gw * 0.38), h: Math.round(gh * 0.42) };
-  const cap = await captureRegion(r, { ocr: true, ocrMaxChannel: true, ocrScale: 1.3, maxEdge: 64, quality: 50 });
+  const cap = await ocrRegion(r, 1.3);
   const text = cap.ocr?.text ?? "";
-  if (looksLikeHordes(text)) {
+  const hit = looksLikeHordes(text);
+  if (hit) {
     activeUntil = Date.now() + 120_000;
     const a = parseAether(text);
     if (a != null) state.aether = a;
+  }
+  // in test mode: what the tracker check read, every 30 s at most, so misses can be diagnosed
+  if (testModeOn() && Date.now() - lastTrackerLog > 30_000) {
+    lastTrackerLog = Date.now();
+    invoke("debug_log_write", {
+      name: `hordes_tracker_${new Date().toISOString().replace(/[:.]/g, "-")}`,
+      image: cap.image,
+      json: JSON.stringify({ hit, region: r, text, lines: (cap.ocr?.lines ?? []).map((l) => l.text) }, null, 2),
+    }).catch(() => {});
   }
 }
 
@@ -50,7 +71,7 @@ async function scanArena(rect: Rect) {
   const x0 = b ? b.left : 0,
     x1 = b ? b.right : 1;
   const r = { x: Math.round(gx + gw * x0), y: Math.round(gy + gh * 0.04), w: Math.round(gw * (x1 - x0)), h: Math.round(gh * 0.8) };
-  const cap = await captureRegion(r, { ocr: true, ocrMaxChannel: true, maxEdge: 64, quality: 50 });
+  const cap = await ocrRegion(r);
   const lines = cap.ocr?.lines ?? [];
   const offers = findOffers(lines, cap.region, settings.hordes.style);
   const chestsSeen = findChests(lines, cap.region);
