@@ -93,7 +93,12 @@ function finalNameFor(name: string, rarity: string) {
 export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: BuildVariant | undefined, opts: { snap?: boolean } = {}): ParsedItem | null {
   // OCR reads the bullet icons as letters ("o +9.8% Crit…", "0 +4,375 Armor") — strip them;
   // then fix misread words against the game's own text ("ARIT10R" → "ARMOR")
-  const L = (opts.snap === false ? lines : snapLines(lines))
+  // a greater-affix starburst read as a character ("* +225 Intelligence") marks the line greater: its
+  // colour check looked left of the star, at the tooltip frame (checked before word snapping drops the "*")
+  const starred = lines.map((l) =>
+    /^\s*[*✸✷✹✺❋]\s*(?=[+x\-]?\s*\d)/.test(l.text) && (l.bullet === "normal" || l.bullet === "none") ? { ...l, bullet: "greater" as const } : l,
+  );
+  const L = (opts.snap === false ? starred : snapLines(starred))
     .map((l) => ({ ...l, text: l.text.trim().replace(/^(?:[oO0•*◆◇¤✸✷·°]\s*)+(?=[+x\-]?\s*\d)/, "") }))
     .filter((l) => l.text.length > 0);
   const hs = L.map((l) => l.h ?? 0).filter(Boolean).sort((a, b) => a - b);

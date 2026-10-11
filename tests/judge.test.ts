@@ -80,3 +80,16 @@ describe("type line misreads", () => {
     expect(item.rarity).toBe("magic");
   });
 });
+
+describe("greater affixes read as a star character", () => {
+  it("a 4★ item whose stars OCR as \"*\" is saved for later, not scrapped", async () => {
+    const ctx = await exampleBuild();
+    // Serpent's Bite of Exorcism (2026-10-11): all four affixes are ★; OCR read each starburst as "*"
+    const f = fixture("untitled-sword");
+    const item = fastParse(f.lines, false, ctx.variant)!;
+    expect(item.affixes.filter((a) => a.greater).length).toBe(4);
+    const r = decide(item, ctx.variant, { prog: ctx.prog }, item.compare);
+    expect(r.verdict).toBe("STASH");
+    expect(r.action).toMatch(/Save it for later — 4★ greater affixes/);
+  });
+});

@@ -29,7 +29,7 @@ pub fn classify_bullet(img: &RgbaImage, x: f32, y: f32, h: f32) -> &'static str 
     if x1 <= x0 + 3 || y1 <= y0 + 3 || x1 > img.width() {
         return "none";
     }
-    let (mut bright, mut orange, mut blue, mut white) = (0u32, 0u32, 0u32, 0u32);
+    let (mut bright, mut orange, mut blue, mut white, mut warm) = (0u32, 0u32, 0u32, 0u32, 0u32);
     for yy in y0..y1 {
         for xx in x0..x1 {
             let p = img.get_pixel(xx, yy);
@@ -56,6 +56,10 @@ pub fn classify_bullet(img: &RgbaImage, x: f32, y: f32, h: f32) -> &'static str 
             if hue > 10.0 && hue < 50.0 && s > 0.3 {
                 orange += 1;
             }
+            // the greater-affix starburst can be pale peach/pink with a red rim (hue wraps past 0)
+            if (hue < 50.0 || hue > 330.0) && s > 0.15 {
+                warm += 1;
+            }
             if hue > 180.0 && hue < 290.0 && s > 0.3 {
                 blue += 1;
             }
@@ -74,6 +78,11 @@ pub fn classify_bullet(img: &RgbaImage, x: f32, y: f32, h: f32) -> &'static str 
         return if fb > 0.18 { "masterwork" } else { "enchanted" };
     }
     if fb > 0.2 && orange as f32 / bf > 0.12 {
+        return "greater";
+    }
+    // a thin starburst (it fills only ~12% of the box): warm outline around a white centre. The tooltip's
+    // orange frame is warm too but has no white; a grey diamond fills ~4% and isn't warm
+    if fb > 0.08 && warm as f32 / bf > 0.4 && white as f32 / bf > 0.2 {
         return "greater";
     }
     if fb > 0.2 && (orange as f32 / bf) < 0.05 && white as f32 / bf > 0.5 {
@@ -207,7 +216,7 @@ mod probe {
             let out = super::recognize_opts(&img, 1.3, mc).unwrap();
             println!("== max_channel={mc}: {} lines", out.lines.len());
             for l in out.lines.iter().take(12) {
-                println!("   {:>4},{:>4}  {}", l.x as i32, l.y as i32, l.text);
+                println!("   {:>4},{:>4}  {:<9} {}", l.x as i32, l.y as i32, l.bullet, l.text);
             }
         }
     }
