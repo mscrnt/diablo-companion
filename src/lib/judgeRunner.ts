@@ -144,6 +144,7 @@ export async function judgeTooltips(
       verdict: result.verdict,
       item: hovered.name,
       action: result.action,
+      reasons: result.reasons.slice(0, 4),
       ms: result.ms,
       parseMs: h.debug.ms,
       path: (h.debug.raw as any)?.fast ? "rules" : "llm",
