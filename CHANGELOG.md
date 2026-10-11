@@ -35,6 +35,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- A backpack item could be treated as one you're wearing ("Wearing — this is a stand-in") when an "Unequip" hint from a neighbouring panel was read along with its tooltip. A tooltip that compares itself with your gear is now never taken for your own.
 - Tree of Whispers: a two-handed unique whose name doesn't say so (Bloodless Scream, a two-handed scythe) is recognised from its item type, so one-handed weapon caches are no longer ranked first for a two-handed build.
 - An item you hover again moves back to the top of the Loot history (it used to stay where it was first judged).
 - Charms (even the ones your build uses), seals and Whisper Caches could be told "scrap" when the AI read the tooltip. Your build's charms are kept, other pieces of its charm set are kept, other charms are stashed, and caches are never judged as gear.

@@ -42,3 +42,16 @@ describe("loot judge on logged tooltips", () => {
     expect((performance.now() - t0) / 20).toBeLessThan(50);
   });
 });
+
+describe("a bag item is never 'worn'", () => {
+  it("ignores a stray Unequip hint when the tooltip compares itself with your gear", async () => {
+    const ctx = await exampleBuild();
+    const f = fixture("accursed-touch-helm");
+    // a neighbouring panel's footer read along with the tooltip (seen on Black Rail of the Great Feast)
+    const lines = [...f.lines, { text: "Unequip", bullet: "none" }];
+    const item = fastParse(lines, false, ctx.variant)!;
+    expect(item.compareRows?.length).toBeGreaterThan(0);
+    expect(item.equipped).toBe(false);
+    expect(decide(item, ctx.variant, { prog: ctx.prog }, item.compare).verdict).not.toBe("WEARING");
+  });
+});

@@ -352,8 +352,10 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     aspect: power.length ? { name: legendaryName, text: powerText, imprinted } : nameAspect ? { name: nameAspect, text: "" } : null,
     sockets: L.filter((l) => /socket/i.test(l.text)).length,
     rawText: L.map((l) => l.text).join("\n"),
-    // opened from the Character panel there's no EQUIPPED header, but the footer offers "Unequip"
-    equipped: equippedLabel || L.some((l, i) => i > ti && isUnequipLine(l.text)),
+    // opened from the Character panel there's no EQUIPPED header, but the footer offers "Unequip";
+    // a tooltip comparing itself with your gear ("Properties lost when equipped", "(+23%)") is never
+    // the one you wear, whatever stray "Unequip" a neighbouring panel adds to the read
+    equipped: equippedLabel || (lostStart < 0 && !stats.some((s) => s.delta) && L.some((l, i) => i > ti && isUnequipLine(l.text))),
     truncated: L.some((l) => /scroll down/i.test(l.text)),
     category,
     tempersUsed: tempers ? Number(tempers[1]) : undefined,
