@@ -29,6 +29,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Infernal Hordes offers: the pick no longer jumps between offers. It remembers every offer seen on the offer screen and ranks that set, reads only real offer titles (not description fragments or boss names), starts fresh each wave, and reads your Aether count from the tracker instead of "+2 Aether" in a description.
 - The "Open test-mode folder" and judge log buttons open the folder again (the app wasn't allowed to open folders from the page).
 - The skill bar check no longer warns about skills your character mapping already read off your bar, and only warns after a skill is missing on three checks in a row, once per session.
 - Screen reading could fail silently on some screen areas: when text was enlarged for reading, the image could end up a pixel off the size Windows expected and nothing was read. This affected the Infernal Hordes helper most, which never noticed a Hordes run.
