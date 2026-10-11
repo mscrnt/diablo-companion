@@ -59,7 +59,7 @@ Everything is local, under `%LOCALAPPDATA%\com.kenneth.d4companion\logs\debug\` 
 - `events-YYYY-MM-DD.jsonl`: one JSON line per decision (`ts`, `src`, `type`, `data`) from every subsystem, including skipped and negative decisions, plus uncaught errors and console warnings from both windows. Test mode only; it gets a tenth of test mode's size budget.
 - `marks/<time>/`: press **Ctrl+Alt+D** (controller: **View + RB**) in game to mark a moment, even with test mode off: `screenshot.jpg` (game window, full resolution), `state.json`, `events.jsonl` (the last 90 s), `overlay.json` and an optional `note.txt` added on the Debug page. The newest 30 are kept.
 
-Secrets (LLM API key, Discord webhook, OBS password) are never written. **Create debug report** (Debug page or Settings → About) zips these with recent judge logs and test-mode records into Downloads and opens a pre-filled GitHub issue; nothing is uploaded.
+Secrets (LLM API key, Discord webhook, OBS password) are never written. **Send debug report** (Debug page or Settings → About) zips these with recent judge logs and test-mode records and, once you confirm, uploads the zip to the report service: a Cloudflare Worker (`worker/`) that stores it privately for 30 days and returns a report ID. The app holds no storage credentials. If the upload fails, or you choose **Save it instead**, the zip goes to Downloads with a pre-filled GitHub issue link.
 
 ## Release
 Add notes under **Unreleased** in [CHANGELOG.md](CHANGELOG.md) as you go. The version bump turns them into the new version's section, and that section becomes the GitHub release notes. A release won't build without notes.

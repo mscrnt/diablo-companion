@@ -327,8 +327,11 @@ export function installDebugHooks(sink: (type: string, data: Record<string, unkn
 
 export const ISSUES_NEW = "https://github.com/mscrnt/diablo-companion/issues/new";
 
-/** A pre-filled "new issue" link. The user attaches the zip themselves: nothing is uploaded. */
-export function issueUrl(o: { version: string; zipName: string; included: string[]; os?: string; title?: string }): string {
+/**
+ * A pre-filled "new issue" link. With `reportId` the report was sent from the app and the issue only
+ * names it; otherwise the user attaches the saved zip themselves.
+ */
+export function issueUrl(o: { version: string; zipName?: string; reportId?: string; included: string[]; os?: string; title?: string }): string {
   const body = [
     "**What happened?**",
     "<!-- What did you expect, and what did the app do instead? -->",
@@ -337,7 +340,7 @@ export function issueUrl(o: { version: string; zipName: string; included: string
     "<!-- Roughly what time, and what you were doing in game (a Pit run, the map open, hovering an item...). If you pressed the \"mark this moment\" key, say which mark. -->",
     "",
     "**Debug report**",
-    `Please drag \`${o.zipName}\` (saved in your Downloads folder) into this box to attach it.`,
+    o.reportId ? `Sent from the app. Report ID: \`${o.reportId}\`` : `Please drag \`${o.zipName ?? "the report zip"}\` (saved in your Downloads folder) into this box to attach it.`,
     "",
     `Contains: ${o.included.join(", ")}.`,
     "",

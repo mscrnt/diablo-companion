@@ -419,18 +419,44 @@ export async function planReport(includeImages: boolean): Promise<ReportPlan> {
   return { entries, summary, images };
 }
 
-/** Build the zip in Downloads, show it in Explorer and open a pre-filled GitHub issue. Nothing is uploaded. */
-export async function createReport(includeImages: boolean): Promise<{ path: string; url: string; summary: string[] }> {
+const osTag = () => (typeof navigator !== "undefined" ? navigator.userAgent.match(/Windows NT [\d.]+/)?.[0] : undefined);
+
+/** Build the zip in Downloads and show it in Explorer, with a pre-filled GitHub issue link to attach it to. */
+export async function saveReport(includeImages: boolean): Promise<{ path: string; url: string; summary: string[] }> {
   const plan = await planReport(includeImages);
   const name = `sanctuary-debug-${markStamp(new Date())}`;
   const path = await invoke<string>("debug_report", { name, entries: plan.entries });
   const zipName = path.split(/[\\/]/).pop() ?? `${name}.zip`;
-  const url = issueUrl({ version: APP_VERSION, zipName, included: plan.summary, os: typeof navigator !== "undefined" ? navigator.userAgent.match(/Windows NT [\d.]+/)?.[0] : undefined });
-  debugEvent("debug", "report", { zip: zipName, files: plan.entries.length, images: includeImages });
+  const url = issueUrl({ version: APP_VERSION, zipName, included: plan.summary, os: osTag() });
+  debugEvent("debug", "report", { zip: zipName, files: plan.entries.length, images: includeImages, sent: false });
   const opener = await import("@tauri-apps/plugin-opener");
   await opener.revealItemInDir(path).catch(() => {});
-  await opener.openUrl(url).catch(() => {});
   return { path, url, summary: plan.summary };
+}
+
+export type SendResult =
+  | { sent: true; id: string; url: string; summary: string[] }
+  | { sent: false; error: string; path: string; url: string; summary: string[] };
+
+/**
+ * Send the report to the developer: the zip is built in the app's own folder and uploaded to the
+ * report service (a Cloudflare Worker; the app holds no storage keys). If that fails, the zip is
+ * saved to Downloads instead, to attach to a GitHub issue.
+ */
+export async function sendReport(includeImages: boolean): Promise<SendResult> {
+  const plan = await planReport(includeImages);
+  const name = `sanctuary-debug-${markStamp(new Date())}`;
+  try {
+    const staged = await invoke<string>("debug_report", { name, entries: plan.entries, staging: true });
+    const id = await invoke<string>("debug_report_upload", { path: staged, screenshots: includeImages });
+    debugEvent("debug", "report", { id, files: plan.entries.length, images: includeImages, sent: true });
+    return { sent: true, id, url: issueUrl({ version: APP_VERSION, reportId: id, included: plan.summary, os: osTag() }), summary: plan.summary };
+  } catch (e) {
+    const error = String((e as Error)?.message ?? e);
+    debugEvent("debug", "report-upload-failed", { error });
+    const saved = await saveReport(includeImages);
+    return { sent: false, error, path: saved.path, url: saved.url, summary: plan.summary };
+  }
 }
 
 // ---- start ----------------------------------------------------------------------------------

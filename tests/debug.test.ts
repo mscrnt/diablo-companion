@@ -177,6 +177,12 @@ describe("issue link", () => {
     expect(u.searchParams.get("body")).toContain("sanctuary-debug-x.zip");
     expect(u.searchParams.get("body")).toContain("v0.2.0");
   });
+
+  it("after sending, names the report ID instead of asking for the zip", () => {
+    const body = new URL(issueUrl({ version: "0.2.0", reportId: "01K7ABCDEF", included: ["state"] })).searchParams.get("body")!;
+    expect(body).toContain("Report ID: `01K7ABCDEF`");
+    expect(body).not.toMatch(/drag/i);
+  });
 });
 
 describe("mark-moment binding", () => {

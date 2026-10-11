@@ -292,10 +292,28 @@ struct ReportEntry {
     tail: Option<u64>,
 }
 
-/// Build the debug report zip in Downloads (or Desktop) and return its path. Nothing is uploaded.
+/// Where a report waits to be uploaded (inside the app's log folder, never anywhere else).
+fn report_staging(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    Ok(app.path().app_log_dir().map_err(err)?.join("report-staging"))
+}
+
+/// Build the debug report zip and return its path: in Downloads (or Desktop) to keep, or with
+/// `staging` in the app's own folder, to upload with `debug_report_upload`.
 #[tauri::command]
-async fn debug_report(app: AppHandle, name: String, entries: Vec<ReportEntry>) -> Result<String, String> {
-    let out_dir = app.path().download_dir().or_else(|_| app.path().desktop_dir()).or_else(|_| app.path().app_log_dir()).map_err(err)?;
+async fn debug_report(app: AppHandle, name: String, entries: Vec<ReportEntry>, staging: Option<bool>) -> Result<String, String> {
+    let staging = staging.unwrap_or(false);
+    let out_dir = if staging {
+        let dir = report_staging(&app)?;
+        // leftovers from an earlier upload that never finished
+        if let Ok(rd) = std::fs::read_dir(&dir) {
+            for e in rd.flatten() {
+                let _ = std::fs::remove_file(e.path());
+            }
+        }
+        dir
+    } else {
+        app.path().download_dir().or_else(|_| app.path().desktop_dir()).or_else(|_| app.path().app_log_dir()).map_err(err)?
+    };
     enum Body {
         Text(String),
         File(std::path::PathBuf, Option<u64>),
@@ -347,6 +365,72 @@ async fn debug_report(app: AppHandle, name: String, entries: Vec<ReportEntry>) -
         Ok(path.to_string_lossy().to_string())
     })
     .await
+}
+
+/// The upload endpoint (a Cloudflare Worker that stores the zip; the app holds no storage keys).
+const REPORT_URL: &str = "https://reports.mscrnt.com/report";
+const REPORT_MAX_BYTES: u64 = 25 * 1024 * 1024;
+
+/// "windows-11" from build 22000 up, "windows-10" below, "windows" if the build can't be read.
+fn windows_os() -> &'static str {
+    #[cfg(windows)]
+    {
+        use windows::core::w;
+        use windows::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ};
+        let mut buf = [0u16; 32];
+        let mut len = (buf.len() * 2) as u32;
+        let ok = unsafe { RegGetValueW(HKEY_LOCAL_MACHINE, w!("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), w!("CurrentBuildNumber"), RRF_RT_REG_SZ, None, Some(buf.as_mut_ptr().cast()), Some(&mut len)) };
+        if ok.is_ok() {
+            let s = String::from_utf16_lossy(&buf[..(len as usize / 2).saturating_sub(1)]);
+            if let Ok(build) = s.trim().parse::<u32>() {
+                return if build >= 22000 { "windows-11" } else { "windows-10" };
+            }
+        }
+    }
+    "windows"
+}
+
+/// Upload a staged report and return the report ID the server gave it. Only zips in the staging
+/// folder can be sent, and only to REPORT_URL. The staged file is deleted after a successful upload.
+#[tauri::command]
+async fn debug_report_upload(app: AppHandle, path: String, screenshots: bool) -> Result<String, String> {
+    let staging = report_staging(&app)?.canonicalize().map_err(err)?;
+    let file = std::path::PathBuf::from(&path).canonicalize().map_err(err)?;
+    if file.parent() != Some(staging.as_path()) || file.extension().and_then(|e| e.to_str()) != Some("zip") {
+        return Err("only a staged debug report can be sent".into());
+    }
+    let len = std::fs::metadata(&file).map_err(err)?.len();
+    if len > REPORT_MAX_BYTES {
+        return Err(format!("the report is {} MB, over the {} MB limit", len / 1024 / 1024, REPORT_MAX_BYTES / 1024 / 1024));
+    }
+    let bytes = std::fs::read(&file).map_err(err)?;
+    let v = app.package_info().version.clone();
+    // "0.2.0" or a pre-release like "0.2.0-rc.1" (the server accepts both)
+    let meta = serde_json::json!({ "version": v.to_string(), "os": windows_os(), "screenshots": screenshots }).to_string();
+    let client = tauri_plugin_http::reqwest::Client::builder().timeout(std::time::Duration::from_secs(90)).build().map_err(err)?;
+    let res = client
+        .post(REPORT_URL)
+        .header("content-type", "application/zip")
+        .header("x-report-meta", meta)
+        .header("user-agent", format!("SanctuaryToolkit/{v}"))
+        .body(bytes)
+        .send()
+        .await
+        .map_err(|e| format!("couldn't reach the report service ({e})"))?;
+    let status = res.status();
+    let body: serde_json::Value = serde_json::from_str(&res.text().await.unwrap_or_default()).unwrap_or(serde_json::Value::Null);
+    // rate limited, by the zone's WAF rule (not JSON) or the Worker's own caps
+    if status.as_u16() == 429 {
+        let msg = body.get("error").and_then(|m| m.as_str()).unwrap_or("too many reports right now");
+        return Err(format!("{msg} (HTTP 429)"));
+    }
+    if !status.is_success() {
+        let msg = body.get("error").and_then(|m| m.as_str()).unwrap_or("unknown error");
+        return Err(format!("{msg} (HTTP {})", status.as_u16()));
+    }
+    let id = body.get("id").and_then(|i| i.as_str()).ok_or("the report service sent no report ID")?.to_string();
+    let _ = std::fs::remove_file(&file);
+    Ok(id)
 }
 
 fn safe_name_dot(s: &str) -> String {
@@ -422,6 +506,7 @@ pub fn run() {
             debug_remove,
             open_log_folder,
             debug_report,
+            debug_report_upload,
             display_info,
         ])
         .setup(|app| {
@@ -488,4 +573,16 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod report_tests {
+    #[test]
+    fn os_is_one_the_server_accepts() {
+        let os = super::windows_os();
+        assert!(["windows-10", "windows-11", "windows"].contains(&os));
+        #[cfg(windows)]
+        assert_ne!(os, "windows", "the build number should be readable on Windows");
+        println!("os = {os}");
+    }
 }
