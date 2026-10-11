@@ -40,11 +40,13 @@ const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b/i;
 const SLOT_NOUN =
   /\b(helm|headgear|head|chest armor|chest|gloves|pants|boots|amulet|ring|scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|charm|seal|two-handed|one-handed)\b/i;
 export const STAT_START = /^[+x\-]?\s*[\d][\d.,\s]*%?\s+\S/i;
-const NONGEAR = /\b(gem|rune|soul splinter|splinter|socketable|charm|seal|talisman|tribute|elixir|incense|potion|key|sigil|material|cache|scroll|consumable)\b/i;
+const NONGEAR = /\b(gem|rune|soul splinter|splinter|socketable|charm|seal|talisman|tribute|chronicle|elixir|incense|potion|key|sigil|material|cache|scroll|consumable)\b/i;
 
 function categoryOf(type: string, all: string): ParsedItem["category"] {
   if (/\b(gem|rune|splinter|socketable)\b/i.test(type) || /can be inserted into|amalgamate|^weapon:|jewelry:/im.test(all)) return "socketable";
   if (/\btribute\b/i.test(type) || /undercity spirit brazier/i.test(all)) return "tribute";
+  // Nightmare keys ("Rare Chronicle of Nightmares … Dungeon Affixes")
+  if (/\bchronicle\b|\bsigil\b/i.test(type) || /dungeon affixes/i.test(all)) return "consumable";
   if (/\b(charm|seal|talisman)\b/i.test(type)) return "talisman";
   if (NONGEAR.test(type)) return "consumable";
   return "gear";

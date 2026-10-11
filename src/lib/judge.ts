@@ -338,6 +338,14 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined): Out
     if (/amalgam/i.test(all)) return out(item, "STASH", "Keep it for the Horadric Cube — amalgamate it with others into a stronger one.", ["Your build doesn't socket this one directly."], null);
     return out(item, "SELL", "Your build doesn't use this socketable — sell it or keep it for another build.", [], null);
   }
+  // a Nightmare key: which dungeon it opens and its affixes
+  if (/chronicle|sigil|dungeon affixes/i.test(`${item.name}\n${all}`)) {
+    const lines = all.split("\n").map((l) => l.trim());
+    const dungeon = lines.find((l) => / in [A-Z][a-z]+/.test(l) && !/affix/i.test(l))?.replace(/\s+in\s+.*$/, "") ?? null;
+    const ai = lines.findIndex((l) => /dungeon affixes/i.test(l));
+    const affixes = ai >= 0 ? lines.slice(ai + 1, ai + 4).filter((l) => l.length > 3 && !/vivid account|account bound|seasonal|sell value/i.test(l)) : [];
+    return out(item, "STASH", `Keep it: it's a Nightmare key${dungeon ? ` for ${dungeon}` : ""}, not gear.`, affixes.length ? [`Affixes: ${affixes.join(", ")}.`] : [], null);
+  }
   if (item.category === "talisman") {
     // "Peace of the Black Shroud": another piece of a set your build wears
     const setOf = (n: string) => normName(n).match(/ of the (.+)$/)?.[1] ?? "";
@@ -366,7 +374,9 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   const category =
     /\btribute\b|undercity spirit brazier/i.test(text)
       ? "tribute"
-      : (item.category ??
+      : /chronicle of nightmares|nightmare sigil|dungeon affixes/i.test(text)
+        ? "consumable"
+        : (item.category ??
         (item.slot === "charm" || item.slot === "seal" ? "talisman" : item.slot === "other" && /\bcache\b|collection of/i.test(text) ? "consumable" : undefined));
   if (category && category !== "gear") return decideNonGear({ ...item, category }, variant);
   if (!variant) return out(item, "UNKNOWN", "Import your build first (Build page).", [], null);
