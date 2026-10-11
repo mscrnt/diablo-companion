@@ -7,7 +7,7 @@ import { parseQuery, shape, upstreamUrl } from "./filters-core";
 export interface Env {
   DF_API_URL: string;
   CACHE_SECONDS: string;
-  DF_API_KEY: SecretsStoreSecret;
+  DIABLOFILTER_KEY: SecretsStoreSecret;
   /** uncached searches per IP (loose; the zone's WAF rule is the strict per-IP limit) */
   PER_IP: RateLimit;
   /** all uncached searches together, kept under DiabloFilter's per-minute limit */
@@ -44,7 +44,7 @@ export default {
     if (!(await env.PER_IP.limit({ key: ip })).success) return fail(429, "too many searches, try again in a minute", { "retry-after": "60" });
     if (!(await env.UPSTREAM.limit({ key: "diablofilter" })).success) return fail(503, "filter search is busy, try again in a minute", { "retry-after": "60" });
 
-    const res = await fetch(upstream, { headers: { "x-api-key": await env.DF_API_KEY.get(), accept: "application/json", "user-agent": UA } });
+    const res = await fetch(upstream, { headers: { "x-api-key": await env.DIABLOFILTER_KEY.get(), accept: "application/json", "user-agent": UA } });
     if (res.status === 429) {
       const wait = Math.min(Math.max(Number(res.headers.get("retry-after")) || 60, 10), 3600);
       ctx.waitUntil(cache.put(PAUSE_KEY, new Response("paused", { headers: { "cache-control": `public, max-age=${wait}`, "x-retry-after": String(wait) } })));

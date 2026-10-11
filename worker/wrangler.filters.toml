@@ -16,7 +16,7 @@ CACHE_SECONDS = "3600"   # DiabloFilter allows caching on our server for up to a
 
 # the DiabloFilter API key, only in the Cloudflare Secrets Store (never in this repo or the app)
 [[secrets_store_secrets]]
-binding = "DF_API_KEY"
+binding = "DIABLOFILTER_KEY"
 store_id = "bcb7b4f126c34f73bf937626027200fa"
 secret_name = "D4_COMPANION_DIABLOFILTER_KEY"
 
