@@ -14,7 +14,7 @@ export interface BossInfo {
 }
 
 /** World bosses (S15 rotation, names as the game spells them). */
-const WORLD_BOSSES = ["Avarice, the Gold Cursed", "Ashava", "Azmodan", "Wandering Death, Death Given Life"];
+const WORLD_BOSSES = ["Avarice, the Gold Cursed", "Ashava, the Pestilent", "Azmodan, Lord of Sin", "Wandering Death, Death Given Life"];
 export const isWorldBoss = (name: string) => WORLD_BOSSES.some((w) => normName(w).startsWith(normName(name.split(",")[0])));
 
 let bossNames: string[] | null = null;
@@ -35,6 +35,10 @@ export function findBoss(lines: OcrLine[]): string | null {
     for (const n of names()) {
       const short = n.split(",")[0];
       if (trigramSim(t, n) >= 0.72 || (short.length > 4 && trigramSim(t.split(",")[0], short) >= 0.8)) return n;
+      // the bar can show the title without a comma ("AZMODAN LORD OF SIN"): the name is its first word(s)
+      const nt = normName(t);
+      const ns = normName(short);
+      if (ns.length > 4 && (nt === ns || nt.startsWith(ns + " "))) return n;
     }
   }
   return null;

@@ -181,6 +181,9 @@ describe("world bosses", () => {
     expect(findBoss([line("AVARICE, THE GOLD CURSED")])).toBe("Avarice, the Gold Cursed");
     expect(findBoss([line("WANDERING DEATH, DEATH GIVEN LIFE")])).toBe("Wandering Death, Death Given Life");
     expect(isWorldBoss("Ashava")).toBe(true);
+    // a real health bar (2026-10-11): the title without its comma
+    expect(findBoss([line("AZMODAN LORD OF SIN")])).toBe("Azmodan, Lord of Sin");
+    expect(findBoss([line("Azmodan")])).toBe("Azmodan, Lord of Sin");
     const info = bossInfo("Avarice, the Gold Cursed", ctx.variant, ctx.prog);
     expect(info.notes.join(" ")).toMatch(/Lair boss summoning materials/);
   });
