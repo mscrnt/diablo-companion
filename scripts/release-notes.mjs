@@ -11,7 +11,10 @@ if (!version) {
 }
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const lines = readFileSync(join(root, "CHANGELOG.md"), "utf8").split(/\r?\n/);
-const start = lines.findIndex((l) => l.startsWith(`## [${version}]`));
+let start = lines.findIndex((l) => l.startsWith(`## [${version}]`));
+// a release candidate has no section of its own: it ships what's under Unreleased
+const pre = version.includes("-");
+if (start < 0 && pre) start = lines.findIndex((l) => l.startsWith("## [Unreleased]"));
 if (start < 0) {
   console.error(`CHANGELOG.md has no section for ${version}`);
   process.exit(1);
@@ -23,4 +26,4 @@ if (!body) {
   console.error(`CHANGELOG.md section for ${version} is empty`);
   process.exit(1);
 }
-console.log(body);
+console.log(pre ? `**Release candidate for ${version.replace(/-.*$/, "")}**, for testing. The in-app updater doesn't offer it.\n\n${body}` : body);
