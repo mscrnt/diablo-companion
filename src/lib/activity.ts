@@ -288,6 +288,24 @@ export interface UndercityState {
   torment: string | null;
 }
 let uc: (UndercityState & { lastSeen: number; lowRun: number; lowWarned: boolean }) | null = null;
+/** when the last run was cleared: the end area still shows the floor block, which mustn't start a new run */
+let ucDoneAt = 0;
+/** the tracker hides behind the map, the inventory and loading screens; only this long without it means you left */
+const UC_GONE_MS = 90_000;
+
+function finishUndercity(cleared: boolean, why: string, at: number) {
+  if (!uc) return;
+  debugEvent("activity", "undercity-end", { floor: uc.floor, upgrades: uc.upgrades, cleared, why });
+  const runs = useRuns.getState();
+  const active = runs.active;
+  if (active?.activity === "Undercity") {
+    runs.stop(cleared, at);
+    overlayToast(cleared ? `Undercity done in ${mmss(at - active.start)}` : "Undercity ended", `Floor ${uc.floor}/${uc.floors} · ${uc.upgrades}/${uc.upgradesMax} reward upgrades`, cleared ? "#5fd18a" : "#b8aa9a", 7000);
+  }
+  if (cleared) ucDoneAt = at;
+  uc = null;
+  emitOverlay("undercity", null);
+}
 
 const mmss = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`;
 
@@ -295,6 +313,14 @@ function undercityTick() {
   const now = Date.now();
   const hud = parseUndercity(trackerLines);
   const runs = useRuns.getState();
+  if (hud?.done) {
+    // the game says the run is complete ("FLOOR 4/3", "District Run")
+    if (uc) finishUndercity(true, "run complete (floor past the last)", now);
+    else ucDoneAt = now;
+    return;
+  }
+  // still in the end area after a clear: the floor block lingers there, so only floor 1 starts a new run
+  if (hud && !uc && (hud.floor ?? 1) > 1 && now - ucDoneAt < 5 * 60_000) return;
   if (hud) {
     const torment = trackerLines.map((l) => l.text.match(/torment\s*([ivxl1]{1,5})\b/i)?.[1]).find(Boolean)?.toUpperCase().replace(/1/g, "I") ?? null;
     if (!uc) {
@@ -338,17 +364,9 @@ function undercityTick() {
     } else uc.lowRun = 0;
     const { lastSeen: _l, lowRun: _r, lowWarned: _w, ...pub } = uc;
     emitOverlay("undercity", pub);
-  } else if (uc && now - uc.lastSeen > 12000) {
-    const cleared = uc.floor >= uc.floors;
-    debugEvent("activity", "undercity-end", { floor: uc.floor, upgrades: uc.upgrades, cleared, why: "floor block gone for 12 s" });
-    const active = runs.active;
-    if (active?.activity === "Undercity") {
-      const dur = uc.lastSeen - active.start;
-      runs.stop(cleared);
-      overlayToast(cleared ? `Undercity done in ${mmss(dur)}` : "Undercity ended", `Floor ${uc.floor}/${uc.floors} · ${uc.upgrades}/${uc.upgradesMax} reward upgrades`, cleared ? "#5fd18a" : "#b8aa9a", 7000);
-    }
-    uc = null;
-    emitOverlay("undercity", null);
+  } else if (uc && now - uc.lastSeen > UC_GONE_MS) {
+    // gone for good without the completion screen: you left (or the app missed the end); the run ends when last seen
+    finishUndercity(uc.floor >= uc.floors, "floor block gone for 90 s", uc.lastSeen);
   }
 }
 

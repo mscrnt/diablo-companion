@@ -37,6 +37,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- Undercity: a run no longer ends or splits in two when the map, the inventory or a loading screen hides the quest tracker for a while. It ends when the game shows the run is complete ("FLOOR 4/3"), or after 90 s without the tracker if you leave. The end area after a clear no longer starts a phantom run, and a run's time stops when it was last seen, not when the app noticed.
 - **Chronicles of Nightmares** were told "sell it" as if they were off-hands. They're kept now, with a note to use them on a Waking Nightmare, their theme and their affixes.
 - A Helltide no longer "starts" when other text on screen contains the word (an item label like "Helltide Harvest…" in the Undercity did); the app now looks for the Helltide HUD label itself.
 - The Pit tier is only picked up from the obelisk's own panel between runs, and only as a real tier number (stray "T10" and "T327" readings came from other text).

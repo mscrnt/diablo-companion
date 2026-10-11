@@ -431,7 +431,8 @@ interface RunState {
   setActivity: (a: string, tier?: string) => void;
   start: () => void;
   split: (label?: string) => void;
-  stop: (success?: boolean) => void;
+  /** `at`: when the run really ended, if that was before now */
+  stop: (success?: boolean, at?: number) => void;
   toggle: () => void;
   addDeath: () => void;
   update: (id: string, p: Partial<Run>) => void;
@@ -456,8 +457,8 @@ export const useRuns = create<RunState>()(
             ? { active: { ...s.active, splits: [...s.active.splits, { label: label ?? `Split ${s.active.splits.length + 1}`, at: Date.now() }] } }
             : {},
         ),
-      stop: (success = true) =>
-        set((s) => (s.active ? { runs: [{ ...s.active, end: Date.now(), success }, ...s.runs].slice(0, 2000), active: null } : {})),
+      stop: (success = true, at) =>
+        set((s) => (s.active ? { runs: [{ ...s.active, end: Math.max(s.active.start, Math.min(at ?? Date.now(), Date.now())), success }, ...s.runs].slice(0, 2000), active: null } : {})),
       toggle: () => (get().active ? get().stop(true) : get().start()),
       addDeath: () => set((s) => (s.active ? { active: { ...s.active, deaths: (s.active.deaths ?? 0) + 1 } } : {})),
       update: (id, p) => set((s) => ({ runs: s.runs.map((r) => (r.id === id ? { ...r, ...p } : r)) })),

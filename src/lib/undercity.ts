@@ -15,6 +15,8 @@ export interface UndercityHud {
   attunement: string | null;
   /** what adds time ("Slay Afflicted Monsters") */
   timeBonus: string | null;
+  /** the run is over: the game shows "FLOOR 4/3" (past the last floor) and "District Run" */
+  done: boolean;
 }
 
 type Line = Pick<OcrLine, "text"> & Partial<Pick<OcrLine, "x" | "y" | "w" | "h">>;
@@ -30,6 +32,7 @@ export function parseUndercity(lines: Line[]): UndercityHud | null {
   const fi = lines.findIndex((l) => /^\W*fl[o0]{2}r\W*$/i.test(l.text.trim()));
   let floor: number | null = null;
   let floors = 3;
+  let past = false;
   let secondsLeft: number | null = null;
   // the floor and the timer are the next short lines after the FLOOR label
   for (let i = fi + 1; i < Math.min(lines.length, fi + 4); i++) {
@@ -37,7 +40,9 @@ export function parseUndercity(lines: Line[]): UndercityHud | null {
     const f = t.match(/^(\d)\s*[\/B]\s*(\d)?$/i);
     if (f && floor == null) {
       floors = f[2] ? Math.max(1, Number(f[2])) : floors;
-      floor = Math.min(Number(f[1]), floors); // "4/3" is a misread 3/3
+      // "4/3" is not a misread: past the last floor means the run is complete
+      past = Number(f[1]) > floors;
+      floor = Math.min(Number(f[1]), floors);
       continue;
     }
     if (/^\d{1,3}$/.test(t) && secondsLeft == null) {
@@ -57,5 +62,6 @@ export function parseUndercity(lines: Line[]): UndercityHud | null {
     upgradesMax: up ? Number(up[2]) : 4,
     attunement: att ? att.replace(/[•◆]\s*$/, "").trim() : null,
     timeBonus: tb ? tb.replace(/[•◆]\s*$/, "").trim() : null,
+    done: past || /district run/i.test(text),
   };
 }

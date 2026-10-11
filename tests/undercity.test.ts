@@ -13,10 +13,17 @@ describe("Kurast Undercity tracker", () => {
   });
 
   it("copes with the misreads seen in play", () => {
-    expect(parseUndercity(L("FLOOR | 4/3 | 50 | Torment XI | Kurast Undercity | 11 111 IV | Reward Upgrades (4/4 | District Run"))).toMatchObject({ floor: 3, secondsLeft: 50, upgrades: 4 });
+    expect(parseUndercity(L("FLOOR | 2/3 | 66 | Torment X1 | Kurast Undercity | Reward Upgrades (1/4)"))).toMatchObject({ floor: 2, done: false });
     expect(parseUndercity(L("FLOOR | 2/3 | 66 | Torment X1 | Kurast Undercity | 11 111. IV | Reward Upgrades,(2/4) | Attunement: Ignite Beacons, Slay_Monsters"))!.upgrades).toBe(2);
     expect(parseUndercity(L("FLOOR | 70 | 4VAfflicted | Torment X1 | Kurast Undercity | Reward Upgrades (1/4)"))).toMatchObject({ floor: null, secondsLeft: 70, upgrades: 1 });
     expect(parseUndercity(L("FLOOR | 1/3 | Torment X1 | Kürast Undercity | 11 111 IV | Reward Upgrades (0/4)"))).toMatchObject({ floor: 1, upgrades: 0 });
+  });
+
+  it("knows the run is over: \"FLOOR 4/3\" (past the last floor) and \"District Run\"", () => {
+    // seen at the end of two real runs: not a misread of 3/3
+    expect(parseUndercity(L("FLOOR | 4/3 | 50 | Torment XI | Kurast Undercity | 11 111 IV | Reward Upgrades (4/4 | District Run"))).toMatchObject({ floor: 3, upgrades: 4, done: true });
+    expect(parseUndercity(L("FLOOR | 4/3 | Torment XI | Kurast Undercity | District Run"))!.done).toBe(true);
+    expect(parseUndercity(L("FLOOR | 3/3 | Torment XI | Kurast Undercity | Reward Upgrades (2/4)"))!.done).toBe(false);
   });
 
   it("isn't the Undercity outside a run", () => {
