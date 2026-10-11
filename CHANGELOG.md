@@ -30,7 +30,7 @@ The release workflow publishes each version's section as its GitHub release note
 - **Top-tier items are saved for later** instead of scrapped, even when your build has no use for them: anything with 3★ or more greater affixes, uniques with 2★, and legendaries whose two ★ are on stats your class uses.
 - **Occultist steps say exactly what to change:** an imprint names the aspect it replaces, and an enchant names the stat to give up: the one worth least to your build, never a ★ greater affix, the temper or the item's base stat.
 - A copy with a cut-off tooltip isn't called better on stats your piece might also have; scroll down to see the full comparison.
-- The app is now called **Sanctuary Toolkit**, with a new flaming-sword icon for the window, taskbar, tray and installer. Your settings and data carry over.
+- The app is now called **Sanctuary Toolkit**, with a new flaming-sword icon for the window, taskbar, tray and installer. Your settings and data carry over. Installing it over 0.1.x removes the old "D4 Companion" install, so only one app is left in the Start menu and in Installed apps.
 - Two installers per release: a small recommended one (about 6 MB, uses the WebView2 runtime Windows already has) and a large offline one that includes it.
 - Licensed under the PolyForm Noncommercial License 1.0.0: free for personal and other noncommercial use.
 - The loot judge checks what it reads against the game's own text before judging. Misread words are corrected ("Arit10r" becomes "Armor", "Thoms" becomes "Thorns"), while the numbers are kept exactly as read. Anything it isn't sure about is left as it was.
