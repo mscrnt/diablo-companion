@@ -522,6 +522,8 @@ interface Work {
   rank: number;
   tempered: Set<string>;
   crit: Set<string>;
+  /** your piece's one Occultist enchant (a new item can get the same one) */
+  enchanted: Set<string>;
 }
 
 function workOn(slot: GearSlot, w: ParsedItem | null, ctx: Ctx): Work | null {
@@ -530,11 +532,12 @@ function workOn(slot: GearSlot, w: ParsedItem | null, ctx: Ctx): Work | null {
   const key = (a: { text: string; match?: string | null }) => (a.match ? normName(a.match) : statKey(a.text));
   const crit = new Set(src.filter((a) => a.masterwork).map(key));
   const tempered = new Set(src.filter((a) => a.tempered).map(key));
+  const enchanted = new Set(src.filter((a) => a.enchanted).map(key));
   const p = ctx.prog(slot.slot);
   if (p.tempered) for (const t of slot.tempers) tempered.add(normName(t.name.replace(/\s*\(.*\)\s*$/, "")));
   // a crit lands every 4th rank: seeing one means at least rank 4
   const rank = Math.max(p.masterwork ?? 0, 4 * Math.min(3, crit.size));
-  return rank || tempered.size ? { rank, tempered, crit } : null;
+  return rank || tempered.size || enchanted.size ? { rank, tempered, crit, enchanted } : null;
 }
 
 // Masterworking (estimate): each non-crit rank adds ~5% to every affix, each crit (ranks 4/8/12) +25% to one.
@@ -559,19 +562,26 @@ function swapValue(item: ParsedItem, slot: GearSlot, q: Quality, w: ParsedItem |
   // compare like with like: yours without its masterwork, and a temper this one can get too doesn't count against it
   // an item takes one temper per temper slot; one that shows no tempered line yet can still take yours
   const canTemper = !item.affixes.some((a) => a.tempered);
+  // an item takes one enchant: if this one has none yet, it can get your enchanted stat in place of its weakest
+  const canEnchant = !item.affixes.some((a) => a.enchanted);
+  let enchantSwap = false;
   const shown = new WeakMap<CompareRow, number | null>(); // the number the game shows, for the reasons
   const rows = !work
     ? raw
     : raw.flatMap((r) => {
         const key = r.match ? normName(r.match) : statKey(r.label);
         if (canTemper && r.mine == null && work.tempered.has(key)) return [];
+        if (canEnchant && r.mine == null && work.enchanted.has(key)) {
+          enchantSwap = true;
+          return [];
+        }
         if (r.yours == null || !work.rank) return [r];
         const adj = { ...r, yours: Math.round((r.yours / masterworkFactor(work.rank, work.crit.has(key))) * 10) / 10 };
         shown.set(adj, r.yours);
         return [adj];
       });
   const workNote = work
-    ? `Yours is ${[work.rank ? `masterworked +${work.rank}` : "", work.tempered.size ? "tempered" : ""].filter(Boolean).join(" and ")}: compared as if this one gets the same work (masterwork bonus estimated).`
+    ? `Yours is ${[work.rank ? `masterworked +${work.rank}` : "", work.tempered.size ? "tempered" : "", work.enchanted.size ? "enchanted" : ""].filter(Boolean).join(" and ")}: compared as if this one gets the same work${work.rank ? " (masterwork bonus estimated)" : ""}.`
     : undefined;
   // a cut-off tooltip hides "Properties lost when equipped": its "yours has none" stats are only half the story
   const oneSided = !!gameRows?.length && !!item.truncated && !rows.some((r) => r.mine == null);
@@ -579,6 +589,15 @@ function swapValue(item: ParsedItem, slot: GearSlot, q: Quality, w: ParsedItem |
   const { score: stats, deltas } = compareValue(used, slot, prof);
   let score = stats;
   const notes: { v: number; text: string }[] = [];
+  // the enchant replaces this item's weakest stat (never a ★ or the base stat), so that stat's worth is lost
+  if (enchantSwap) {
+    const pool = item.affixes.filter((a) => !a.greater && !a.tempered && !(a === item.affixes[0] && /^\d[\d,.]*\s+(armor|all resist)/i.test(a.text)));
+    const weakest = pool.map((a) => ({ a, w: statWeight(statKey(a.match ?? a.text), slot, prof) })).sort((x, y) => x.w - y.w)[0];
+    if (weakest) {
+      score -= weakest.w;
+      notes.push({ v: -weakest.w, text: `− Enchanting your stat onto it replaces its ${shortStat(cleanAffix(weakest.a.text).replace(/^[+x\-\d.,%\s]+/i, ""))}` });
+    }
+  }
   // the build's unique (its power is the point of the slot)
   if (slot.kind === "unique" || slot.kind === "mythic") {
     if (q.isTarget && !wornQ?.isTarget) (score += 3), notes.push({ v: 3, text: `+ It's ${slot.itemName}, the unique your build wants here` });

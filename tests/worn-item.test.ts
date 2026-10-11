@@ -102,20 +102,23 @@ describe("a worse amulet than yours", () => {
     expect(sameAsWorn(item, wornAmulet())).toBe(false);
   });
 
-  it("with the game's comparison: scrap, and the reasons say what yours has", () => {
+  // your Ocelot's Eye's 44% Crit Damage is its Occultist enchant: Lion's Eye (no enchant yet) can get it too,
+  // giving up its weakest stat, so that 44% isn't counted against it (2026-10-11 test session)
+  it("with the game's comparison: no better, and yours's enchant is credited to it", () => {
     const item = lions();
-    const r = decide(item, ctx.variant, { prog: ctx.prog }, wornAmulet());
+    const r = decide(item, ctx.variant, { prog: ctx.prog, worn: (s) => (s === "amulet" ? wornAmulet() : undefined) }, wornAmulet());
     expect(r.verdict).toBe("SCRAP");
-    expect(r.reasons.join(" ")).toMatch(/yours has 44%/);
+    expect(r.reasons.join(" ")).not.toMatch(/Crit Damage: yours has 44%/);
+    expect(r.reasons.join(" ")).toMatch(/enchanted: compared as if this one gets the same work/);
+    expect(r.reasons.join(" ")).toMatch(/replaces its/);
     expect(r.reasons.join(" ")).toMatch(/imprinted/);
   });
 
-  it("from memory alone: scrap, naming your amulet and what it has that this lacks", () => {
+  it("from memory alone: names your amulet, and the comparison is close", () => {
     const item: ParsedItem = { ...lions(), compare: null, compareRows: undefined };
     const r = decide(item, ctx.variant, { prog: ctx.prog, worn: (s) => (s === "amulet" ? wornAmulet() : undefined) }, null);
     expect(r.verdict).toBe("SCRAP");
-    expect(r.reasons[0]).toMatch(/worse than yours \(Ocelot's Eye of Reanimation\)/);
-    expect(r.reasons.join(" | ")).toMatch(/− Crit Damage: yours has/);
+    expect(r.reasons[0]).toMatch(/(than|as) yours \(Ocelot's Eye of Reanimation\)/);
   });
 
   it("not imprinted: salvage it for the aspect, unless the Codex already has it", () => {
