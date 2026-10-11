@@ -28,6 +28,18 @@ describe("rings: both of your rings are considered", () => {
   });
 });
 
+describe("rings: a named comparison stays with its slot", () => {
+  it("the EQUIPPED column showing Pact of Bone is only compared with Ring 2", () => {
+    const pact = item("Pact of Bone", "ring", "unique", [A("+144 Intelligence", "Intelligence"), A("+26% Critical Strike Damage Multiplier", "Critical Strike Damage Multiplier")]);
+    const ring1 = item("Hellbent Band", "ring", "legendary", [A("+136 Intelligence", "Intelligence"), A("+2,900 Maximum Life", "Maximum Life"), A("+28% Critical Strike Damage Multiplier", "Critical Strike Damage Multiplier")]);
+    const loot = item("Ring of the Sacrilegious Soul", "ring", "unique", [A("+105 Intelligence", "Intelligence"), A("+12.6% Resource Generation")]);
+    const worn = (s: string) => (s === "ring-2" ? pact : s === "ring-1" ? ring1 : undefined);
+    const r = decide(loot, ctx.variant, { prog: ctx.prog, worn }, pact);
+    expect(r.verdict).toBe("SCRAP");
+    expect(r.reasons.join(" | ")).not.toMatch(/better than yours/);
+  });
+});
+
 describe("keeping rare items for other builds", () => {
   const junk = (ga: number, rarity = "legendary") =>
     item("Odd Gloves", "gloves", rarity, [A("+5% Fire Damage", null, { greater: ga > 0 }), A("+4% Attack Speed", null, { greater: ga > 1 }), A("+200 Dexterity", null, { greater: ga > 2 }), A("+3 to Curse Skills", null, { greater: ga > 3 })]);

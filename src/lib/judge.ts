@@ -359,8 +359,19 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   // rings/weapons: the game compares with ONE of your two (Alt switches) and says which kind it is;
   // the other one is still judged, against what you were last seen wearing there
   const isUniq = (g: GearSlot) => g.kind === "unique" || g.kind === "mythic";
-  const compared =
-    !named && item.compareKind && candidates.length > 1 ? candidates.filter((g) => (item.compareKind === "unique") === isUniq(g)) : candidates;
+  // a named comparison (the EQUIPPED column) belongs to the slot you wear that piece in
+  const byName =
+    compareTo && compareTo.rarity !== "unknown" && candidates.length > 1
+      ? candidates.filter((c) => {
+          const r = ctx.worn?.(c.slot);
+          return (!!r && sameItem(r.name, compareTo.name)) || (isUniq(c) && sameItem(compareTo.name, c.itemName));
+        })
+      : [];
+  const compared = byName.length
+    ? byName
+    : !named && item.compareKind && candidates.length > 1
+      ? candidates.filter((g) => (item.compareKind === "unique") === isUniq(g))
+      : candidates;
   const gameCompares = (c: GearSlot) => !compared.length || compared.includes(c);
   if (!candidates.length) return dispose(item, gear, ["Your build doesn't use this kind of item."], null, undefined, ctx);
 
