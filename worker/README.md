@@ -1,4 +1,8 @@
-# Debug-report upload Worker
+# Sanctuary Toolkit Workers
+
+Two small Cloudflare Workers live here, sharing one package. Debug-report upload (`wrangler.toml`) is below; the DiabloFilter search proxy (`wrangler.filters.toml`) has its own section at the end.
+
+## Debug-report upload
 
 When a player clicks **Send report**, the app POSTs the debug zip here. The Worker validates it and stores it in MinIO with an upload-only key from the Cloudflare Secrets Store. The app never holds storage credentials.
 
@@ -84,3 +88,24 @@ Afterwards, delete the test keys from `COUNTERS` (`npx wrangler kv key list --na
 
 - Never commit credentials. The MinIO and GitHub keys live only in the Secrets Store, and `IP_SALT` is a Worker secret.
 - The MinIO user can only `PutObject` under `d4-companion/debug/*`. If the Worker ever needs to read, use a separate key; don't widen this one.
+
+## DiabloFilter search proxy (`wrangler.filters.toml`)
+
+The app searches public DiabloFilter.com loot filters through this Worker. DiabloFilter agreed to it on 2026-10-11, and the API key lives only in the Secrets Store as `D4_COMPANION_DIABLOFILTER_KEY`.
+
+`GET https://filters.mscrnt.com/filters?q=&class=&season=&sort=&page=&per_page=`
+
+- **Parameters:** `class` is one of `barbarian`, `druid`, `necromancer`, `paladin`, `rogue`, `sorcerer`, `spiritborn`, `warlock` or `all`. `sort` is `newest`, `updated` or `popular`. `season` is 1 to 99, `page` 1 to 50 and `per_page` 1 to 50. `q` is up to 80 characters of letters, digits and simple punctuation. The game is always `d4`.
+- **Response:** `{ filters: [{ id, title, class, season, author: { name, url }, url, updatedAt }], page, totalPages, hasMore, source }`. Only these fields are passed on. **Filter codes never are**: players copy them from the filter page at `url`.
+- **Showing results (agreed):** credit "by [author name]" on every filter, link each to its `url`, and show "via DiabloFilter.com" linking to the site.
+- **Cache:** each result page is cached for 1 hour, the maximum DiabloFilter allows. Filters deleted or made private upstream drop out when the cache expires.
+- **Limits:** DiabloFilter allows 120 requests a minute and 15,000 a day. This Worker stays under them with:
+  - the cache
+  - an `UPSTREAM` binding of 100 uncached searches a minute overall
+  - a loose per-IP binding
+  - backing off: when DiabloFilter answers 429, it doesn't call them again until their `Retry-After` has passed
+
+  It deliberately uses no KV, because the free plan allows 1,000 KV writes a day.
+- **Never** scrape DiabloFilter pages; this API is the only automated access agreed.
+
+Setup: add the key to the Secrets Store, then `npm run deploy:filters`. That creates `filters.mscrnt.com` as the Worker's custom domain. Add a WAF rate-limit rule on that host, like the one on `reports.mscrnt.com`.

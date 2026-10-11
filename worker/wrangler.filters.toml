@@ -1,0 +1,34 @@
+# DiabloFilter search proxy for Sanctuary Toolkit. Deploy: npm run deploy:filters (see README.md).
+# Agreement with DiabloFilter (2026-10-11): no filter codes, cache up to an hour, credit the author.
+name = "sanctuary-filters"
+main = "src/filters.ts"
+compatibility_date = "2026-10-01"
+account_id = "a8997be9f2c11feee8d473739c61b887"
+
+# the only way in (workers.dev and preview URLs would bypass the zone's WAF rate-limit rule)
+routes = [{ pattern = "filters.mscrnt.com", custom_domain = true }]
+workers_dev = false
+preview_urls = false
+
+[vars]
+DF_API_URL = "https://diablofilter.com/api/v1/filters.php"
+CACHE_SECONDS = "3600"   # DiabloFilter allows caching on our server for up to an hour
+
+# the DiabloFilter API key, only in the Cloudflare Secrets Store (never in this repo or the app)
+[[secrets_store_secrets]]
+binding = "DF_API_KEY"
+store_id = "bcb7b4f126c34f73bf937626027200fa"
+secret_name = "D4_COMPANION_DIABLOFILTER_KEY"
+
+# uncached searches per IP (loose; add a WAF rule on filters.mscrnt.com for a strict per-IP limit)
+[[ratelimits]]
+name = "PER_IP"
+namespace_id = "1002"
+simple = { limit = 20, period = 60 }
+
+# all uncached searches together, under DiabloFilter's 120/minute (their daily limit is protected by
+# backing off on their 429 and by the cache)
+[[ratelimits]]
+name = "UPSTREAM"
+namespace_id = "1003"
+simple = { limit = 100, period = 60 }

@@ -2,12 +2,13 @@
   "name": "sanctuary-reports-worker",
   "private": true,
   "type": "module",
-  "description": "Debug-report upload endpoint for Sanctuary Toolkit (Cloudflare Worker → MinIO)",
+  "description": "Sanctuary Toolkit Cloudflare Workers: debug-report upload (→ MinIO) and DiabloFilter search proxy",
   "scripts": {
     "dev": "wrangler dev --remote",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy:filters": "wrangler deploy -c wrangler.filters.toml"
   },
   "dependencies": {
     "aws4fetch": "1.0.20"
