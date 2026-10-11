@@ -13,6 +13,7 @@ import { captureAtCursor, captureRegion, cursorPosition, type CaptureResult, typ
 import { getActiveVariant, useSettings } from "./store";
 import { useGuide } from "./guide";
 import type { TooltipText } from "./parse";
+import type { JudgeResult } from "./types";
 import { onFrame } from "./activity";
 import { debugEvent, debugEventEvery } from "./debug";
 
@@ -410,7 +411,26 @@ async function tick(isFocused: () => boolean) {
       emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: result, sig, quiet });
     } else {
       dbg.reason = "the parser found no item in the tooltip";
-      emitOverlay("tooltip", null);
+      // say so instead of the card just vanishing (a failed AI read, or a tooltip that isn't an item)
+      if (quiet) emitOverlay("tooltip", null);
+      else {
+        const key = useSettings.getState().settings.hotkeys.markMoment?.replace(/CommandOrControl|CmdOrCtrl/g, "Ctrl");
+        const unread: JudgeResult = {
+          id: `unread-${sig.slice(0, 12)}`,
+          at: Date.now(),
+          ms: 0,
+          verdict: "UNKNOWN",
+          action: `Couldn't read this item. Hover it again${key ? `, or press ${key} to save it for a report` : ""}.`,
+          reasons: [],
+          item: { name: "Unreadable item", rarity: "unknown", itemType: "", slot: "other", itemPower: null, affixes: [], aspect: null } as JudgeResult["item"],
+          slot: null,
+          matched: [],
+          missing: [],
+          greaterOnTargets: 0,
+          score: 0,
+        };
+        emitOverlay("tooltip", { box: det.hovered.box, state: "done", verdict: unread, sig, quiet });
+      }
     }
   } catch (e) {
     dbg.reason = `error: ${String(e).slice(0, 120)}`;

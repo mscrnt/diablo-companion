@@ -37,6 +37,7 @@ The release workflow publishes each version's section as its GitHub release note
 - Icons throughout the app and overlay are now consistent line icons instead of emoji.
 
 ### Fixed
+- When an item can't be read (a failed AI read, or a tooltip that isn't an item), the card says "Couldn't read this item" with what to do, instead of disappearing.
 - Helltide: the cinder count no longer jumps to the HUD's other counter when the cinders aren't read, and opening the bag or the map no longer ends the Helltide (it ends after 90 s without the HUD).
 - An Undercity run left open by an app restart is picked up again when its tracker shows, or closed after 90 s, instead of its timer running forever.
 - Keys are never told to scrap: an Infernal Hordes compass ("it opens the Infernal Hordes"), Escalation sigils (an Escalating Nightmare) and Nightmare sigils (a Nightmare Dungeon) each say what they open, and the bottom half of a Chronicle tooltip is no longer taken for a ring. Hovering a compass in the bag no longer starts a Hordes run.
