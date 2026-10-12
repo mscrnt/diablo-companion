@@ -248,17 +248,27 @@ export async function mapSkills(my?: number, embedded = false) {
 }
 
 /**
- * Is the glyph under the cursor active? In the glyph list (the left fifth of the screen) the game rings
- * active glyphs in red; a glyph hovered on a board is socketed by definition. null when it can't tell.
+ * Is the hovered glyph active? The tooltip says so: an active glyph offers "Unequip" (and "Locate"), an
+ * inactive one "Drag to Equip" (seen in the side-panel Paragon view, 2026-10-12). That holds in every
+ * layout; the red ring in the full-screen glyph list is the fallback. null when neither shows.
  */
-async function glyphUnderCursorActive(): Promise<boolean | null> {
+async function glyphActive(lines: string[]): Promise<boolean | null> {
+  if (lines.some((l) => /drag\s*to\s*equip/i.test(l))) return false;
+  // the OCR rows span the whole screen, so the hint can share a row with other text: match the word
+  if (lines.some((l) => /(^|[^a-z])un\s*equ[il1]p([^a-z]|$)/i.test(l) || /(^|[^a-z])locate([^a-z]|$)/i.test(l))) return true;
+  return glyphRingUnderCursor().catch(() => null);
+}
+
+/** The red ring around an active glyph in the full-screen Paragon view's glyph list (left side). */
+async function glyphRingUnderCursor(): Promise<boolean | null> {
   const rect = await guideGameRect();
   if (!rect) return null;
   const [mx, my] = await cursorPosition();
   const b = useSettings.getState().settings.overlay.gameBounds;
   const left = b ? rect.x + Math.round(rect.w * b.left) : rect.x;
   const width = b ? Math.round(rect.w * (b.right - b.left)) : rect.w;
-  if (mx > left + width * 0.2) return true; // on a board
+  // the side-panel view's list is on the right and has no ring to read: the tooltip text decides there
+  if (mx > left + width * 0.2) return null;
   const side = Math.round(rect.h * 0.1);
   const box = { x: mx - side / 2, y: my - side / 2, w: side, h: side };
   const cap = await captureRegion({ x: Math.round(box.x), y: Math.round(box.y), w: side, h: side }, { maxEdge: side, quality: 92 });
@@ -303,7 +313,7 @@ export async function mapGlyphs(my?: number, embedded = false) {
       if (!read) return false;
       const { hit, level } = read;
       // which glyphs you actually use: the build's list can name one you dropped long ago (player report, 2026-10-12)
-      const active = await glyphUnderCursorActive().catch(() => null);
+      const active = await glyphActive(lines);
       useCharacter.getState().setGlyph(hit.slug, { name: hit.name, level, active: active ?? undefined });
       const use = active === false ? ", not active" : "";
       let it = items.find((i) => i.key === hit.slug);
