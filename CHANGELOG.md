@@ -5,6 +5,8 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-12
+
 ### Fixed
 - **Item reading without an AI model**, at 1920x1080: white and blue items read (they have no rarity word, or it wraps onto a second line: "Ancestral Magic Two-" / "Handed Mace"), and get a sell or scrap verdict instead of "couldn't read this item". A speck of OCR junk under the title no longer loses the name, and a yellow item with one readable stat still gets judged. In one player's session 41 of the 45 unreadable items now read.
 - A garbled "Mythic Unique" ("Ancestrah1ya1ic Nique") is still read as mythic, so a mythic is never told to take an imprint at the Occultist.
@@ -134,7 +136,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mscrnt/diablo-companion/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mscrnt/diablo-companion/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/mscrnt/diablo-companion/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/mscrnt/diablo-companion/releases/tag/v0.1.0
