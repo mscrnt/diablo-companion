@@ -411,6 +411,17 @@ async function tick(isFocused: () => boolean) {
         },
         cap.image,
       );
+      // the item's art in the tooltip's top-right corner, labelled with what it was judged as: a clean test
+      // set for recognising items by their icon (roadmap). A generous square in screen px, right after the
+      // judgement while the tooltip is still up; legendaries too (their art names the base type).
+      const it = result?.item;
+      if (it && /unique|mythic|legendary/i.test(it.rarity ?? "")) {
+        const b = det.hovered.box;
+        const side = Math.round(b.w * 0.55);
+        captureRegion({ x: Math.round(b.x + b.w - side * 0.7), y: Math.round(b.y - side * 0.25), w: side, h: side }, { maxEdge: 512, quality: 92 })
+          .then((icon) => testLog("icon", { name: it.name, rarity: it.rarity, itemType: it.itemType, untitled: it.untitled ?? false, box: b, region: icon.region }, icon.image))
+          .catch(() => {});
+      }
     }
     if (result) {
       dbg.reason = "judged";
