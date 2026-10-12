@@ -36,7 +36,8 @@ export function isUnequipLine(text: string): boolean {
   if (!/^u/i.test(t) || /\s\S*\s/.test(t)) return false;
   return editDistance(confusionKey(t.replace(/\s+/g, "")), UNEQUIP_KEY, 1) <= 1;
 }
-const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b/i;
+// the rarity word, OCR slips included ("Ancestrah1ya1ic Nique" = Ancestral Mythic Unique at 1080p)
+const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b|myth|[1il]?ya[1il]ic\b|uniq|\bn[il1]que\b/i;
 const SLOT_NOUN =
   /\b(helm|headgear|head|chest armor|chest|gloves|pants|boots|amulet|ring|scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|charm|seal|two-handed|one-handed)\b/i;
 export const STAT_START = /^[+x\-]?\s*[\d][\d.,\s]*%?\s+\S/i;
@@ -152,11 +153,14 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
         /[a-z]/.test(l.text) && L[i - 1].text === L[i - 1].text.toUpperCase() && /[A-Z]{3}/.test(L[i - 1].text),
     );
   // a bare item kind ("Boots") — last, since the Character panel's slot labels look the same
-  if (ti < 0) ti = L.findIndex((l, i) => i < 8 && /^(ancestral |sacred )?(two-handed |one-handed )?(scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|helm|gloves|pants|boots|amulet|ring)$/i.test(l.text));
+  // (a white item has no rarity word at all: "Ancestral Axe (Slashing)", "Ancestral Two-Handed Mace")
+  if (ti < 0) ti = L.findIndex((l, i) => i < 8 && /^(ancestral |sacred )?(two-handed |one-handed )?(scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|helm|gloves|pants|boots|amulet|ring)(\s*\([a-z]+\))?$/i.test(l.text.trim()));
   if (ti < 0) return null; // top of tooltip not visible → let the LLM try
   let typeLine = L[ti].text;
   let after = ti + 1;
-  if (!SLOT_NOUN.test(typeLine) && L[ti + 1] && SLOT_NOUN.test(L[ti + 1].text) && L[ti + 1].text.length < 24) {
+  // the type wraps: "Ancestral Magic Two-" / "Handed Mace (Bludgeoning)"
+  const wrapped = /\b(two|one)\s*-\s*$/i.test(typeLine);
+  if (!SLOT_NOUN.test(typeLine) && L[ti + 1] && SLOT_NOUN.test(L[ti + 1].text) && (L[ti + 1].text.length < 24 || (wrapped && L[ti + 1].text.length < 40))) {
     typeLine += " " + L[ti + 1].text;
     after = ti + 2;
   }
@@ -182,6 +186,8 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   const nameParts: string[] = [];
   const nameLines: FastLine[] = [];
   for (let i = ti - 1; i >= 0 && nameParts.length < 3; i--) {
+    // a speck of OCR junk between the title and the type line ("CRUDE HAmmER" / "s" / "Ancestral …")
+    if (L[i].text.trim().length <= 2) continue;
     if (JUNK.test(L[i].text) || /slot|transmog|equipped|character/i.test(L[i].text)) break;
     // a panel label between the two lines of a long title ("OCELOT'S EYE OF" / "Stats & Material" / "REANIMATION")
     if (panel.has(i)) continue;
@@ -299,7 +305,10 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     stats.push({ text: cleanStat(t), bullet: e.bullet, delta: deltaOf(t) });
   }
   const category = categoryOf(typeLine, L.map((l) => l.text).join("\n"));
-  if (stats.length < 2 && category === "gear") return null;
+  // white, blue and yellow items carry few stats, often none we can read: still worth a "sell it" verdict
+  // (without an AI model they used to be unreadable, 2026-10-12 player report)
+  const plain = !/mythic|unique|legendary/i.test(typeLine);
+  if (stats.length < 2 && category === "gear" && !plain) return null;
 
   // 4) assemble
   const targets = buildTargetNames(variant);
@@ -320,8 +329,12 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     // couldn't see icons (low res) — no guess about which; leave as is
   }
   const tl = typeLine.toLowerCase();
-  const rarity0 = /mythic/.test(tl) ? "mythic" : /unique/.test(tl) ? "unique" : /legendary/.test(tl) ? "legendary" : /\brare\b/.test(tl) ? "rare" : /magic|[a-z]?[aä]k[il1]c\b|m[a-z]g[il1]c/.test(tl) ? "magic" : "common"; // "ii/ölakic" = Magic
+  // OCR slips at 1080p: "Ancestrah1ya1ic Nique" / "Mythieunique" / "Uniqye" (a mythic read as common
+  // got Occultist imprint advice, 2026-10-12 player report)
+  const rarity0 = /myth|[1il]?ya[1il]ic\b/.test(tl) ? "mythic" : /uniq|un[il1]que|\bn[il1]que\b/.test(tl) ? "unique" : /legendary/.test(tl) ? "legendary" : /\brare\b/.test(tl) ? "rare" : /magic|[a-z]?[aä]k[il1]c\b|m[a-z]g[il1]c/.test(tl) ? "magic" : "common"; // "ii/ölakic" = Magic
   const rarity = rarity0;
+  // blue and white items never roll ★ greater affixes: an icon check that saw one was wrong
+  if (rarity === "magic" || rarity === "common") for (const a of affixes) a.greater = false;
   const powerText = power.join(" ").replace(/\s+/g, " ").trim();
   // the power text names the aspect; when it's garbled or cut short, the item's name does
   // ("Ocelot's Eye of Reanimation" → Aspect of Reanimation)
@@ -371,7 +384,8 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   let finalName = name;
   // a capture that missed the title ("Unique Gloves" from the type line): the unique power says which one
   if ((rarity === "unique" || rarity === "mythic") && !rawName.trim()) finalName = identifyUnique(powerText, typeLine) ?? name;
-  else if (rarity === "unique" || rarity === "mythic") finalName = canonicalUnique(name) ?? name;
+  // a title too garbled to match ("IN.?INIT.Y" at 1080p): the unique power says which one too
+  else if (rarity === "unique" || rarity === "mythic") finalName = canonicalUnique(name, typeLine) ?? identifyUnique(powerText, typeLine) ?? name;
   else if (legendaryName && / of /i.test(name)) {
     const suffix = legendaryName.replace(/^aspect\s+of\s+/i, "").replace(/\s+aspect$/i, "");
     const cut = name.toLowerCase().lastIndexOf(" of ");

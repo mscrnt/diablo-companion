@@ -5,6 +5,11 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+### Fixed
+- **Item reading without an AI model**, at 1920x1080: white and blue items read (they have no rarity word, or it wraps onto a second line: "Ancestral Magic Two-" / "Handed Mace"), and get a sell or scrap verdict instead of "couldn't read this item". A speck of OCR junk under the title no longer loses the name, and a yellow item with one readable stat still gets judged. In one player's session 41 of the 45 unreadable items now read.
+- A garbled "Mythic Unique" ("Ancestrah1ya1ic Nique") is still read as mythic, so a mythic is never told to take an imprint at the Occultist.
+- Uniques that exist once per weapon type are named for this one: "Infinity (2h Mace)", not "Infinity (Bow)". A title too garbled to match is named from its unique power.
+
 ## [0.2.0] - 2026-10-11
 
 ### Added

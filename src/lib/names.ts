@@ -238,19 +238,33 @@ export function trigramSim(a: string, b: string): number {
   return na + nb ? (2 * inter) / (na + nb) : 0;
 }
 
-/** Snap an OCR'd unique/mythic name to the official spelling. */
-export function canonicalUnique(name: string): string | null {
+/** "2h Mace" against "Ancestral Mythic Unique Two-Handed Mace (Bludgeoning)". */
+function typeMatches(uniqueType: string, itemType: string): boolean {
+  const t = normName(uniqueType).replace(/\b2h\b/, "two handed").replace(/\b1h\b/, "one handed");
+  return !!t && normName(itemType).includes(t);
+}
+
+/**
+ * Snap an OCR'd unique/mythic name to the official spelling. Some uniques exist once per weapon type
+ * ("Infinity (2h Mace)", "Infinity (Bow)"…): `itemType` picks the one this item is.
+ */
+export function canonicalUnique(name: string, itemType = ""): string | null {
   let best: string | null = null;
   let bestS = 0;
+  let bestType = -1;
   // OCR slips in the stylised title font ("TYRÄEL'S rn1Gi4T" = Tyrael's Might): compare glyph-confusion keys too
   const key = (t: string) => confusionKey(t).replace(/4/g, "h");
   const k = key(name);
   for (const u of Object.values(table("uniques"))) {
     if (u.x) continue;
-    const s = Math.max(trigramSim(name, u.n), trigramSim(k, key(u.n)));
-    if (s > bestS) {
+    // the title shows the name without the "(2h Mace)" the data adds to tell the copies apart
+    const base = u.n.replace(/\s*\([^)]*\)\s*$/, "");
+    const s = Math.max(trigramSim(name, base), trigramSim(k, key(base)));
+    const type = !u.t || !itemType ? 0 : typeMatches(u.t, itemType) ? 1 : -1;
+    if (s > bestS + 1e-9 || (Math.abs(s - bestS) < 1e-9 && type > bestType)) {
       bestS = s;
       best = u.n;
+      bestType = type;
     }
   }
   return bestS >= 0.6 ? best : null;

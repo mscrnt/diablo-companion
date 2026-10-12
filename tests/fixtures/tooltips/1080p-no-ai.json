@@ -1,0 +1,820 @@
+{
+ "_note": "Tooltip lines OCR read at 1920x1080 with no AI model set up (a player report, 2026-10-12). Item text only.",
+ "vigorousMaul": [
+  {
+   "text": "VIGOROUS",
+   "bullet": "none",
+   "h": 17
+  },
+  {
+   "text": "mAUL *",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Ancestral Magic Two-",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Handed Mace (Bludgeoning)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "900 Item Power",
+   "bullet": "none",
+   "h": 15
+  },
+  {
+   "text": "3,454 Damage Per Second (-1122)",
+   "bullet": "greater",
+   "h": 22
+  },
+  {
+   "text": "1-• [3,070 - 4,606] Damage per Hit",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "0.90 Attacks per Second (Slow)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "* +5,5()()MaximumLife",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Properties lost when equipped :",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Lucky Hit: Up to a 50.0% Chance to",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "deliver a Crushing Blow",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "x96% Physical Damage Multiplier",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+125% Critical Strike Damage",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+479 Weapon Damage",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "+12.5% Critical Strike Chance",
+   "bullet": "none",
+   "h": 16
+  },
+  {
+   "text": "+44% Movement Speed",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+450 Strength",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 18
+  },
+  {
+   "text": "Socket (2)",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 17
+  },
+  {
+   "text": "Sell Value: 14,789",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Durability:",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "sell",
+   "bullet": "normal",
+   "h": 16
+  }
+ ],
+ "handAxe": [
+  {
+   "text": "HAND AXE",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Ancestral Axe (Slashing)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "900 Item Power",
+   "bullet": "none",
+   "h": 15
+  },
+  {
+   "text": "1,727 Damage Per Second (-643)",
+   "bullet": "none",
+   "h": 22
+  },
+  {
+   "text": "1-• [1,256-1,884] DamageperHit",
+   "bullet": "none",
+   "h": 25
+  },
+  {
+   "text": "1.10 Attacks per Second (Fast)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Properties lost when equipped :",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+45% Damage",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "+8 to Shout Skills",
+   "bullet": "normal",
+   "h": 16
+  },
+  {
+   "text": "+60.0% Attack Speed",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "x50% All Damage Multiplier",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "+271 Weapon Damage",
+   "bullet": "normal",
+   "h": 18
+  },
+  {
+   "text": "+1 toA11Ski11s",
+   "bullet": "normal",
+   "h": 16
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 18
+  },
+  {
+   "text": "Socket (1)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 17
+  },
+  {
+   "text": "cost : 29,577",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Durability: 1",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Buy",
+   "bullet": "greater",
+   "h": 18
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 19
+  }
+ ],
+ "crudeHammerJunkLine": [
+  {
+   "text": "CRUDE HAmmER",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "s",
+   "bullet": "normal",
+   "h": 14
+  },
+  {
+   "text": "Ancestral Two-Handed Mace",
+   "bullet": "none",
+   "h": 16
+  },
+  {
+   "text": "(Bludgeoning)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "(0)",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "900 Item , wer",
+   "bullet": "none",
+   "h": 15
+  },
+  {
+   "text": "3,454 Damaie Per See 'nd (-1122)—",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "• [3,076 4,606] Damage per Hit",
+   "bullet": "none",
+   "h": 33
+  },
+  {
+   "text": "• 0.90 ttacks per Second (Slow)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Empty ovi. ' •",
+   "bullet": "none",
+   "h": 27
+  },
+  {
+   "text": "4,612",
+   "bullet": "none",
+   "h": 15
+  },
+  {
+   "text": "Properties iost when equipped:",
+   "bullet": "none",
+   "h": 24
+  },
+  {
+   "text": "Lucky Hit: Up to a 50.0% Chance to",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "deliver'å C?ushing Blow",
+   "bullet": "none",
+   "h": 44
+  },
+  {
+   "text": "x96% Physical Damage Multiplier",
+   "bullet": "none",
+   "h": 22
+  },
+  {
+   "text": "+125%'éritical Strike Damage",
+   "bullet": "none",
+   "h": 27
+  },
+  {
+   "text": "Strength",
+   "bullet": "none",
+   "h": 17
+  },
+  {
+   "text": "+479 Weapon Parnage",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "Intel",
+   "bullet": "none",
+   "h": 13
+  },
+  {
+   "text": "ligence",
+   "bullet": "normal",
+   "h": 17
+  },
+  {
+   "text": "+12.5% Critical'Strike Chance",
+   "bullet": "none",
+   "h": 16
+  },
+  {
+   "text": "+44% Movemént Speed",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "011",
+   "bullet": "none",
+   "h": 13
+  },
+  {
+   "text": "+5,5()() Maximinn Life",
+   "bullet": "none",
+   "h": 22
+  },
+  {
+   "text": "+450 Strength",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Dexterity",
+   "bullet": "none",
+   "h": 17
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "LeGh&qu",
+   "bullet": "normal",
+   "h": 30
+  },
+  {
+   "text": "ipment",
+   "bullet": "normal",
+   "h": 18
+  },
+  {
+   "text": "Requires",
+   "bullet": "none",
+   "h": 17
+  },
+  {
+   "text": "Account Bound",
+   "bullet": "none",
+   "h": 13
+  },
+  {
+   "text": "Sell Value: 14,789",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Durability:",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "ion Select",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "' Hide Comparison",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Mark as Juilku",
+   "bullet": "none",
+   "h": 18
+  }
+ ],
+ "infinityMace": [
+  {
+   "text": "INFINITY",
+   "bullet": "greater",
+   "h": 19
+  },
+  {
+   "text": "Ancestral Unique Two-",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Handed Mace (Bludgeoning)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "9(H) Item Power",
+   "bullet": "normal",
+   "h": 15
+  },
+  {
+   "text": "3,772 Damage Per Second (-804)",
+   "bullet": "normal",
+   "h": 22
+  },
+  {
+   "text": "1-• [3,424 - 4,960] Damage per Hit",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "O. 90 Attacks per Second (Slow)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Lucky Hit: Up to a 40.0% Chance to",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "deliver a Crushing Blow [40.01% (",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "-10.0%)",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "+354 Weapon Damage [230 - 383] (",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "-125)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+3,848 Maximum Life [3,662 - 4,400] (",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "-1,652)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+35% Movement speed [351% (-9%)",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "x53% Fire Damage Multiplier [45 -",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "551% (+53%)",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "+183% Gold Drop Rate +1100 - 2001% (",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "+183%)",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "50% Chance to unleash a Rank 20",
+   "bullet": "normal",
+   "h": 16
+  },
+  {
+   "text": "Sorcerer Chain Lightning when you",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "kill an enemy.",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "You gain the Rank 22 passive of",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Druid's Cyclone Armor.",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Close enemies are Vulnerable and",
+   "bullet": "none",
+   "h": 16
+  },
+  {
+   "text": "take 125Wv' from you.",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Scroll Down",
+   "bullet": "normal",
+   "h": 18
+  },
+  {
+   "text": "Select",
+   "bullet": "greater",
+   "h": 16
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Mark as Junk",
+   "bullet": "normal",
+   "h": 18
+  }
+ ],
+ "garbledMythicRarity": [
+  {
+   "text": "Slot Transmog: ON",
+   "bullet": "greater",
+   "h": 18
+  },
+  {
+   "text": "EQUIPPED",
+   "bullet": "normal",
+   "h": 17
+  },
+  {
+   "text": "IN.?INIT.Y",
+   "bullet": "masterwork",
+   "h": 23
+  },
+  {
+   "text": "Ancestrah1yA1ic Ünique",
+   "bullet": "normal",
+   "h": 24
+  },
+  {
+   "text": "Two-Handed Mace",
+   "bullet": "normal",
+   "h": 15
+  },
+  {
+   "text": "(Bludgeoning)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "900 Item Power",
+   "bullet": "normal",
+   "h": 15
+  },
+  {
+   "text": "25 •+25 Quality",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Transfigured",
+   "bullet": "tempered",
+   "h": 19
+  },
+  {
+   "text": "4,576 Damage Per Second",
+   "bullet": "normal",
+   "h": 22
+  },
+  {
+   "text": "1-• [4,317 - 5,853] DamageperHit",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "O. 90 Attacks per Second (Slow)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Lucky Hit: Up toa 50.0% Chance to",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "deliver a Crushing Blow [40.01%",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "+479WeaponDamage[230-383]",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "0 +450 Strength +1300-360]",
+   "bullet": "none",
+   "h": 20
+  },
+  {
+   "text": "+44% Movement Speed [351%",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "x96% Physical Damage Multiplier [45",
+   "bullet": "enchanted",
+   "h": 20
+  },
+  {
+   "text": "- 551%",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+12.5% Critical Strike Chance [8.0 -",
+   "bullet": "tempered",
+   "h": 20
+  },
+  {
+   "text": "10.01%",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+125% Critical Strike Damage [60 -",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "1001%",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "50% Chance to unleash a Rank 26",
+   "bullet": "normal",
+   "h": 16
+  },
+  {
+   "text": "Sorcerer Chain Lightning when you",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "kill an enemy.",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "You gain Scroll Down",
+   "bullet": "none",
+   "h": 22
+  }
+ ],
+ "rareOneStat": [
+  {
+   "text": "STRIFE REAPER",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "Rare Sword (Slashing)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "850 Item Power",
+   "bullet": "normal",
+   "h": 16
+  },
+  {
+   "text": "1,538 Damage Per Second (-832)",
+   "bullet": "normal",
+   "h": 22
+  },
+  {
+   "text": "1-• [1,143 - 1,655] Damage per Hit",
+   "bullet": "normal",
+   "h": 25
+  },
+  {
+   "text": "1.10 Attacks per Second (Fast)",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "+120 Weapon Damage [76-127] (",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "-151)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+1,588)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "xlO%AllDamageMultiplier [6-101%",
+   "bullet": "normal",
+   "h": 20
+  },
+  {
+   "text": "(-40%)",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Properties lost when equipped :",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "+45% Damage",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "+8 to Shout Skills",
+   "bullet": "normal",
+   "h": 16
+  },
+  {
+   "text": "+60.0% Attack Speed",
+   "bullet": "normal",
+   "h": 19
+  },
+  {
+   "text": "+1 toA11Ski11s",
+   "bullet": "normal",
+   "h": 16
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 18
+  },
+  {
+   "text": "Socket (1)",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 17
+  },
+  {
+   "text": "Cost : 66,904 •",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Durability: 1 (N)/m",
+   "bullet": "none",
+   "h": 19
+  },
+  {
+   "text": "Tempers: 1/1",
+   "bullet": "none",
+   "h": 18
+  },
+  {
+   "text": "Buy",
+   "bullet": "greater",
+   "h": 18
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 19
+  }
+ ]
+}
