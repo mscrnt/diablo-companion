@@ -334,8 +334,11 @@ export async function mapGlyphs(my?: number, embedded = false) {
         }
       }
       guideSet({ items: [...items] });
+      // done by itself once the build's glyphs are read and all active: then they're the ones you use. If one
+      // isn't active, you use another glyph instead: keep going until the done key so it can be hovered too
       const build = items.filter((i) => variant?.paragon.some((p) => p.glyphSlug === i.key));
-      return build.length > 0 && build.every((i) => i.done);
+      const glyphs = useCharacter.getState().glyphs;
+      return build.length > 0 && build.every((i) => i.done && glyphs[i.key]?.active !== false);
     },
     500,
     my,
