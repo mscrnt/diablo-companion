@@ -10,6 +10,7 @@ import { normName, table } from "./names";
 import { ocrRows, parseGlyphHover, parseSkillHover, parseStatSheet, tidyStats } from "./charsheet";
 import { ocrVocabReady } from "./ocrfix";
 import { captureRegion, cursorPosition, type OcrLine } from "./native";
+import { glyphActiveAt } from "./glyphring";
 import { persistStorage } from "./persist";
 import { invoke } from "@tauri-apps/api/core";
 import { getActiveVariant, useSettings } from "./store";
@@ -41,13 +42,14 @@ export interface CharacterProfile {
   /** 1 = stats keyed by the game's stat names (older saves hold raw OCR labels) */
   statsV?: number;
   skills: Record<string, SkillRank>;
-  glyphs: Record<string, { name: string; level: number; at: number }>;
+  /** every glyph you hovered; active = socketed on a board (the list's red ring), undefined = not checked */
+  glyphs: Record<string, { name: string; level: number; at: number; active?: boolean }>;
 }
 
 interface CharState extends CharacterProfile {
   setStats: (s: Record<string, string>) => void;
   setSkill: (slug: string, v: Omit<SkillRank, "at">) => void;
-  setGlyph: (slug: string, v: { name: string; level: number }) => void;
+  setGlyph: (slug: string, v: { name: string; level: number; active?: boolean }) => void;
   clear: () => void;
   patchSession: (p: Partial<MapSession> | null) => void;
 }
@@ -245,6 +247,33 @@ export async function mapSkills(my?: number, embedded = false) {
   if (!embedded && flowAlive(my)) cancelGuide();
 }
 
+/**
+ * Is the glyph under the cursor active? In the glyph list (the left fifth of the screen) the game rings
+ * active glyphs in red; a glyph hovered on a board is socketed by definition. null when it can't tell.
+ */
+async function glyphUnderCursorActive(): Promise<boolean | null> {
+  const rect = await guideGameRect();
+  if (!rect) return null;
+  const [mx, my] = await cursorPosition();
+  const b = useSettings.getState().settings.overlay.gameBounds;
+  const left = b ? rect.x + Math.round(rect.w * b.left) : rect.x;
+  const width = b ? Math.round(rect.w * (b.right - b.left)) : rect.w;
+  if (mx > left + width * 0.2) return true; // on a board
+  const side = Math.round(rect.h * 0.1);
+  const box = { x: mx - side / 2, y: my - side / 2, w: side, h: side };
+  const cap = await captureRegion({ x: Math.round(box.x), y: Math.round(box.y), w: side, h: side }, { maxEdge: side, quality: 92 });
+  const bytes = Uint8Array.from(atob(cap.image.replace(/^data:[^,]+,/, "")), (c) => c.charCodeAt(0));
+  const bmp = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" }));
+  const canvas = new OffscreenCanvas(bmp.width, bmp.height);
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(bmp, 0, 0);
+  bmp.close();
+  const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  // crop px per screen px (the capture may come back scaled)
+  const k = canvas.width / side;
+  return glyphActiveAt(px, canvas.width, canvas.height, Math.round((mx - box.x) * k), Math.round((my - box.y) * k), rect.h * k);
+}
+
 export async function mapGlyphs(my?: number, embedded = false) {
   my ??= beginFlow("character", "Paragon glyphs", 1);
   const { variant } = getActiveVariant();
@@ -257,7 +286,7 @@ export async function mapGlyphs(my?: number, embedded = false) {
   const items: GuideItem[] = (variant?.paragon ?? []).map((p) => ({ key: p.glyphSlug, label: `${p.glyphName} (build: lvl ${p.glyphLevel})`, done: doneG.includes(p.glyphSlug), note: doneG.includes(p.glyphSlug) ? "done earlier" : undefined }));
   guideSet({
     instruction: "Abilities → Paragon: hover each glyph",
-    detail: `Press A, open the Paragon tab, then hover each glyph in the grid at the bottom of the panel (or its socket on the board) so the tooltip shows its level. Press ${key} when done · ${pauseKey()} pauses.`,
+    detail: `Press A, open the Paragon tab, then hover each glyph in the glyph list (the active ones have a red ring) so the tooltip shows its level. Press ${key} when done · ${pauseKey()} pauses.`,
     items,
     highlights: [],
   });
@@ -273,17 +302,30 @@ export async function mapGlyphs(my?: number, embedded = false) {
       }
       if (!read) return false;
       const { hit, level } = read;
-      useCharacter.getState().setGlyph(hit.slug, { name: hit.name, level });
-      const it = items.find((i) => i.key === hit.slug);
-      if (it && !it.done) {
+      // which glyphs you actually use: the build's list can name one you dropped long ago (player report, 2026-10-12)
+      const active = await glyphUnderCursorActive().catch(() => null);
+      useCharacter.getState().setGlyph(hit.slug, { name: hit.name, level, active: active ?? undefined });
+      const use = active === false ? ", not active" : "";
+      let it = items.find((i) => i.key === hit.slug);
+      // a glyph the build doesn't list still counts: it's on your boards
+      if (!it) {
+        it = { key: hit.slug, label: `${hit.name} (not in the build)`, done: false };
+        items.push(it);
+      }
+      const want = variant?.paragon.find((p) => p.glyphSlug === hit.slug)?.glyphLevel ?? 0;
+      const note = `lvl ${level}${want && level < want ? `: ${want - level} to go` : want ? " ✓" : ""}${use}`;
+      if (!it.done || it.note !== note) {
+        const first = !it.done;
         it.done = true;
-        const want = variant?.paragon.find((p) => p.glyphSlug === hit.slug)?.glyphLevel ?? 0;
-        it.note = `lvl ${level}${want && level < want ? `: ${want - level} to go` : " ✓"}`;
-        useCharacter.getState().patchSession({ glyphs: [...(useCharacter.getState().session?.glyphs ?? []), it.key] });
-        playTone("tick", useSettings.getState().settings.alerts.volume);
+        it.note = note;
+        if (first && want) {
+          useCharacter.getState().patchSession({ glyphs: [...(useCharacter.getState().session?.glyphs ?? []), it.key] });
+          playTone("tick", useSettings.getState().settings.alerts.volume);
+        }
       }
       guideSet({ items: [...items] });
-      return items.length > 0 && items.every((i) => i.done);
+      const build = items.filter((i) => variant?.paragon.some((p) => p.glyphSlug === i.key));
+      return build.length > 0 && build.every((i) => i.done);
     },
     500,
     my,
@@ -351,7 +393,7 @@ export function characterContext(): string {
       ? `- ${s.name}: ${s.rank} skill point${s.rank === 1 ? "" : "s"}${s.bonus ? ` + ${s.bonus} ranks from gear (rank ${s.total})` : ""}`
       : `- ${s.name}: rank ${s.total} including gear ranks (points spent unknown)`;
   if (Object.keys(c.skills).length) parts.push("SKILL RANKS (read in game):\n" + Object.values(c.skills).map(skill).join("\n"));
-  if (Object.keys(c.glyphs).length) parts.push("GLYPHS (read in game):\n" + Object.values(c.glyphs).map((g) => `- ${g.name}: level ${g.level}`).join("\n"));
+  if (Object.keys(c.glyphs).length) parts.push("GLYPHS (read in game):\n" + Object.values(c.glyphs).map((g) => `- ${g.name}: level ${g.level}${g.active === false ? " (not active, not on the boards)" : g.active ? " (active)" : ""}`).join("\n"));
   return parts.join("\n\n");
 }
 

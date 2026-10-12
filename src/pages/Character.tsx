@@ -79,28 +79,39 @@ export default function Character() {
         </Card>
 
         <Card title="Paragon glyphs" right={<button className="btn sm" disabled={g.active} onClick={() => mapGlyphs()}>Read</button>}>
-          {variant?.paragon.length ? (
+          {variant?.paragon.length || Object.keys(c.glyphs).length ? (
             <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Board / glyph</th>
+                    <th>Glyph</th>
                     <th>Build</th>
                     <th>Yours</th>
+                    <th>On your boards</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {variant.paragon.map((p) => {
-                    const mine = c.glyphs[p.glyphSlug];
+                  {/* the build's glyphs, then the ones you use that it doesn't list */}
+                  {[
+                    ...(variant?.paragon ?? []).map((p) => ({ slug: p.glyphSlug, name: p.glyphName, board: p.name, want: p.glyphLevel as number | null })),
+                    ...Object.entries(c.glyphs)
+                      .filter(([slug]) => !(variant?.paragon ?? []).some((p) => p.glyphSlug === slug))
+                      .map(([slug, g]) => ({ slug, name: g.name, board: "", want: null as number | null })),
+                  ].map((row) => {
+                    const mine = c.glyphs[row.slug];
+                    const notUsed = mine?.active === false;
                     return (
-                      <tr key={p.slug}>
+                      <tr key={row.slug}>
                         <td>
-                          {p.glyphName}
-                          <div className="small dim">{p.name}</div>
+                          {row.name}
+                          <div className="small dim">{row.board || "not in the build"}</div>
                         </td>
-                        <td className="mono">{p.glyphLevel}</td>
-                        <td className="mono" style={{ color: mine ? (mine.level >= p.glyphLevel ? "var(--green)" : "var(--gold)") : "var(--dim)" }}>
+                        <td className="mono">{row.want ?? "—"}</td>
+                        <td className="mono" style={{ color: !mine ? "var(--dim)" : row.want == null || mine.level >= row.want ? "var(--green)" : "var(--gold)" }}>
                           {mine ? mine.level : "—"}
+                        </td>
+                        <td className="small" style={{ color: notUsed ? "var(--gold)" : mine?.active ? "var(--green)" : "var(--dim)" }}>
+                          {!mine ? "not read yet" : mine.active == null ? "not checked" : mine.active ? "active" : row.want != null ? "not active: the build uses it" : "not active"}
                         </td>
                       </tr>
                     );
