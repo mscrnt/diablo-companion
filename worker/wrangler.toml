@@ -19,11 +19,11 @@ MAX_BYTES = "26214400"        # 25 MB per report (Cloudflare caps any request at
 PER_IP_PER_HOUR = "5"
 DAILY_CAP = "300"             # all users together
 # optional GitHub issue per report: "on" needs the GITHUB_TOKEN binding below
-GITHUB_ISSUES = "off"
-GITHUB_REPO = "mscrnt/diablo-companion"
-GITHUB_REPO_PRIVATE = "false" # "false" = metadata only (report ID, version, OS, size)
+GITHUB_ISSUES = "on"
+GITHUB_REPO = "mscrnt/sanctuary-toolkit-reports"
+GITHUB_REPO_PRIVATE = "true"  # "false" = metadata only (report ID, version, OS, size)
 GITHUB_DAILY_CAP = "20"
-GITHUB_LABELS = ""            # e.g. "debug-report" (the label must exist in the repo)
+GITHUB_LABELS = "debug-report" # e.g. "debug-report" (the label must exist in the repo)
 
 # storage keys: upload-only MinIO user, kept in the Cloudflare Secrets Store (never in this repo)
 [[secrets_store_secrets]]
@@ -36,11 +36,11 @@ binding = "S3_SECRET_KEY"
 store_id = "bcb7b4f126c34f73bf937626027200fa"
 secret_name = "D4_COMPANION_S3_SECRET_KEY"
 
-# uncomment after creating D4_COMPANION_GITHUB_TOKEN (fine-grained, one repo, Issues read/write)
-# [[secrets_store_secrets]]
-# binding = "GITHUB_TOKEN"
-# store_id = "bcb7b4f126c34f73bf937626027200fa"
-# secret_name = "D4_COMPANION_GITHUB_TOKEN"
+# fine-grained token, one repo (mscrnt/sanctuary-toolkit-reports), Issues read/write
+[[secrets_store_secrets]]
+binding = "GITHUB_TOKEN"
+store_id = "bcb7b4f126c34f73bf937626027200fa"
+secret_name = "D4_COMPANION_GITHUB_TOKEN"
 
 # burst limit per IP (the binding only supports 10 s or 60 s windows; hourly/daily caps use KV)
 [[ratelimits]]
