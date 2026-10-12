@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkSize, isZip, issueFor, objectKey, parseMeta, ulid } from "../src/validate";
+import { checkSize, deleteOn, expiredReleaseTags, isZip, issueFor, objectKey, parseMeta, releaseTag, ulid } from "../src/validate";
 
 describe("report metadata", () => {
   it("accepts what the app sends", () => {
@@ -58,5 +58,27 @@ describe("GitHub issue body", () => {
     const { body } = issueFor("01ABC", meta, 2048, "debug/2026-10-11/01ABC.zip", true);
     expect(body).toMatch(/debug\/2026-10-11\/01ABC\.zip/);
     expect(body).toMatch(/Screenshots \| yes/);
+  });
+});
+
+describe("report zips in the private repo, kept 30 days", () => {
+  it("one release per day, deleted 30 days later", () => {
+    expect(releaseTag("2026-10-12")).toBe("reports-2026-10-12");
+    expect(deleteOn("2026-10-12", 30)).toBe("2026-11-11");
+    expect(deleteOn("2026-12-20", 30)).toBe("2027-01-19");
+  });
+
+  it("only report releases that reached their delete day go", () => {
+    const tags = ["reports-2026-10-12", "reports-2026-10-13", "v0.2.0", "reports-oops"];
+    expect(expiredReleaseTags(tags, new Date("2026-11-10T09:23:00Z"), 30)).toEqual([]);
+    expect(expiredReleaseTags(tags, new Date("2026-11-11T09:23:00Z"), 30)).toEqual(["reports-2026-10-12"]);
+    expect(expiredReleaseTags(tags, new Date("2026-12-01T09:23:00Z"), 30)).toEqual(["reports-2026-10-12", "reports-2026-10-13"]);
+  });
+
+  it("the issue links the zip only in a private repo", () => {
+    const meta = { version: "0.2.0", os: "windows-11" as const, screenshots: true };
+    const dl = { url: "https://github.com/o/r/releases/download/reports-2026-10-12/X.zip", until: "2026-11-11" };
+    expect(issueFor("X", meta, 2048, "debug/2026-10-12/X.zip", true, new Date(), dl).body).toMatch(/\[X\.zip\]\(https:.*\) \(deleted on 2026-11-11\)/);
+    expect(issueFor("X", meta, 2048, "debug/2026-10-12/X.zip", false, new Date(), dl).body).not.toMatch(/X\.zip|releases/);
   });
 });

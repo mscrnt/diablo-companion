@@ -71,7 +71,15 @@ export function objectKey(prefix: string, id: string, now = new Date()): string 
  * The GitHub issue for a report. A public repo gets metadata only: no zip, no storage key or link and
  * nothing the client typed. A private repo also gets the screenshots flag, the storage key and the time.
  */
-export function issueFor(id: string, meta: ReportMeta, size: number, key: string, isPrivate: boolean, at = new Date()): { title: string; body: string } {
+export function issueFor(
+  id: string,
+  meta: ReportMeta,
+  size: number,
+  key: string,
+  isPrivate: boolean,
+  at = new Date(),
+  download?: { url: string; until: string },
+): { title: string; body: string } {
   const kb = Math.max(1, Math.round(size / 1024));
   const rows = [
     ["Report ID", `\`${id}\``],
@@ -80,6 +88,27 @@ export function issueFor(id: string, meta: ReportMeta, size: number, key: string
     ["Size", `${kb} KB`],
   ];
   if (isPrivate) rows.push(["Screenshots", meta.screenshots ? "yes" : "no"], ["Stored at", `\`${key}\``], ["Received", at.toISOString()]);
+  // the zip itself only ever goes to a private repo
+  if (isPrivate && download) rows.push(["Download", `[${id}.zip](${download.url}) (deleted on ${download.until})`]);
   const table = ["| | |", "|---|---|", ...rows.map(([k, v]) => `| ${k} | ${v} |`)].join("\n");
   return { title: `Debug report ${id}`, body: `A debug report was sent from Sanctuary Toolkit.\n\n${table}\n` };
+}
+
+/** The release that holds one day's report zips (private repo only). */
+export const releaseTag = (day: string) => `reports-${day}`;
+
+/** The day a report received on `day` is deleted: `keepDays` later (YYYY-MM-DD). */
+export function deleteOn(day: string, keepDays: number): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + keepDays);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Of these release tags, the report days that are `keepDays` old or older on `now` and must go. */
+export function expiredReleaseTags(tags: string[], now: Date, keepDays: number): string[] {
+  const today = now.toISOString().slice(0, 10);
+  return tags.filter((t) => {
+    const m = t.match(/^reports-(\d{4}-\d{2}-\d{2})$/);
+    return !!m && deleteOn(m[1], keepDays) <= today;
+  });
 }

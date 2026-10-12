@@ -24,6 +24,8 @@ GITHUB_REPO = "mscrnt/sanctuary-toolkit-reports"
 GITHUB_REPO_PRIVATE = "true"  # "false" = metadata only (report ID, version, OS, size)
 GITHUB_DAILY_CAP = "20"
 GITHUB_LABELS = "debug-report" # e.g. "debug-report" (the label must exist in the repo)
+GITHUB_ZIPS = "on"            # attach each zip to that day's release (private repo only; needs Contents read/write)
+KEEP_DAYS = "30"              # releases (and their zips) are deleted after this many days, like storage
 
 # storage keys: upload-only MinIO user, kept in the Cloudflare Secrets Store (never in this repo)
 [[secrets_store_secrets]]
@@ -54,3 +56,7 @@ binding = "COUNTERS"
 id = "f4aad7f13293465c9ba4178afacc2040"
 
 # IP_SALT is a Worker secret: `npx wrangler secret put IP_SALT` (any long random string)
+
+# daily: delete report releases older than KEEP_DAYS
+[triggers]
+crons = ["23 9 * * *"]

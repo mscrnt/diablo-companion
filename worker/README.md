@@ -76,12 +76,18 @@ curl -s -X POST https://reports.mscrnt.com/report \
 
 Afterwards, delete the test keys from `COUNTERS` (`npx wrangler kv key list --namespace-id … --remote`, then `kv key delete`) so the hourly and daily caps aren't used up.
 
-## Turning on GitHub issues
+## GitHub issues (on: `mscrnt/sanctuary-toolkit-reports`, private)
 
-1. Create a fine-grained token in GitHub: one repository, **Issues: read and write**.
-2. Add it to the Secrets Store `mscrnt` as `D4_COMPANION_GITHUB_TOKEN`, scoped to workers.
-3. In `wrangler.toml`: uncomment the `GITHUB_TOKEN` binding, set `GITHUB_ISSUES = "on"`, `GITHUB_REPO`, and `GITHUB_REPO_PRIVATE`.
-   - With `"false"` (public repo), the issue has only the report ID, version, OS and size.
+Each stored report opens an issue (at most `GITHUB_DAILY_CAP` a day) with the report ID, version, OS, size, the screenshots flag, the storage key and the time.
+
+With `GITHUB_ZIPS = "on"` (private repo only) the zip is also attached to that day's release, a pre-release tagged `reports-YYYY-MM-DD`, and the issue links it ("deleted on …"). Nothing goes into git history, so deleting really deletes. A daily cron (`[triggers]`, 09:23 UTC) deletes each day's release, its zips and its tag once it's `KEEP_DAYS` (30) days old, matching the storage retention. The issues stay as a record without the files.
+
+Setup, for reference:
+
+1. A fine-grained GitHub token for that one repository: **Issues: read and write**, plus **Contents: read and write** for the zips.
+2. In the Secrets Store `mscrnt` as `D4_COMPANION_GITHUB_TOKEN`, scoped to workers.
+3. In `wrangler.toml`: the `GITHUB_TOKEN` binding, `GITHUB_ISSUES = "on"`, `GITHUB_REPO`, `GITHUB_REPO_PRIVATE = "true"`, `GITHUB_LABELS`, `GITHUB_ZIPS`, `KEEP_DAYS`.
+   - With `GITHUB_REPO_PRIVATE = "false"` (a public repo), the issue has only the report ID, version, OS and size, and no zip is ever uploaded.
 4. `npm run deploy`.
 
 ## Rules

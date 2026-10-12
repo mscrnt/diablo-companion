@@ -1,8 +1,9 @@
 // Sanctuary Toolkit debug-report upload. The app POSTs a zip here; this Worker validates it and writes
 // it to MinIO with an upload-only key that lives in the Cloudflare Secrets Store. The app never holds
-// storage credentials. Optionally (flag, off by default) it opens a GitHub issue for the report.
+// storage credentials. Optionally (flag, off by default) it opens a GitHub issue for the report and, in a
+// private repo, attaches the zip to that day's release; a daily cron deletes releases after KEEP_DAYS.
 import { AwsClient } from "aws4fetch";
-import { checkSize, isZip, issueFor, objectKey, parseMeta, ulid, type ReportMeta } from "./validate";
+import { checkSize, deleteOn, expiredReleaseTags, isZip, issueFor, objectKey, parseMeta, releaseTag, ulid, type ReportMeta } from "./validate";
 
 export interface Env {
   S3_ENDPOINT: string;
@@ -18,6 +19,9 @@ export interface Env {
   GITHUB_REPO_PRIVATE: string;
   GITHUB_DAILY_CAP: string;
   GITHUB_LABELS: string;
+  /** "on": attach each zip to a daily release in the (private) repo, deleted after KEEP_DAYS */
+  GITHUB_ZIPS: string;
+  KEEP_DAYS: string;
   S3_ACCESS_KEY: SecretsStoreSecret;
   S3_SECRET_KEY: SecretsStoreSecret;
   /** only bound once the token exists in the Secrets Store (see wrangler.toml) */
@@ -97,27 +101,105 @@ export default {
     }
 
     // optional, after the report is safely stored; never delays or fails the upload
-    if (env.GITHUB_ISSUES === "on" && env.GITHUB_TOKEN) ctx.waitUntil(openIssue(env, id, meta.value, body.byteLength, key, day).catch((e) => console.log("issue failed", String(e))));
+    if (env.GITHUB_ISSUES === "on" && env.GITHUB_TOKEN) ctx.waitUntil(openIssue(env, id, meta.value, body, key, day, now).catch((e) => console.log("issue failed", String(e))));
 
     return json(201, { id });
   },
+
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(cleanUp(env).catch((e) => console.log("cleanup failed", String(e))));
+  },
 };
 
-async function openIssue(env: Env, id: string, meta: ReportMeta, size: number, key: string, day: string): Promise<void> {
-  if (!(await bump(env.COUNTERS, `gh:${day}`, Number(env.GITHUB_DAILY_CAP), 2 * 86400))) return;
-  const token = await env.GITHUB_TOKEN!.get();
-  const { title, body } = issueFor(id, meta, size, key, env.GITHUB_REPO_PRIVATE === "true");
-  const labels = env.GITHUB_LABELS.split(",").map((l) => l.trim()).filter(Boolean);
-  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/issues`, {
-    method: "POST",
+/** A GitHub API call with the Worker's token. `path` is relative to the repo unless it's a full URL. */
+function gh(env: Env, token: string, path: string, init: RequestInit = {}): Promise<Response> {
+  const url = /^https:/.test(path) ? path : `https://api.github.com/repos/${env.GITHUB_REPO}${path}`;
+  return fetch(url, {
+    ...init,
     headers: {
       authorization: `Bearer ${token}`,
       accept: "application/vnd.github+json",
       "x-github-api-version": "2022-11-28",
       "user-agent": UA,
-      "content-type": "application/json",
+      ...(init.headers as Record<string, string> | undefined),
     },
+  });
+}
+
+const keepDays = (env: Env) => Number(env.KEEP_DAYS) || 30;
+/** Zips only ever go to a private repo, and only with the flag on. */
+const zipsOn = (env: Env) => env.GITHUB_ZIPS === "on" && env.GITHUB_REPO_PRIVATE === "true";
+
+/** That day's release (a pre-release tagged reports-YYYY-MM-DD), created on the day's first report. */
+async function dayRelease(env: Env, token: string, day: string): Promise<{ id: number }> {
+  const tag = releaseTag(day);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const got = await gh(env, token, `/releases/tags/${tag}`);
+    if (got.ok) return (await got.json()) as { id: number };
+    const made = await gh(env, token, "/releases", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        tag_name: tag,
+        target_commitish: "main",
+        name: `Reports ${day}`,
+        body: `Debug report zips received on ${day} (UTC). This release and its files are deleted on ${deleteOn(day, keepDays(env))}.`,
+        prerelease: true,
+      }),
+    });
+    if (made.ok) return (await made.json()) as { id: number };
+    // another report created it at the same moment: read it again
+    if (made.status !== 422) throw new Error(`release create failed ${made.status} ${(await made.text()).slice(0, 200)}`);
+  }
+  throw new Error("release not found after create");
+}
+
+/** Attach the report's zip to its day's release; the link for the issue. */
+async function attachZip(env: Env, token: string, id: string, day: string, zip: Uint8Array): Promise<{ url: string; until: string }> {
+  const rel = await dayRelease(env, token, day);
+  const up = await gh(env, token, `https://uploads.github.com/repos/${env.GITHUB_REPO}/releases/${rel.id}/assets?name=${id}.zip`, {
+    method: "POST",
+    headers: { "content-type": "application/zip" },
+    body: zip,
+  });
+  if (!up.ok) throw new Error(`asset upload failed ${up.status} ${(await up.text()).slice(0, 200)}`);
+  const asset = (await up.json()) as { browser_download_url: string };
+  return { url: asset.browser_download_url, until: deleteOn(day, keepDays(env)) };
+}
+
+async function openIssue(env: Env, id: string, meta: ReportMeta, zip: Uint8Array, key: string, day: string, at: Date): Promise<void> {
+  if (!(await bump(env.COUNTERS, `gh:${day}`, Number(env.GITHUB_DAILY_CAP), 2 * 86400))) return;
+  const token = await env.GITHUB_TOKEN!.get();
+  // a failed upload still opens the issue (the zip is safe in storage either way)
+  const download = zipsOn(env) ? await attachZip(env, token, id, day, zip).catch((e) => void console.log("zip upload failed", String(e))) : undefined;
+  const { title, body } = issueFor(id, meta, zip.byteLength, key, env.GITHUB_REPO_PRIVATE === "true", at, download ?? undefined);
+  const labels = env.GITHUB_LABELS.split(",").map((l) => l.trim()).filter(Boolean);
+  const res = await gh(env, token, "/issues", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({ title, body, ...(labels.length ? { labels } : {}) }),
   });
   if (!res.ok) console.log("github issue failed", res.status, (await res.text()).slice(0, 300));
+}
+
+/** Daily: delete each day's release (and its zips and tag) once it's `KEEP_DAYS` old, matching storage. */
+async function cleanUp(env: Env): Promise<void> {
+  if (!zipsOn(env) || !env.GITHUB_TOKEN) return;
+  const token = await env.GITHUB_TOKEN.get();
+  const releases: { id: number; tag_name: string }[] = [];
+  for (let page = 1; page <= 5; page++) {
+    const res = await gh(env, token, `/releases?per_page=100&page=${page}`);
+    if (!res.ok) throw new Error(`release list failed ${res.status}`);
+    const batch = (await res.json()) as { id: number; tag_name: string }[];
+    releases.push(...batch);
+    if (batch.length < 100) break;
+  }
+  const expired = new Set(expiredReleaseTags(releases.map((r) => r.tag_name), new Date(), keepDays(env)));
+  for (const r of releases.filter((x) => expired.has(x.tag_name))) {
+    const del = await gh(env, token, `/releases/${r.id}`, { method: "DELETE" });
+    if (!del.ok && del.status !== 404) console.log("release delete failed", r.tag_name, del.status);
+    const ref = await gh(env, token, `/git/refs/tags/${r.tag_name}`, { method: "DELETE" });
+    if (!ref.ok && ref.status !== 404 && ref.status !== 422) console.log("tag delete failed", r.tag_name, ref.status);
+  }
+  if (expired.size) console.log("deleted report releases", [...expired].join(", "));
 }
