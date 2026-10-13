@@ -13,6 +13,7 @@ The release workflow publishes each version's section as its GitHub release note
 - The AI read always looks at the item it reads the text of: when the mouse had already moved on, it saw the next item's tooltip and mixed the two ("Strider's Crown" judged as magic boots).
 - The bottom of a seasonal socketable ("Amalgamable / Account Bound / Seasonal Item") is kept to amalgamate, not scrapped as a unique helm.
 - A pickup notice over the tracker ("20 Iron Chunks") isn't taken for part of the dungeon's name.
+- No more 3-second Nightmare Dungeon runs right after a clear: while the tracker still says "Dungeon cleared", a line misread as a new dungeon's name ("New", "Priority Quest(s) Available") doesn't start a run.
 
 ## [0.2.2] - 2026-10-13
 
