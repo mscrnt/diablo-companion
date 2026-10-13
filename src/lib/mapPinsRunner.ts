@@ -201,6 +201,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
         // keep a whole pin (about 26 CSS px across) inside the map area and off the HUD boxes
         margin: 13 * dpr * s.fps,
         found: { fr: s.fr, k: s.H / 1440, hide: mp.unfoundOnly },
+        ui: s.fr,
       },
       s.toScreen,
     );

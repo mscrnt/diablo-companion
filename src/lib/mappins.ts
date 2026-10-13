@@ -1591,6 +1591,29 @@ export interface PinFilter {
   margin?: number;
   /** the frame, to tell found altars and collectibles (k = image height / 1440): hide them, or mark them found */
   found?: { fr: Frame; k: number; hide: boolean };
+  /** the frame, to keep pins off the game's own popups and panels over the map (a hovered icon's box, War Plans) */
+  ui?: Frame;
+}
+
+/**
+ * Is (x, y) under one of the game's boxes over the map (a hovered icon's popup, the War Plans panel)? Those are
+ * near-black, the map is light parchment. A ring wider than a map icon is sampled, so the game's own (dark)
+ * icon under a pin doesn't count: a box is dark all around (player report, 2026-10-12).
+ */
+export function onUiBox(fr: Frame, x: number, y: number, H: number): boolean {
+  const r = H * 0.03;
+  let dark = 0, n = 0;
+  for (let a = 0; a < 360; a += 22.5) {
+    const px = Math.round(x + r * Math.cos((a * Math.PI) / 180));
+    const py = Math.round(y + r * Math.sin((a * Math.PI) / 180));
+    if (px < 0 || py < 0 || px >= fr.width || py >= fr.height) continue;
+    const i = (py * fr.width + px) * 4;
+    n++;
+    if (Math.max(fr.data[i], fr.data[i + 1], fr.data[i + 2]) < 45) dark++;
+  }
+  // measured on a player's 1080p map: inside a popup or panel 0.69-0.94 dark, anywhere on the map (the Helltide
+  // zone, dark forest, the sea) 0.00-0.06
+  return n > 0 && dark / n >= 0.5;
 }
 
 /** Short label for the kinds that get one. */
@@ -1663,6 +1686,7 @@ export function pinsFor(xf: Xf, area: Box & { hud?: Box[] }, H: number, filter: 
     if (p.k === "helltide_chest" && (!filter.helltideRegion || p.r !== filter.helltideRegion)) continue;
     const [fx, fy] = project(xf, toUv(p));
     if (!visible(inner, fx, fy)) continue;
+    if (filter.ui && onUiBox(filter.ui, fx, fy, H)) continue;
     const found = !!f && !!COLLECTIBLE[p.k] && foundAt(f.fr, p.k, fx, fy, f.k);
     if (found && f!.hide) continue;
     const [x, y] = toScreen(fx, fy);

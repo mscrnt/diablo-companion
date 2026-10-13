@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   ICON_UV,
   MapTracker,
+  onUiBox,
   POIS,
   WAYPOINT_UV,
   ZOOM_LADDER,
@@ -698,5 +699,27 @@ describe("presets", () => {
     const free = merged({ mapPins: { groups: mine }, hotkeys: oldHotkeys, padChords: oldChords });
     expect(free.hotkeys.mapPinsPreset).toBe(defaultSettings.hotkeys.mapPinsPreset);
     expect(free.padChords.mapPinsPreset).toEqual(defaultSettings.padChords.mapPinsPreset);
+  });
+});
+
+describe("pins stay off the game's boxes over the map", () => {
+  // a 1080p frame of parchment, a near-black popup box, and a small dark map icon out on the parchment
+  const W = 600, H = 1080;
+  const fr = { width: W, height: H, data: new Uint8ClampedArray(W * H * 4) };
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const box = x >= 100 && x < 400 && y >= 100 && y < 500;
+      const icon = Math.hypot(x - 500, y - 800) < 12;
+      const [r, g, b] = box ? [22, 20, 18] : icon ? [15, 15, 15] : [196, 170, 130];
+      fr.data.set([r, g, b, 255], (y * W + x) * 4);
+    }
+
+  it("a pin under a popup or panel is hidden", () => {
+    expect(onUiBox(fr, 250, 300, H)).toBe(true);
+  });
+
+  it("a pin on the game's own dark icon, out on the map, stays", () => {
+    expect(onUiBox(fr, 500, 800, H)).toBe(false);
+    expect(onUiBox(fr, 520, 950, H)).toBe(false);
   });
 });

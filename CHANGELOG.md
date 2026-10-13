@@ -5,6 +5,9 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+### Fixed
+- **Map pins stay off the game's boxes over the map:** a hovered icon's popup (a Whisper, a dungeon), the War Plans panel and the Whispers bar. The game's boxes are near-black and the map is light parchment, so a pin with dark all around it is hidden; the game's own icons under a pin don't count.
+
 ### Changed
 - **Uniques are named from several signals together:** the title, the unique power and the stats the unique always rolls, filtered by the item type. A title that OCR mangles ("IN.?INIT.Y", "TVSKHELm"), merges with the comparison column's item, or misses entirely still gets the right name. On 57 real test items it named 96% right with no confident mistakes, and 91% with the title removed.
 
