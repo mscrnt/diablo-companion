@@ -545,7 +545,9 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     // a swap that gives up nearly as much as it gains isn't an upgrade, whatever the sum says
     const clear = cmp.score >= need && cmp.score >= 0.5 * cmp.loss;
     const yours = w && w.rarity !== "unknown" && !/^your equipped item$/i.test(w.name) ? ` (${itemLabel(w)})` : "";
-    const verdictLine = `For your build: ${cmp.score >= 1.5 && clear ? "clearly better" : clear ? "better" : cmp.score > 0.15 ? "slightly better" : cmp.score > -0.15 ? "about the same as" : cmp.score > -1 ? "a bit worse" : "worse"}${cmp.score > -0.15 && cmp.score <= 0.15 ? "" : " than"} yours${yours}.`;
+    // rings / weapons: the game showed the other one; say which one this is weighed against
+    const other = candidates.length > 1 && !gameCompares(slot) ? ` Weighed against your ${slot.slotLabel}, not the one the game compares it with.` : "";
+    const verdictLine = `For your build: ${cmp.score >= 1.5 && clear ? "clearly better" : clear ? "better" : cmp.score > 0.15 ? "slightly better" : cmp.score > -0.15 ? "about the same as" : cmp.score > -1 ? "a bit worse" : "worse"}${cmp.score > -0.15 && cmp.score <= 0.15 ? "" : " than"} yours${yours}.${other}`;
     if (clear) {
       const extra = slot.kind === "aspect" && !q.isTarget && !isUniqueItem(item) ? ` Then put "${slot.itemName}" on it at the Occultist.` : "";
       const stand = slotIsUnique && !q.isTarget ? ` Use it until you find ${slot.itemName}.` : "";

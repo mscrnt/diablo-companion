@@ -1,0 +1,234 @@
+[
+ {
+  "text": "THE PENITENT'S",
+  "bullet": "greater",
+  "h": 24,
+  "x": 1810,
+  "y": 161,
+  "w": 258
+ },
+ {
+  "text": "RING",
+  "bullet": "normal",
+  "h": 21,
+  "x": 1811,
+  "y": 198,
+  "w": 74
+ },
+ {
+  "text": "Ancestral Legendary Ring",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1811,
+  "y": 239,
+  "w": 266
+ },
+ {
+  "text": "900 Item Power",
+  "bullet": "normal",
+  "h": 18,
+  "x": 1811,
+  "y": 278,
+  "w": 158
+ },
+ {
+  "text": "173 All Resist (-1.9% Toughness)",
+  "bullet": "normal",
+  "h": 27,
+  "x": 1813,
+  "y": 342,
+  "w": 382
+ },
+ {
+  "text": "+111 Strength (-69)",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1842,
+  "y": 380,
+  "w": 198
+ },
+ {
+  "text": "+235 Life Regeneration (+235)",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1842,
+  "y": 416,
+  "w": 305
+ },
+ {
+  "text": "+1,220 Armor (+1,220)",
+  "bullet": "normal",
+  "h": 22,
+  "x": 1842,
+  "y": 454,
+  "w": 223
+ },
+ {
+  "text": "7.0% Cooldown Reduction (-2.0%)",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1842,
+  "y": 489,
+  "w": 347
+ },
+ {
+  "text": "Spending Health on a Skill grants",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1842,
+  "y": 526,
+  "w": 344
+ },
+ {
+  "text": "you 12.5% Critical Strike Chance and",
+  "bullet": "none",
+  "h": 23,
+  "x": 1842,
+  "y": 558,
+  "w": 377
+ },
+ {
+  "text": "50% Critical Strike Damage for 4",
+  "bullet": "none",
+  "h": 24,
+  "x": 1842,
+  "y": 590,
+  "w": 333
+ },
+ {
+  "text": "seconds.",
+  "bullet": "none",
+  "h": 19,
+  "x": 1842,
+  "y": 622,
+  "w": 86
+ },
+ {
+  "text": "Properties lost when equipped:",
+  "bullet": "none",
+  "h": 23,
+  "x": 1810,
+  "y": 678,
+  "w": 321
+ },
+ {
+  "text": "x10% Physical Damage Multiplier",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1842,
+  "y": 712,
+  "w": 346
+ },
+ {
+  "text": "x29% Critical Strike Damage",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1842,
+  "y": 744,
+  "w": 292
+ },
+ {
+  "text": "Multiplier",
+  "bullet": "none",
+  "h": 23,
+  "x": 1842,
+  "y": 776,
+  "w": 104
+ },
+ {
+  "text": "+4.4% Critical Strike Chance",
+  "bullet": "normal",
+  "h": 19,
+  "x": 1842,
+  "y": 808,
+  "w": 290
+ },
+ {
+  "text": "Legendary Power",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1842,
+  "y": 840,
+  "w": 177
+ },
+ {
+  "text": "Socket (1)",
+  "bullet": "none",
+  "h": 23,
+  "x": 1842,
+  "y": 872,
+  "w": 101
+ },
+ {
+  "text": "Requires Level 70",
+  "bullet": "none",
+  "h": 22,
+  "x": 2074,
+  "y": 921,
+  "w": 163
+ },
+ {
+  "text": "Lord of Hatred Item",
+  "bullet": "none",
+  "h": 18,
+  "x": 2018,
+  "y": 950,
+  "w": 189
+ },
+ {
+  "text": "Sell Value: 32,535 •",
+  "bullet": "none",
+  "h": 23,
+  "x": 2038,
+  "y": 1004,
+  "w": 199
+ },
+ {
+  "text": "Tempers: 3/3",
+  "bullet": "none",
+  "h": 22,
+  "x": 2104,
+  "y": 1041,
+  "w": 133
+ },
+ {
+  "text": "• Equip",
+  "bullet": "normal",
+  "h": 24,
+  "x": 1807,
+  "y": 1107,
+  "w": 82
+ },
+ {
+  "text": "SIIIFT",
+  "bullet": "normal",
+  "h": 8,
+  "x": 1802,
+  "y": 1154,
+  "w": 34
+ },
+ {
+  "text": "CTRL",
+  "bullet": "normal",
+  "h": 13,
+  "x": 1793,
+  "y": 1184,
+  "w": 47
+ },
+ {
+  "text": "Hide Comparison",
+  "bullet": "normal",
+  "h": 23,
+  "x": 1853,
+  "y": 1220,
+  "w": 179
+ },
+ {
+  "text": "Mark as Favorite",
+  "bullet": "normal",
+  "h": 19,
+  "x": 1843,
+  "y": 1257,
+  "w": 170
+ }
+]

@@ -14,6 +14,8 @@ The release workflow publishes each version's section as its GitHub release note
 - The bottom of a seasonal socketable ("Amalgamable / Account Bound / Seasonal Item") is kept to amalgamate, not scrapped as a unique helm.
 - A pickup notice over the tracker ("20 Iron Chunks") isn't taken for part of the dungeon's name.
 - No more 3-second Nightmare Dungeon runs right after a clear: while the tracker still says "Dungeon cleared", a line misread as a new dungeon's name ("New", "Priority Quest(s) Available") doesn't start a run.
+- **A legendary power that wraps onto a line starting with a number** ("…Critical Strike Chance and" / "50% Critical Strike Damage for 4 seconds") stays part of the power. It was read as a +50% Crit Damage stat, and a ring was called an upgrade on it (player report).
+- When a ring or weapon is weighed against your other one, not the one the game compares it with, the verdict says so.
 
 ## [0.2.2] - 2026-10-13
 

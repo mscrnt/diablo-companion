@@ -274,8 +274,11 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     const finished =
       vocab && !deltaTail && /^[+x\-]?\s*\d/.test(prev?.text ?? "") && knownStat(prev!.text) && !knownStat(prev!.text + " " + clean);
     if (finished && !/\d/.test(clean) && !/\s/.test(clean.trim()) && !knownWord(clean)) continue; // stray fragment: drop it, keep the stat open for its delta
-    // a number-led line is always a new stat (icon detection can miss on bright backgrounds)
-    if (prev && !closed && !finished && prev.lost === inLost && !numStart && !iconLead && (bullet === "none" || looksWrapped)) {
+    // a number-led line is a new stat (icon detection can miss on bright backgrounds), unless the line
+    // before stopped mid-sentence: "…Critical Strike Chance and" / "50% Critical Strike Damage for 4" is
+    // the power paragraph going on, not a +50% Crit Damage stat (it made a ring a WEAR, 2026-10-13 report)
+    const midSentence = !!prev && !closed && bullet === "none" && /\s(and|or|for|to|by|of|with|you|your|an?|the|up to)\s*$/i.test(prev.text);
+    if (prev && !closed && !finished && prev.lost === inLost && !iconLead && ((!numStart && (bullet === "none" || looksWrapped)) || midSentence)) {
       prev.text += " " + clean;
       continue;
     }
