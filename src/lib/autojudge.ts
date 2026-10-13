@@ -16,6 +16,7 @@ import type { TooltipText } from "./parse";
 import type { JudgeResult } from "./types";
 import { onFrame } from "./activity";
 import { debugEvent, debugEventEvery } from "./debug";
+import { isPersonalLine, overlaps } from "./privacy";
 
 // Words that only appear inside item tooltips.
 const MARKERS = [
@@ -227,12 +228,27 @@ export async function tooltipText(col: TooltipColumn, cap: CaptureResult): Promi
   // labelled one item's lines from another's picture ("Strider's Crown" judged as magic boots, 2026-10-13
   // test). The scan frame is smaller but shows the tooltip those lines came from.
   const moved = !!crop && Math.hypot(crop.cursor[0] - cap.cursor[0], crop.cursor[1] - cap.cursor[1]) > 6;
+  // shared judgements: black out every bit of text in the crop that isn't the tooltip's (nameplates, chat
+  // and guild tags seen through or around it), and the tooltip's own lines that name a player
+  const own = new Set(col.lines);
+  const screen = (l: OcrLine) => ({ x: cap.region.x + l.x, y: cap.region.y + l.y, w: l.w, h: l.h });
+  const share =
+    crop && !moved
+      ? {
+          region: crop.region,
+          box: col.box,
+          monitor: cap.monitor,
+          scan: cap.region,
+          redact: (cap.ocr?.lines ?? []).filter((l) => (!own.has(l) || isPersonalLine(l.text)) && overlaps(screen(l), crop.region)).map(screen),
+        }
+      : null;
   return {
     image: crop && !moved ? crop.image : cap.image,
     lines: col.lines.map((l) => l.text),
     // opened from the Character panel, your own item has no EQUIPPED header but offers "Unequip"
     equipped: col.equipped || col.lines.some((l) => isUnequipLine(l.text)),
     fast: col.lines.map((l) => ({ text: l.text, bullet: l.bullet ?? "none", h: l.h, x: l.x, y: l.y, w: l.w })),
+    share,
   };
 }
 

@@ -23,6 +23,7 @@ import { toggleMapCharacter } from "./charmap";
 import { obsSaveReplay } from "./obs";
 import { noteBars, onGameStatus, watchTestContext } from "./testmode";
 import { debugEvent, debugWanted, installMainDebugHooks, markMoment, startDebug } from "./debug";
+import { flagLastVerdict, sharingOn, startSharing } from "./share";
 import { MAP_PIN_PRESETS, getActiveVariant, nextPreset, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
 import { EVENT_META, fetchLive, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
 import type { GameEvent, JudgeResult } from "./types";
@@ -107,6 +108,13 @@ export async function runAction(a: ActionId) {
     case "markMoment":
       await markMoment();
       break;
+    case "flagVerdict": {
+      const r = flagLastVerdict();
+      if (!r) overlayToast("Nothing to flag", "Flag a verdict right after the judge shows it.", "#9a8f86", 2500);
+      else if (sharingOn()) overlayToast("Flagged as wrong", `${r.item.name}: thanks, it's sent with the judgement.`, "#d9a86a", 3000);
+      else overlayToast("Flagged as wrong", `${r.item.name}. Turn on shared judgements (Settings) to send flags.`, "#d9a86a", 3500);
+      break;
+    }
     case "coachSnap": {
       const cap = await captureMonitor(undefined, { maxEdge: 1920, quality: 85 });
       useCoach.getState().setPendingImage(cap.image);
@@ -466,6 +474,7 @@ export async function startEngine() {
   if (started) return;
   started = true;
   installMainDebugHooks();
+  startSharing();
 
   const tick = () => {
     const events = mergeLive(localSchedule(), useRuntime.getState().live);

@@ -3,6 +3,7 @@
 // storage credentials. Optionally (flag, off by default) it opens a GitHub issue for the report and, in a
 // private repo, attaches the zip to that day's release; a daily cron deletes releases after KEEP_DAYS.
 import { AwsClient } from "aws4fetch";
+import { batchKey, deleteIssue, deleteKey, isInstallId, parseBatch } from "./judgements";
 import { checkSize, deleteOn, expiredReleaseTags, isZip, issueFor, objectKey, parseMeta, releaseTag, ulid, type ReportMeta } from "./validate";
 
 export interface Env {
@@ -30,6 +31,12 @@ export interface Env {
   BURST: RateLimit;
   /** hourly per-IP and daily counters */
   COUNTERS: KVNamespace;
+  /** shared judgements: per-IP burst limit (no KV: batches come every few minutes from every player) */
+  JUDGE_BURST: RateLimit;
+  /** shared judgements: largest batch in bytes */
+  JUDGE_MAX_BYTES: string;
+  /** label for "delete my data" issues (must exist in the repo) */
+  GITHUB_DELETE_LABELS: string;
 }
 
 // s3.mscrnt.com sits behind Cloudflare's Browser Integrity Check, which rejects requests without a real-looking UA
@@ -55,11 +62,13 @@ async function bump(kv: KVNamespace, key: string, cap: number, ttl: number): Pro
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
-    if (url.pathname !== "/report") return fail(404, "not found");
+    if (url.pathname !== "/report" && url.pathname !== "/judgements" && url.pathname !== "/judgements/delete") return fail(404, "not found");
     if (req.method !== "POST") return fail(405, "use POST");
 
     const ip = req.headers.get("cf-connecting-ip") ?? "unknown";
     const who = await ipHash(ip, env.IP_SALT);
+    if (url.pathname === "/judgements") return judgements(req, env, who);
+    if (url.pathname === "/judgements/delete") return deleteJudgements(req, env, ctx, who);
     if (!(await env.BURST.limit({ key: who })).success) return fail(429, "too many reports, try again in a minute");
 
     const meta = parseMeta(req.headers.get("x-report-meta"));
@@ -110,6 +119,76 @@ export default {
     ctx.waitUntil(cleanUp(env).catch((e) => console.log("cleanup failed", String(e))));
   },
 };
+
+const storage = async (env: Env) =>
+  new AwsClient({ accessKeyId: await env.S3_ACCESS_KEY.get(), secretAccessKey: await env.S3_SECRET_KEY.get(), service: "s3", region: env.S3_REGION });
+const objectUrl = (env: Env, key: string) => `${env.S3_ENDPOINT.replace(/\/$/, "")}/${env.S3_BUCKET}/${key}`;
+
+/** A JSON body up to `max` bytes, or the response that refuses it. */
+async function readJson(req: Request, max: number): Promise<{ ok: true; value: unknown } | { ok: false; res: Response }> {
+  if ((req.headers.get("content-type") ?? "").split(";")[0].trim() !== "application/json") return { ok: false, res: fail(415, "send JSON") };
+  const declared = checkSize(req.headers.get("content-length"), max);
+  if (!declared.ok) return { ok: false, res: fail(declared.status, declared.error) };
+  const text = await req.text();
+  if (text.length > max) return { ok: false, res: fail(413, "too large") };
+  try {
+    return { ok: true, value: JSON.parse(text) };
+  } catch {
+    return { ok: false, res: fail(400, "not JSON") };
+  }
+}
+
+/** POST /judgements: one batch of shared judgements from a player who opted in, stored as one object. */
+async function judgements(req: Request, env: Env, who: string): Promise<Response> {
+  if (!(await env.JUDGE_BURST.limit({ key: who })).success) return fail(429, "too many batches, try again in a minute");
+  const body = await readJson(req, Number(env.JUDGE_MAX_BYTES) || 8 * 1024 * 1024);
+  if (!body.ok) return body.res;
+  const now = new Date();
+  const batch = parseBatch(body.value, now.getTime());
+  if (!batch.ok) return fail(batch.status, batch.error);
+  const id = ulid(now.getTime());
+  const key = batchKey(env.S3_PREFIX, batch.value.install, id, now);
+  const put = await (await storage(env)).fetch(objectUrl(env, key), {
+    method: "PUT",
+    body: JSON.stringify({ receivedAt: now.toISOString(), ...batch.value }),
+    headers: { "content-type": "application/json", "user-agent": UA, "x-amz-meta-app-version": batch.value.version },
+  });
+  if (!put.ok) {
+    console.log("judgement write failed", put.status, (await put.text()).slice(0, 300));
+    return fail(502, "couldn't store the batch, try again later");
+  }
+  return json(201, { id, items: batch.value.items.length });
+}
+
+/**
+ * POST /judgements/delete `{ v: 1, install }`: "delete my data". The storage key can only write, so this leaves a
+ * marker and opens a private issue with the commands that delete that install's batches.
+ */
+async function deleteJudgements(req: Request, env: Env, ctx: ExecutionContext, who: string): Promise<Response> {
+  if (!(await env.BURST.limit({ key: who })).success) return fail(429, "too many requests, try again in a minute");
+  const body = await readJson(req, 1024);
+  if (!body.ok) return body.res;
+  const install = (body.value as { install?: unknown } | null)?.install;
+  if (!isInstallId(install)) return fail(400, "bad install id");
+  const now = new Date();
+  const put = await (await storage(env)).fetch(objectUrl(env, deleteKey(env.S3_PREFIX, install)), {
+    method: "PUT",
+    body: JSON.stringify({ install, requestedAt: now.toISOString() }),
+    headers: { "content-type": "application/json", "user-agent": UA },
+  });
+  if (!put.ok) return fail(502, "couldn't record the request, try again later");
+  if (env.GITHUB_TOKEN && env.GITHUB_REPO_PRIVATE === "true")
+    ctx.waitUntil(
+      (async () => {
+        const token = await env.GITHUB_TOKEN!.get();
+        const { title, body: text } = deleteIssue(install, env.S3_PREFIX, env.S3_BUCKET, now);
+        const labels = (env.GITHUB_DELETE_LABELS ?? "").split(",").map((l) => l.trim()).filter(Boolean);
+        const res = await gh(env, token, "/issues", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, body: text, ...(labels.length ? { labels } : {}) }) });
+        if (!res.ok) console.log("delete issue failed", res.status, (await res.text()).slice(0, 300));
+      })().catch((e) => console.log("delete issue failed", String(e))),
+    );
+  return json(202, { ok: true });
+}
 
 /** A GitHub API call with the Worker's token. `path` is relative to the repo unless it's a full URL. */
 function gh(env: Env, token: string, path: string, init: RequestInit = {}): Promise<Response> {

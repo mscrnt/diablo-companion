@@ -59,7 +59,7 @@ export function nextPreset(cur: MapPinPreset, cycle: MapPinPreset[]): MapPinPres
   return list[(i + 1) % list.length];
 }
 
-export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdit" | "coachSnap" | "overlayToggle" | "mapCharacter" | "snoozeJudge" | "mapPinsPreset" | "markMoment";
+export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdit" | "coachSnap" | "overlayToggle" | "mapCharacter" | "snoozeJudge" | "mapPinsPreset" | "markMoment" | "flagVerdict";
 
 export interface Settings {
   llm: { baseUrl: string; model: string; apiKey: string; thinkingForCoach: boolean };
@@ -105,6 +105,12 @@ export interface Settings {
   };
   /** record every auto-judge scan with its frame and display context (test-mode log folder, capped) */
   testMode: { enabled: boolean; maxMB: number };
+  /**
+   * Shared judgements (opt-in): each judgement goes to the developer, with the tooltip text and crop, to
+   * test the loot judge on every class, build and resolution. `installId` is random, made on opt-in and
+   * replaced on "delete my data". `asked`: the Help improve step was shown (new installs and upgrades).
+   */
+  share: { enabled: boolean; asked: boolean; installId: string | null; since: number | null };
   /** pins on the in-game map: which kinds to draw */
   mapPins: {
     enabled: boolean;
@@ -149,6 +155,7 @@ export const defaultSettings: Settings = {
     mapPinsPreset: "Alt+M",
     // not Ctrl+Shift+D: that's Discord's deafen key (a global hotkey would swallow it)
     markMoment: "CommandOrControl+Alt+D",
+    flagVerdict: "CommandOrControl+Alt+W",
   },
   padChords: {
     judge: ["View", "RS"],
@@ -162,6 +169,7 @@ export const defaultSettings: Settings = {
     snoozeJudge: ["View", "X"],
     mapPinsPreset: ["View", "LS"],
     markMoment: ["View", "RB"],
+    flagVerdict: [],
   },
   padEnabled: true,
   capture: { width: 2800, height: 0, maxEdge: 1600, quality: 88, ocrAssist: true, equippedCompare: true },
@@ -198,6 +206,7 @@ export const defaultSettings: Settings = {
   autoRuns: true,
   autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30 },
   testMode: { enabled: false, maxMB: 500 },
+  share: { enabled: false, asked: false, installId: null, since: null },
   mapPins: {
     enabled: true,
     preset: "custom",
@@ -253,7 +262,7 @@ export function migrateMapPins(m: Settings, persisted: any): Settings {
     const mine = key(m.padChords.mapPinsPreset);
     if (Object.entries(m.padChords).some(([a, c]) => a !== "mapPinsPreset" && c.length && key(c) === mine)) m.padChords = { ...m.padChords, mapPinsPreset: [] };
   }
-  return freeNewBinding(m, persisted, "markMoment");
+  return freeNewBinding(freeNewBinding(m, persisted, "markMoment"), persisted, "flagVerdict");
 }
 
 /**

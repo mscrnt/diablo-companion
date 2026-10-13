@@ -16,6 +16,7 @@ import { getActiveVariant, useBuilds, useLoot, useSettings } from "./store";
 import type { JudgeResult, ParsedItem } from "./types";
 import type { TooltipBox } from "./autojudge";
 import { debugEvent } from "./debug";
+import { shareJudgement } from "./share";
 
 let running = false;
 const cache = new Map<string, JudgeResult>();
@@ -147,6 +148,8 @@ export async function judgeTooltips(
       thumb: await thumbnail(hov.image.replace(/^data:[^,]+,/, "")).catch(() => undefined),
     };
     logJudgment(id, hov, eq, dbg, result);
+    // opt-in: off the verdict's path, never throws
+    void shareJudgement({ result, hov, eq, debug: dbg, equipped, quiet: meta?.quiet, auto: !!meta?.sig });
     debugEvent("autojudge", "judged", {
       verdict: result.verdict,
       item: hovered.name,

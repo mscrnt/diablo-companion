@@ -64,6 +64,12 @@ export interface TooltipText {
   equipped: boolean;
   /** OCR lines + bullet icon class (+ height and box), for the instant (no-LLM) parser */
   fast?: import("./fastparse").FastLine[];
+  /**
+   * For shared judgements: the crop's and the tooltip's screen rects, and the text boxes to black out in
+   * the crop (everything OCR read that isn't the tooltip: nameplates, chat). Null when the crop can't be
+   * trusted to show this tooltip (the mouse moved on).
+   */
+  share?: { region: import("./native").Rect; box: import("./native").Rect; redact: import("./native").Rect[]; monitor: import("./native").Rect; scan: import("./native").Rect } | null;
 }
 
 export interface ParseDebug {

@@ -90,6 +90,16 @@ Setup, for reference:
    - With `GITHUB_REPO_PRIVATE = "false"` (a public repo), the issue has only the report ID, version, OS and size, and no zip is ever uploaded.
 4. `npm run deploy`.
 
+## Shared judgements (`POST /judgements`, opt-in in the app)
+
+Players who opt in send their loot-judge results in batches every couple of minutes: `{ v: 1, install, version, os, items }`, where an item is a `judgement` (`id`, `at`, `data` up to 64 KB, optional `images.tooltip` / `images.equipped` as base64 jpeg up to ~300 KB) or a `feedback` (`id` of the judgement, `signal`: `wrong` / `right` / `worn`, optional `note`). Checks (`src/judgements.ts`, unit tested): a v4 install id, version, OS, 1 to 50 items, item times within the last week, known fields only (anything else is dropped), at most 8 MB per batch.
+
+- Stored as one object per batch: `debug/judgements/<UTC day>/<install id>/<ULID>.json`, under the MinIO user's existing write scope.
+- Rate limit: the `JUDGE_BURST` binding, 6 batches a minute per IP (salted hash), plus the zone's WAF rule. No KV counters: with batches every few minutes from every player, they'd use up the free plan's 1,000 KV writes a day.
+- **30 days:** set a lifecycle rule on the bucket so everything under `debug/` expires (reports and judgements alike):
+  `mc ilm rule add --expire-days 30 --prefix "debug/" s3/d4-companion`
+- **Delete my data** (`POST /judgements/delete`, `{ v: 1, install }`): the storage key can't delete, so the Worker writes `debug/judgements-deleted/<install>.json` and opens a private issue (label `delete-request`) with the `mc find … --exec "mc rm {}"` command for that install. The app stops sending and forgets the id at once.
+
 ## Rules
 
 - Never commit credentials. The MinIO and GitHub keys live only in the Secrets Store, and `IP_SALT` is a Worker secret.

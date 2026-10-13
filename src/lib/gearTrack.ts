@@ -2,6 +2,7 @@
 // update the build progress for that slot (state, Greater affixes, matched stats).
 import { normName, similarity } from "./names";
 import { getActiveVariant, useBuilds } from "./store";
+import { noteWorn } from "./share";
 import type { GearSlot, JudgeResult, OwnState, ParsedItem } from "./types";
 
 const SLOT_KEYS: Record<string, string[]> = {
@@ -56,5 +57,7 @@ export function recordEquipped(r: JudgeResult, item: ParsedItem, taken?: Set<str
   else if (!isTarget) state = "missing"; // wearing a stand-in; still need the real piece
   useBuilds.getState().setProgress(g.slot, { state, greater: gaHave, have: r.matched });
   useBuilds.getState().setWorn(g.slot, item);
+  // shared judgements: you put on something the judge saw
+  noteWorn(item);
   return { slot: g, state, isTarget, gaHave };
 }

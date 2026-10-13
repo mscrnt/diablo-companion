@@ -7,6 +7,7 @@ import { judgeImage, openJudgeLog } from "../lib/judgeRunner";
 import { openTestLog } from "../lib/testmode";
 import { useLoot, useSettings } from "../lib/store";
 import type { JudgeResult } from "../lib/types";
+import { shareFeedback, sharingOn } from "../lib/share";
 
 export default function Loot() {
   const { history, clear } = useLoot();
@@ -59,7 +60,14 @@ export default function Loot() {
 
       <div className="grid g2">
         <Card title="Latest verdict">
-          {shown ? <VerdictDetail r={shown} /> : <Empty icon={Scale}>Nothing judged yet.</Empty>}
+          {shown ? (
+            <>
+              <VerdictDetail r={shown} />
+              <WrongVerdict key={shown.id} r={shown} />
+            </>
+          ) : (
+            <Empty icon={Scale}>Nothing judged yet.</Empty>
+          )}
         </Card>
         <Card title="Test & tune">
           <div className="col">
@@ -126,7 +134,10 @@ export default function Loot() {
                       <div style={{ fontWeight: 700 }} className={"rar-" + h.item.rarity}>
                         {h.item.name}
                       </div>
-                      <div className="small muted">{h.item.itemType}</div>
+                      <div className="small muted">
+                        {h.item.itemType}
+                        {h.flagged && <span style={{ color: "var(--orange)" }}> · flagged wrong</span>}
+                      </div>
                     </td>
                     <td className="small">{h.slot ?? "—"}</td>
                     <td className="small">
@@ -141,6 +152,39 @@ export default function Loot() {
           </div>
         )}
       </Card>
+    </div>
+  );
+}
+
+/** "Wrong verdict?": flag it (with an optional note); sent with the judgement when sharing is on. */
+function WrongVerdict({ r }: { r: JudgeResult }) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const patch = useLoot((s) => s.patch);
+  if (r.flagged)
+    return <div className="small" style={{ color: "var(--orange)", marginTop: 8 }}>You flagged this verdict as wrong{sharingOn() ? ": thanks, it's been sent." : "."}</div>;
+  if (!open)
+    return (
+      <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => setOpen(true)}>
+        Wrong verdict?
+      </button>
+    );
+  const send = () => {
+    patch(r.id, { flagged: true });
+    shareFeedback(r.id, "wrong", note);
+  };
+  return (
+    <div className="col" style={{ marginTop: 8, gap: 6 }}>
+      <input type="text" maxLength={300} placeholder="What should it have said? (optional)" value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
+      <div className="row">
+        <button className="btn sm" onClick={send}>
+          Flag as wrong
+        </button>
+        <button className="btn ghost sm" onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+        {!sharingOn() && <span className="small dim">Turn on shared judgements in Settings to send flags to the developer.</span>}
+      </div>
     </div>
   );
 }

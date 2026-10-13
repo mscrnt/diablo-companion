@@ -7,6 +7,7 @@ import { useSettings, type ActionId } from "../lib/store";
 import { staticMeta } from "../lib/names";
 import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate, installUpdate } from "../lib/version";
 import { DebugReportButton } from "../components/DebugReport";
+import { HelpImproveCard } from "../components/HelpImprove";
 
 const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "judge", label: "Judge item under cursor" },
@@ -20,6 +21,7 @@ const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "snoozeJudge", label: "Snooze the loot judge (30 s)" },
   { id: "mapPinsPreset", label: "Map pins: next preset" },
   { id: "markMoment", label: "Mark this moment (saves a debug snapshot)" },
+  { id: "flagVerdict", label: "Flag the last verdict as wrong" },
 ];
 
 export default function SettingsPage() {
@@ -186,6 +188,8 @@ export default function SettingsPage() {
             Boss names/zones from helltides.com's public feed (be polite: ≥ 30s). Times are always computed locally, so timers work offline.
           </div>
         </Card>
+
+        <HelpImproveCard />
 
         <About />
       </div>

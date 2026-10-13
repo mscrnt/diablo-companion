@@ -220,6 +220,8 @@ export interface JudgeResult {
   thumb?: string;
   advice?: string;
   ms: number;
+  /** the player flagged this verdict as wrong (Loot page or hotkey) */
+  flagged?: boolean;
 }
 
 // ---- timers ---------------------------------------------------------------

@@ -438,6 +438,53 @@ async fn debug_report_upload(app: AppHandle, path: String, screenshots: bool) ->
     Ok(id)
 }
 
+/// Shared judgements (opt-in in the app) go to the same Worker; nothing else is ever sent there.
+const SHARE_URL: &str = "https://reports.mscrnt.com/judgements";
+const SHARE_DELETE_URL: &str = "https://reports.mscrnt.com/judgements/delete";
+const SHARE_MAX_BYTES: usize = 8 * 1024 * 1024;
+
+async fn share_post(app: &AppHandle, url: &str, body: serde_json::Value) -> Result<serde_json::Value, String> {
+    let text = body.to_string();
+    if text.len() > SHARE_MAX_BYTES {
+        return Err("the batch is too large".into());
+    }
+    let v = app.package_info().version.clone();
+    let client = tauri_plugin_http::reqwest::Client::builder().timeout(std::time::Duration::from_secs(60)).build().map_err(err)?;
+    let res = client
+        .post(url)
+        .header("content-type", "application/json")
+        .header("user-agent", format!("SanctuaryToolkit/{v}"))
+        .body(text)
+        .send()
+        .await
+        .map_err(|e| format!("couldn't reach the server ({e})"))?;
+    let status = res.status();
+    let reply: serde_json::Value = serde_json::from_str(&res.text().await.unwrap_or_default()).unwrap_or(serde_json::Value::Null);
+    if !status.is_success() {
+        let msg = reply.get("error").and_then(|m| m.as_str()).unwrap_or("unknown error");
+        return Err(format!("{msg} (HTTP {})", status.as_u16()));
+    }
+    Ok(reply)
+}
+
+/// Send one batch of shared judgements: `{ install, items }` from the app, stamped here with the app
+/// version and OS. Returns how many items the server stored.
+#[tauri::command]
+async fn share_send(app: AppHandle, install: String, items: serde_json::Value) -> Result<u64, String> {
+    if !items.is_array() {
+        return Err("items must be a list".into());
+    }
+    let body = serde_json::json!({ "v": 1, "install": install, "version": app.package_info().version.to_string(), "os": windows_os(), "items": items });
+    let reply = share_post(&app, SHARE_URL, body).await?;
+    Ok(reply.get("items").and_then(|n| n.as_u64()).unwrap_or(0))
+}
+
+/// "Delete my data": ask the server to delete everything sent under this install id.
+#[tauri::command]
+async fn share_delete(app: AppHandle, install: String) -> Result<(), String> {
+    share_post(&app, SHARE_DELETE_URL, serde_json::json!({ "v": 1, "install": install })).await.map(|_| ())
+}
+
 fn safe_name_dot(s: &str) -> String {
     s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.' { c } else { '_' }).collect()
 }
@@ -513,6 +560,8 @@ pub fn run() {
             open_log_folder,
             debug_report,
             debug_report_upload,
+            share_send,
+            share_delete,
             display_info,
         ])
         .setup(|app| {

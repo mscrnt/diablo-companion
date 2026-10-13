@@ -6,7 +6,8 @@ import Welcome from "./pages/Welcome";
 import { loadStaticData } from "./lib/names";
 import { tidyCharacter } from "./lib/charmap";
 import { APP_VERSION, RELEASES_URL } from "./lib/version";
-import { useBuilds, useCoach, useLoot } from "./lib/store";
+import { useBuilds, useCoach, useLoot, useSettings } from "./lib/store";
+import { HelpImproveModal } from "./components/HelpImprove";
 import Dashboard from "./pages/Dashboard";
 import Timers from "./pages/Timers";
 import BuildPage from "./pages/Build";
@@ -62,6 +63,8 @@ export default function App() {
   const [page, setPage] = useState<PageId>("dashboard");
   const [ready, setReady] = useState(false);
   const [welcome, setWelcome] = useState(false);
+  // the Help improve step, once, for people who set up before it existed (new installs see it in Welcome)
+  const [askHelp, setAskHelp] = useState(false);
   const rt = useRuntime();
   const pending = useCoach((s) => s.pendingImage);
   const lootCount = useLoot((s) => s.history.filter((h) => Date.now() - h.at < 3600_000).length);
@@ -72,7 +75,9 @@ export default function App() {
       tidyCharacter();
       // wait for persisted builds, then seed the user's build on first run
       if (!useBuilds.persist.hasHydrated()) await new Promise<void>((r) => useBuilds.persist.onFinishHydration(() => r()));
+      if (!useSettings.persist.hasHydrated()) await new Promise<void>((r) => useSettings.persist.onFinishHydration(() => r()));
       if (!Object.keys(useBuilds.getState().builds).length) setWelcome(true);
+      else if (!useSettings.getState().settings.share.asked) setAskHelp(true);
       setReady(true);
       startEngine();
     })();
@@ -171,6 +176,7 @@ export default function App() {
         {page === "settings" && <SettingsPage />}
         </ErrorBoundary>
       </main>
+      <HelpImproveModal open={askHelp} onClose={() => setAskHelp(false)} />
     </div>
   );
 }

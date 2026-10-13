@@ -26,6 +26,9 @@ GITHUB_DAILY_CAP = "20"
 GITHUB_LABELS = "debug-report" # e.g. "debug-report" (the label must exist in the repo)
 GITHUB_ZIPS = "on"            # attach each zip to that day's release (private repo only; needs Contents read/write)
 KEEP_DAYS = "30"              # releases (and their zips) are deleted after this many days, like storage
+# shared judgements (opt-in in the app): POST /judgements, one JSON batch every few minutes per player
+JUDGE_MAX_BYTES = "8388608"   # 8 MB per batch (up to 50 judgements with their tooltip crops)
+GITHUB_DELETE_LABELS = "delete-request" # label for "delete my data" issues (must exist in the repo)
 
 # storage keys: upload-only MinIO user, kept in the Cloudflare Secrets Store (never in this repo)
 [[secrets_store_secrets]]
@@ -49,6 +52,12 @@ secret_name = "D4_COMPANION_GITHUB_TOKEN"
 name = "BURST"
 namespace_id = "1001"
 simple = { limit = 2, period = 60 }
+
+# shared judgements: per-IP burst limit (no KV counters: the free plan allows 1,000 KV writes a day)
+[[ratelimits]]
+name = "JUDGE_BURST"
+namespace_id = "1002"
+simple = { limit = 6, period = 60 }
 
 # hourly per-IP and daily counters: create with `npx wrangler kv namespace create COUNTERS` and paste the id
 [[kv_namespaces]]

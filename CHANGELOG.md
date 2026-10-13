@@ -5,6 +5,12 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+### Added
+- **Help improve Sanctuary Toolkit:** a new step in the first-run setup, shown once to everyone who upgrades, and a card in Settings.
+  - **Share my judgements** (off until you say yes): each loot-judge result goes to the developer, so the judge gets tested on every class, build and screen setup. It sends the item's tooltip text and a picture of the tooltip, the verdict and why, your build guide, and your screen size. Text in the picture that isn't the tooltip (names, chat) is blacked out. Never your BattleTag, character name, chat or a full screenshot. Kept for 30 days. **See what was sent** and **Delete my shared data** are in Settings.
+  - **Test mode** can be turned on right there, with how to mark a moment and send a debug report.
+- **Wrong verdict?** on the Loot page, with an optional note, and a hotkey to flag the last verdict (**Ctrl+Alt+W**). With sharing on, flags go to the developer with the judgement.
+
 ## [0.2.3] - 2026-10-13
 
 ### Added

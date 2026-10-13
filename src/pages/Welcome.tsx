@@ -2,8 +2,9 @@ import { useState } from "react";
 import { importMobalytics, normaliseMobalytics } from "../lib/mobalytics";
 import { listModels } from "../lib/llm";
 import { useBuilds, useSettings } from "../lib/store";
+import { HelpImproveChoices, applyChoices, type Choices } from "../components/HelpImprove";
 
-/** First run: pick a build (any Mobalytics URL) and, optionally, connect an AI model. */
+/** First run: pick a build (any Mobalytics URL), optionally connect an AI model, and choose how to help improve the app. */
 export default function Welcome({ onDone }: { onDone: () => void }) {
   const { settings, update } = useSettings();
   const addBuild = useBuilds((s) => s.addBuild);
@@ -11,6 +12,8 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [llmMsg, setLlmMsg] = useState("");
+  // test mode is local only; sharing needs a clear yes, so it starts unticked
+  const [help, setHelp] = useState<Choices>({ share: false, testMode: true });
 
   const doImport = async () => {
     setBusy(true);
@@ -99,8 +102,27 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
         </ul>
       </div>
 
+      <div className="card" style={{ marginTop: 14 }}>
+        <div className="row">
+          <h2 style={{ margin: 0 }}>4. Help improve Sanctuary Toolkit</h2>
+          <button className="btn sm right" onClick={() => setHelp({ share: true, testMode: true })}>
+            Turn both on
+          </button>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <HelpImproveChoices value={help} onChange={setHelp} />
+        </div>
+      </div>
+
       <div className="row" style={{ marginTop: 16 }}>
-        <button className="btn primary right" disabled={!hasBuild && !msg?.ok} onClick={onDone}>
+        <button
+          className="btn primary right"
+          disabled={!hasBuild && !msg?.ok}
+          onClick={() => {
+            applyChoices(help);
+            onDone();
+          }}
+        >
           Start →
         </button>
       </div>
