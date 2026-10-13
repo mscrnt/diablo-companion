@@ -5,6 +5,8 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-13
+
 ### Added
 - **Minor Nightmares are timed:** the Chronicle's runs through old dungeons ("Diablo II - Den of Evil", "Diablo III - The Scouring of Caldeum") start the timer like a Nightmare Dungeon, split on each objective and stop on "Nightmare Cleansed".
 
@@ -156,7 +158,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/mscrnt/diablo-companion/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/mscrnt/diablo-companion/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mscrnt/diablo-companion/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mscrnt/diablo-companion/compare/v0.1.1...v0.2.0
