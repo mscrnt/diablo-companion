@@ -5,6 +5,8 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-13
+
 ### Fixed
 - **Map pins stay off the game's boxes over the map:** a hovered icon's popup (a Whisper, a dungeon), the War Plans panel and the Whispers bar. The game's boxes are near-black and the map is light parchment, so a pin with dark all around it is hidden; the game's own icons under a pin don't count.
 
@@ -142,7 +144,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/mscrnt/diablo-companion/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mscrnt/diablo-companion/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mscrnt/diablo-companion/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/mscrnt/diablo-companion/compare/v0.1.0...v0.1.1
