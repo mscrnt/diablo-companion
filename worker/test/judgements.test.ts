@@ -61,6 +61,8 @@ describe("where batches go", () => {
   it("a delete request lists the commands that remove that install's batches", () => {
     const { title, body } = deleteIssue(INSTALL, "debug/", "d4-companion", new Date(NOW));
     expect(title).toContain(INSTALL);
-    expect(body).toContain(`mc find s3/d4-companion/debug/judgements --path "*/${INSTALL}/*" --exec "mc rm {}"`);
+    expect(body).toContain(`c.list_objects("d4-companion", prefix="debug/judgements/", recursive=True) if "/${INSTALL}/" in o.object_name`);
+    expect(body).toContain("remove_object");
+    expect(body).not.toMatch(/key="[A-Za-z0-9]{8,}"/);
   });
 });

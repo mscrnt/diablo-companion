@@ -89,19 +89,24 @@ export function deleteKey(prefix: string, install: string): string {
  * lists the commands that remove every batch from that install. Everything expires after 30 days anyway.
  */
 export function deleteIssue(install: string, prefix: string, bucket: string, at = new Date()): { title: string; body: string } {
-  const root = `${bucket}/${prefix.replace(/\/?$/, "/")}judgements`;
+  const root = `${prefix.replace(/\/?$/, "/")}judgements/`;
   return {
     title: `Delete shared judgements ${install}`,
     body: [
-      `A player asked to delete their shared judgements (${at.toISOString()}). Their app has stopped sending and made a new install id.`,
+      `A player asked to delete their shared judgements (${at.toISOString()}). Their app has stopped sending and forgot this install id.`,
       "",
-      "Delete every batch from this install (replace `s3` with your mc alias):",
+      "Delete every batch from this install with the MinIO Python SDK (`pip install minio`), using an admin key:",
       "",
-      "```sh",
-      `mc find s3/${root} --path "*/${install}/*" --exec "mc rm {}"`,
+      "```python",
+      "from minio import Minio",
+      'c = Minio("<host>:9000", access_key="<key>", secret_key="<secret>", secure=False)',
+      `gone = [o.object_name for o in c.list_objects("${bucket}", prefix="${root}", recursive=True) if "/${install}/" in o.object_name]`,
+      `for name in gone: c.remove_object("${bucket}", name)`,
+      `left = [o for o in c.list_objects("${bucket}", prefix="${root}", recursive=True) if "/${install}/" in o.object_name]`,
+      'print(len(gone), "deleted,", len(left), "left")',
       "```",
       "",
-      `Then check nothing is left: \`mc find s3/${root} --path "*/${install}/*"\` should print nothing. Close this issue when done.`,
+      "It should print 0 left. Close this issue when done. Everything expires after 30 days anyway (lifecycle rule `expire-debug-30d`).",
     ].join("\n"),
   };
 }
