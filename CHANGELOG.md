@@ -5,6 +5,15 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+### Added
+- **Minor Nightmares are timed:** the Chronicle's runs through old dungeons ("Diablo II - Den of Evil", "Diablo III - The Scouring of Caldeum") start the timer like a Nightmare Dungeon, split on each objective and stop on "Nightmare Cleansed".
+
+### Fixed
+- **White and blue items with no stats of their own** ("RING" / "Ancestral Ring", "Hide Tunic", a blue helm whose rarity word didn't read) are judged by the quick reader. They were passed to the AI read, which called some of them unique or legendary and said to scrap them; without an AI model they couldn't be read at all.
+- The AI read always looks at the item it reads the text of: when the mouse had already moved on, it saw the next item's tooltip and mixed the two ("Strider's Crown" judged as magic boots).
+- The bottom of a seasonal socketable ("Amalgamable / Account Bound / Seasonal Item") is kept to amalgamate, not scrapped as a unique helm.
+- A pickup notice over the tracker ("20 Iron Chunks") isn't taken for part of the dungeon's name.
+
 ## [0.2.2] - 2026-10-13
 
 ### Fixed

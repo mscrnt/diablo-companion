@@ -2,7 +2,7 @@
 // "Seaborn"/"Seabom" flip and stray damage number used to split the run (146 splits for two dungeons).
 import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
-import { isDungeonCleared, readObjective, stepObjective, type ObjectiveState } from "../src/lib/dungeon";
+import { isDungeonCleared, isNightmareCleansed, nightmareKind, readObjective, stepObjective, stripPickup, type ObjectiveState } from "../src/lib/dungeon";
 import { loadStaticData } from "../src/lib/names";
 
 const runs: { dungeon: string; reads: string[] }[] = JSON.parse(readFileSync(new URL("./fixtures/tracker/nmd-objectives-2026-10-11.json", import.meta.url), "utf8"));
@@ -59,5 +59,34 @@ describe("splits from today's runs", () => {
     const got = splits(run);
     expect(got.length, got.join(" | ")).toBeLessThanOrEqual(8);
     expect(got.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// The Chronicle's Minor Nightmares, as the tracker read them (2026-10-12): never timed before
+describe("Minor Nightmares", () => {
+  it("the tracker marker names the run", () => {
+    expect(nightmareKind("Minor Nightmare")).toBe("Minor Nightmare");
+    expect(nightmareKind("Nightmare Dungeon")).toBe("Nightmare Dungeon");
+    expect(nightmareKind("Nightmare Escalation Tier 2")).toBe("Escalating Nightmare");
+    expect(nightmareKind("Purge the Kurast Undercity")).toBeNull();
+  });
+
+  it("ends on Nightmare Cleansed", () => {
+    expect(isNightmareCleansed("Nightmare Cleansed")).toBe(true);
+    expect(isNightmareCleansed("Nightmare C1eansed •")).toBe(true);
+    expect(isNightmareCleansed("Slay the Countess •")).toBe(false);
+  });
+
+  it("pickup notices aren't the dungeon name", () => {
+    expect(stripPickup("20 Iron Chunks Diablo II - Forgotten Tower")).toBe("Diablo II - Forgotten Tower");
+    expect(stripPickup("16 Veiled Crystals")).toBe("");
+    expect(stripPickup("Diablo II - Den of Evil")).toBe("Diablo II - Den of Evil");
+    expect(stripPickup("Refugees saved: 0")).toBe("Refugees saved: 0");
+    expect(stripPickup("3 shrines remaining")).toBe("3 shrines remaining");
+  });
+
+  it("reads the objective under an old dungeon's name", () => {
+    expect(readObjective("Kill all monsters in the Den", "Diablo II - Den of Evil")?.words).toBe("kill all monsters in the den");
+    expect(readObjective("Collect the Lost Pages: 0/5", "Diablo Immortal - Horadric Library")?.words).toMatch(/collect the lost pages/);
   });
 });

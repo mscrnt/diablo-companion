@@ -6,6 +6,24 @@ import { trigramSim } from "./names";
 /** "Dungeon cleared", OCR slips included ("Duhgeon cleared V", "Dungeon'Cleared"). */
 export const isDungeonCleared = (text: string) => /d[a-z]{1,3}geon\W{0,2}c[il1]eared/i.test(text);
 
+export type NmdKind = "Nightmare Dungeon" | "Escalating Nightmare" | "Minor Nightmare";
+
+/** The tracker line under the objective that names the run ("Nightmare Escalation Tier 2", "Minor Nightmare"). */
+export const nightmareKind = (marker: string): NmdKind | null =>
+  /^\W*nightmare dungeon\W*$/i.test(marker)
+    ? "Nightmare Dungeon"
+    : /^\W*nightmare\s*escalat/i.test(marker)
+      ? "Escalating Nightmare"
+      : /^\W*minor\s*nightmare\W*$/i.test(marker)
+        ? "Minor Nightmare"
+        : null;
+
+/** A Minor Nightmare (the Chronicle's runs through old dungeons) ends on "Nightmare Cleansed" instead. */
+export const isNightmareCleansed = (text: string) => /nightmare\W{0,2}c[il1]eansed/i.test(text);
+
+/** A pickup notice floating over the tracker ("16 Veiled Crystals"), alone or glued to the dungeon name. */
+export const stripPickup = (text: string) => text.replace(/^\d[\d,]*\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s*(?=$|\S.*\s-\s)/, "").trim();
+
 export interface Objective {
   /** the words, lowercased, without numbers or junk ("destroy the seaborn shrine") */
   words: string;

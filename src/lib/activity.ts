@@ -18,7 +18,7 @@ import { bestTrees, needs, parseWarPlan, useWarPlans } from "./warplans";
 import { getActiveVariant, useRuns, useSettings } from "./store";
 import { debugEvent } from "./debug";
 import { parseUndercity } from "./undercity";
-import { isDungeonCleared, readObjective, stepObjective, type Objective } from "./dungeon";
+import { isDungeonCleared, isNightmareCleansed, nightmareKind, readObjective, stepObjective, stripPickup, type NmdKind, type Objective } from "./dungeon";
 import { trigramSim } from "./names";
 
 export interface AdvisorState {
@@ -248,26 +248,27 @@ async function readObelisk(rect: Rect) {
 let obeliskCheck = 0;
 
 // ---- Nightmare Dungeons: tracker shows "<Dungeon name> / <objective> / Nightmare Dungeon" ----
-// (an Escalating Nightmare's stages show "Nightmare Escalation Tier 1" there instead)
+// (an Escalating Nightmare's stages show "Nightmare Escalation Tier 1" there instead, a Minor Nightmare
+// "Minor Nightmare", under "Diablo II - Den of Evil" and the like)
 /**
  * `objective` = the one shown now; `pending` = a different read waiting for a second read to agree
  * (one read of OCR noise mustn't split the run); `done` = "Dungeon cleared" already ended the timer.
  */
 let nmd: { kind: NmdKind; stage: number | null; dungeon: string; objective: Objective | null; pending: Objective | null; lastSeen: number; done?: boolean } | null = null;
-type NmdKind = "Nightmare Dungeon" | "Escalating Nightmare";
-const nmdKind = (marker: string): NmdKind | null =>
-  /^\W*nightmare dungeon\W*$/i.test(marker) ? "Nightmare Dungeon" : /^\W*nightmare\s*escalat/i.test(marker) ? "Escalating Nightmare" : null;
 
 function nmdTick() {
   const now = Date.now();
-  const i = trackerLines.findIndex((l) => !!nmdKind(l.text.trim()));
+  const i = trackerLines.findIndex((l) => !!nightmareKind(l.text.trim()));
   const runs = useRuns.getState();
   if (i >= 0) {
     const marker = trackerLines[i];
-    const kind = nmdKind(marker.text.trim())!;
+    const kind = nightmareKind(marker.text.trim())!;
     const above = trackerLines
       // damage numbers float over the tracker in fights ("1,413M"): never a dungeon name or an objective
       .filter((l) => l.y < marker.y && marker.y - l.y < marker.h * 6 && !/torment|\btab\b|\d{1,2}:\d{2}/i.test(l.text) && !/^\W*[\d,.]+\s*[kmb]?\W*$/i.test(l.text.trim()))
+      // and pickup notices ("16 Veiled Crystals", "20 Iron Chunks Diablo II - Forgotten Tower")
+      .map((l) => ({ ...l, text: stripPickup(l.text.trim()) }))
+      .filter((l) => l.text)
       .sort((a, b) => a.y - b.y);
     const dungeon = (above[0]?.text ?? "").replace(/[^A-Za-z' -]+$/, "").trim();
     const text = above.slice(1).map((l) => l.text.trim()).join(" ").replace(/\s*[◆♦•]\s*$/, "").trim();
@@ -302,7 +303,7 @@ function nmdTick() {
         nmd.dungeon = dungeon;
       }
       const active = runs.active?.activity === nmd.kind ? runs.active : null;
-      if (active && isDungeonCleared(text)) {
+      if (active && (isDungeonCleared(text) || isNightmareCleansed(text))) {
         // the boss is down: stop the clock now, not when you walk out
         debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: "dungeon cleared" });
         if (nmd.objective) runs.split(nmd.objective.label || "Objective");

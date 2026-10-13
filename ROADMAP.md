@@ -111,6 +111,7 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 | Undercity map helper | Run tracking, floor splits, the countdown warning and reward upgrades are done. Next: point out beacons, Afflicted monsters and the exit on each floor's map (needs map captures from real runs), and suggest which tribute to offer | 🖥📦 | M |
 | The Tower | Timed leaderboard dungeon from the Pit's obelisk: tell it apart from the Pit, track tier and time, show your best per tier and what beats it | 🖥📦 | S |
 | Events inside dungeons | Events that pop up inside a Nightmare Dungeon or the Undercity ("Impromptu Investigation", "Nest", "Cursed Shrine": a timer, a mastery objective) get their own split in the dungeon's run, with the time they took and whether the mastery was met, plus per-event bests (requested 2026-10-11). | 🖥 | S |
+| Horadric Strongroom | Time the Strongroom's stages ("I II III IV V VI" on the tracker) with a split per stage and its objective ("Invoke 0/3 Horadric Statues"); seen untracked 2026-10-12 | 🖥 | S |
 | Legion, strongholds | Run tracking like the Pit; stronghold, cellar and altar completion | 🖥📦 | M |
 | Seasonal mechanic module | One module per season (datamined each patch) so the app is ready on day one | 📦 | M per season |
 | Bounties and dailies | Read the active bounty or Grim Favor list and plan the shortest route | 🖥📦 `BountyData` | M |

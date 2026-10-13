@@ -144,6 +144,10 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     const tome = /amount of\s+experience|experience tome/i.test(all);
     if (tome || /use this cache to receive your rewards|collection of items as a reward/i.test(all))
       return { name: tome ? "Experience Tome" : "Cache", rarity: "rare", itemType: tome ? "Experience Tome" : "Cache", slot: "other", itemPower: null, affixes: [], aspect: null, rawText: all, category: "consumable" };
+    // the bottom of a seasonal socketable ("Amalgamable / Account Bound / Seasonal Item / Sell Value"): the AI
+    // read guessed a unique helm and scrapped it (2026-10-13 test)
+    if (/^\W*amalgamable\W*$|can be inserted into/im.test(all) && !/item power/i.test(all))
+      return { name: "Socketable", rarity: "common", itemType: "Socketable", slot: "other", itemPower: null, affixes: [], aspect: null, rawText: all, category: "socketable" };
   }
   // a garbled rarity word ("ii/ölakic Scythe" = Magic Scythe): a short Title-case line ending in the item
   // kind, under an ALL-CAPS title
@@ -155,7 +159,12 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     );
   // a bare item kind ("Boots") — last, since the Character panel's slot labels look the same
   // (a white item has no rarity word at all: "Ancestral Axe (Slashing)", "Ancestral Two-Handed Mace")
-  if (ti < 0) ti = L.findIndex((l, i) => i < 8 && /^(ancestral |sacred )?(two-handed |one-handed )?(scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|helm|gloves|pants|boots|amulet|ring)(\s*\([a-z]+\))?$/i.test(l.text.trim()));
+  const bareKind = (l?: FastLine) => !!l && /^(ancestral |sacred )?(two-handed |one-handed )?(scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|helm|chest armor|gloves|pants|boots|amulet|ring)(\s*\([a-z]+\))?$/i.test(l.text.trim());
+  if (ti < 0) {
+    ti = L.findIndex((l, i) => i < 8 && bareKind(l));
+    // a white item's title is its kind too ("AMULET" / "Amulet"): the type line is the one under it
+    if (ti >= 0 && bareKind(L[ti + 1])) ti++;
+  }
   if (ti < 0) return null; // top of tooltip not visible → let the LLM try
   let typeLine = L[ti].text;
   let after = ti + 1;
@@ -433,6 +442,10 @@ export function toughnessOf(text: string): number | undefined {
 /** Quick check used by tests: how sure are we the parse makes sense? */
 export function looksSane(p: ParsedItem): boolean {
   if (p.category && p.category !== "gear") return p.name.length >= 3;
+  // white, blue and yellow gear may have no stats, and a white item's title is its kind ("RING" / "Ancestral
+  // Ring"): rejected here, they went to the AI read, which called them unique and scrapped them, or were
+  // unreadable without one (2026-10-13 test). No power paragraph, so a legendary that lost its rarity word still goes on.
+  if (/^(common|magic|rare)$/.test(p.rarity) && !p.aspect) return p.name.length >= 3 && p.slot !== "other" && !!p.itemPower;
   return p.name.length >= 3 && p.affixes.length >= 2 && p.slot !== "other" && (!!p.untitled || similarity(p.name, p.itemType) < 0.8);
 }
 

@@ -223,8 +223,12 @@ function signature(lines: OcrLine[]) {
  */
 export async function tooltipText(col: TooltipColumn, cap: CaptureResult): Promise<TooltipText> {
   const crop = await captureRegion(padBox(col.box), { maxEdge: 1100, quality: 92 }).catch(() => null);
+  // the mouse moved on since the OCR frame: the crop can show the next item's tooltip, and the AI read
+  // labelled one item's lines from another's picture ("Strider's Crown" judged as magic boots, 2026-10-13
+  // test). The scan frame is smaller but shows the tooltip those lines came from.
+  const moved = !!crop && Math.hypot(crop.cursor[0] - cap.cursor[0], crop.cursor[1] - cap.cursor[1]) > 6;
   return {
-    image: crop?.image ?? cap.image,
+    image: crop && !moved ? crop.image : cap.image,
     lines: col.lines.map((l) => l.text),
     // opened from the Character panel, your own item has no EQUIPPED header but offers "Unequip"
     equipped: col.equipped || col.lines.some((l) => isUnequipLine(l.text)),
