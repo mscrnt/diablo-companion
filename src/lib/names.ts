@@ -14,6 +14,7 @@ export interface SlimEntry {
   src?: string; // unique drop source
   loc?: string; // aspect dungeon/location
   set?: string; // charm set
+  s?: string[]; // the stats a unique always rolls
   x?: 1; // deprecated / retired
 }
 
@@ -239,9 +240,17 @@ export function trigramSim(a: string, b: string): number {
 }
 
 /** "2h Mace" against "Ancestral Mythic Unique Two-Handed Mace (Bludgeoning)". */
-function typeMatches(uniqueType: string, itemType: string): boolean {
+export function typeMatches(uniqueType: string, itemType: string): boolean {
   const t = normName(uniqueType).replace(/\b2h\b/, "two handed").replace(/\b1h\b/, "one handed");
   return !!t && normName(itemType).includes(t);
+}
+
+/** An OCR'd title against a unique's name, 0..1: letters as read, and glyph-confusion keys ("rn1Gi4T"). */
+export function titleSimilarity(title: string, uniqueName: string): number {
+  const key = (t: string) => confusionKey(t).replace(/4/g, "h");
+  // the title shows the name without the "(2h Mace)" the data adds to tell the copies apart
+  const base = uniqueName.replace(/\s*\([^)]*\)\s*$/, "");
+  return Math.max(trigramSim(title, base), trigramSim(key(title), key(base)));
 }
 
 /**

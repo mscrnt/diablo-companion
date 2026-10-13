@@ -28,6 +28,8 @@ const uniques = map(read("uniques.json"), (v) => ({
   c: v.class,
   t: v.itemTypeName,
   m: v.isMythic ? 1 : undefined,
+  // the stats a unique always rolls: one of the signals that names an item whose title OCR mangled
+  s: v.secondaryStats?.length ? v.secondaryStats : undefined,
   src: v.dropSource,
   x: v.deprecated ? 1 : undefined,
 }));

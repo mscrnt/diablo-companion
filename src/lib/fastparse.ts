@@ -2,6 +2,7 @@
 // Returns null (→ fall back to the LLM labeller) when it isn't confident.
 import { buildTargetNames, cleanStat, matchTarget } from "./parse";
 import { aspectFromItemName, canonicalUnique, identifyAspect, identifyUnique, similarity, table, trigramSim } from "./names";
+import { confident, identifyUnique as identifyUniqueFrom } from "./identify";
 import { confusionKey, editDistance, knownStat, knownWord, ocrVocabReady, sheetLabel, snapLines } from "./ocrfix";
 import type { Bullet } from "./vision";
 import type { BuildVariant, CompareRow, ParsedAffix, ParsedItem } from "./types";
@@ -382,10 +383,13 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
 
   // repair OCR'd titles: snap uniques to the official name; for legendaries fix the "of X" suffix from the aspect
   let finalName = name;
-  // a capture that missed the title ("Unique Gloves" from the type line): the unique power says which one
-  if ((rarity === "unique" || rarity === "mythic") && !rawName.trim()) finalName = identifyUnique(powerText, typeLine) ?? name;
-  // a title too garbled to match ("IN.?INIT.Y" at 1080p): the unique power says which one too
-  else if (rarity === "unique" || rarity === "mythic") finalName = canonicalUnique(name, typeLine) ?? identifyUnique(powerText, typeLine) ?? name;
+  // uniques: title, unique power and the stats it always rolls, together (identify.ts), so a mangled or
+  // missing title, or one merged with the comparison column's ("DEATHGRIP F o c USED STRIDER'S"), still names
+  // it; a clear winner only, else the title or power on its own as before
+  if (rarity === "unique" || rarity === "mythic") {
+    const pick = confident(identifyUniqueFrom({ title: rawName.replace(/[*✸✹✺❋✷]/g, ""), itemType: typeLine, power: powerText, stats: stats.map((s) => s.text) }));
+    finalName = pick?.name ?? (rawName.trim() ? canonicalUnique(name, typeLine) : null) ?? identifyUnique(powerText, typeLine) ?? name;
+  }
   else if (legendaryName && / of /i.test(name)) {
     const suffix = legendaryName.replace(/^aspect\s+of\s+/i, "").replace(/\s+aspect$/i, "");
     const cut = name.toLowerCase().lastIndexOf(" of ");
