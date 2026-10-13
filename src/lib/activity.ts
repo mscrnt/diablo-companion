@@ -276,7 +276,10 @@ function nmdTick() {
     // "Nightmare Escalation Tier 2": an Escalating Nightmare's next stage follows the last one's clear
     // within seconds, before the tracker has been gone long enough to end it
     const stage = Number(marker.text.match(/\d+/)?.[0] ?? NaN) || null;
-    if (nmd && ((stage != null && nmd.stage != null && stage !== nmd.stage) || (nmd.done && dungeon && trigramSim(dungeon, nmd.dungeon) < 0.5))) {
+    // a tracker still saying "Dungeon cleared" is the run that just ended, whatever line was read as its
+    // name ("New", "Priority Quest(s) Available"): those reads started and stopped four 3 s runs (2026-10-13 test)
+    const cleared = isDungeonCleared(text) || isNightmareCleansed(text);
+    if (nmd && ((stage != null && nmd.stage != null && stage !== nmd.stage) || (nmd.done && !cleared && objective && dungeon && trigramSim(dungeon, nmd.dungeon) < 0.5))) {
       debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: nmd.done ? "next stage" : "next stage before a clear was seen" });
       const active = runs.active;
       if (active?.activity === nmd.kind && !nmd.done) runs.stop(true, nmd.lastSeen);
@@ -284,9 +287,9 @@ function nmdTick() {
     }
     if (!nmd) {
       endBoss("left");
-      nmd = { kind, stage, dungeon, objective, pending: null, lastSeen: now };
-      debugEvent("activity", "nmd-start", { kind, dungeon, objective: text, runStarted: !runs.active });
-      if (!runs.active) {
+      nmd = { kind, stage, dungeon, objective, pending: null, lastSeen: now, done: cleared || undefined };
+      debugEvent("activity", "nmd-start", { kind, dungeon, objective: text, runStarted: !runs.active && !cleared });
+      if (!runs.active && !cleared) {
         runs.setActivity(kind, dungeon);
         runs.start();
         overlayToast(kind, `${dungeon || "Run"}: timer running`, "#b06cff", 3000);
@@ -303,7 +306,7 @@ function nmdTick() {
         nmd.dungeon = dungeon;
       }
       const active = runs.active?.activity === nmd.kind ? runs.active : null;
-      if (active && (isDungeonCleared(text) || isNightmareCleansed(text))) {
+      if (active && cleared) {
         // the boss is down: stop the clock now, not when you walk out
         debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: "dungeon cleared" });
         if (nmd.objective) runs.split(nmd.objective.label || "Objective");
