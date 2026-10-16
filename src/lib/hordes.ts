@@ -92,6 +92,8 @@ export interface SeenOffer {
   why: string;
   /** label on screen in the latest scan (remembered offers still rank, but get no badge) */
   visible?: boolean;
+  /** recognised by its effect text (you stand next to it), not its title */
+  byEffect?: boolean;
 }
 
 /** Find offer labels in an OCR'd frame (titles or their exact boon/bane lines). */
@@ -136,9 +138,94 @@ export function findOffers(lines: OcrLine[], region: { x: number; y: number }, s
       o.box = { x: x0, y: y0, w: Math.max(o.box.x + o.box.w, box.x + box.w) - x0, h: Math.max(o.box.y + o.box.h, box.y + box.h) - y0 };
     }
   }
-  const list = [...found.values()].sort((a, b) => b.score - a.score);
+  // 3) the offer you stand next to shows its effects instead of its title ("Soulspires grant 2.5x Aether" /
+  //    "Soulspires spawn less often"): it was missed, and the best offer dropped out of the ranking (2026-10-15
+  //    test). Its boon and bane, wrapped over several lines, both have to be there.
+  //    Similar offers share most words ("Soulspires grant 2x / 2.25x / 2.5x Aether"), so numbers count, and each
+  //    bit of text names one offer: the best match takes it.
+  const words: { w: string; line: OcrLine }[] = [];
+  for (const l of lines) for (const w of tokens(l.text)) words.push({ w, line: l });
+  const matches: { o: Offer; score: number; boon: OcrLine; bane: OcrLine }[] = [];
+  for (const o of candidates) {
+    if (found.has(o.key)) continue;
+    const boon = phraseAt(words, o.boon);
+    const bane = phraseAt(words, o.bane);
+    if (boon && bane) matches.push({ o, score: boon.hit + bane.hit, boon: boon.line, bane: bane.line });
+  }
+  const used = new Set<OcrLine>();
+  for (const m of matches.sort((a, b) => b.score - a.score)) {
+    if (used.has(m.boon) || used.has(m.bane)) continue;
+    used.add(m.boon).add(m.bane);
+    // two offers share a title ("The Summoned Hellborne": hunting you, or spawning with Aether Events); the effects
+    // tell them apart, so they replace a guess made from the title alone
+    for (const [k, f] of found) if (f.title === m.o.title && k !== m.o.key && !f.byEffect) found.delete(k);
+    const box = [m.boon, m.bane].map((l) => boxOf(l)).reduce((a, b) => {
+      const x0 = Math.min(a.x, b.x),
+        y0 = Math.min(a.y, b.y);
+      return { x: x0, y: y0, w: Math.max(a.x + a.w, b.x + b.w) - x0, h: Math.max(a.y + a.h, b.y + b.h) - y0 };
+    });
+    const o = m.o;
+    const sc = scoreOffer(o, style);
+    found.set(o.key, { key: o.key, title: o.title, boon: o.boon, bane: o.bane, box, score: sc.score, rank: 0, byEffect: true, why: sc.note ?? `${o.boon}, but ${o.bane.toLowerCase()}` });
+  }
+  const list = [...found.values()].sort(byRank);
   list.forEach((o, i) => (o.rank = i + 1));
   return list;
+}
+
+/** Offers seen on the current offer screen, one slot per title, with how many reads saw each. */
+export type Remembered = Map<string, { offer: SeenOffer; hits: number }>;
+
+/**
+ * Add one read's offers. One slot per title: two offers share "The Summoned Hellborne", and once its effects
+ * named it, a later read of the title alone doesn't turn it back into a guess.
+ */
+export function rememberOffers(remembered: Remembered, seenNow: SeenOffer[]) {
+  for (const o of seenNow) {
+    const had = remembered.get(o.title);
+    remembered.set(o.title, { offer: had?.offer.byEffect && !o.byEffect ? had.offer : o, hits: (had?.hits ?? 0) + 1 });
+  }
+}
+
+/**
+ * The ranking shown: every offer seen on this screen (four pillars a wave). It used to keep the three this
+ * player's camera read most often, so two players in one run got different picks (2026-10-15 test).
+ */
+export function rankRemembered(remembered: Remembered, seenNow: SeenOffer[]): SeenOffer[] {
+  const nowTitles = new Set(seenNow.map((o) => o.title));
+  return [...remembered.values()]
+    .sort((x, y) => y.hits - x.hits)
+    .slice(0, 4)
+    .map(({ offer }) => ({ ...(seenNow.find((o) => o.key === offer.key) ?? offer), visible: nowTitles.has(offer.title) }))
+    .sort(byRank)
+    .map((o, i) => ({ ...o, rank: i + 1 }));
+}
+
+/** Best first; ties in a fixed order, so the list doesn't flip between reads. */
+export const byRank = (a: { score: number; key: string }, b: { score: number; key: string }) => b.score - a.score || a.key.localeCompare(b.key);
+
+/** Words of 3+ letters, and every number ("2.25x" → "2", "25x"): they tell similar offers apart. */
+const tokens = (t: string) => normName(t).split(" ").filter((w) => w.length >= 3 || /\d/.test(w));
+
+/**
+ * Where an offer's effect text is on screen, and how much of it: the line its words start on, if most of them
+ * appear within a short window. OCR slips ("Buming") cost a word, not the match.
+ */
+function phraseAt(words: { w: string; line: OcrLine }[], phrase: string): { line: OcrLine; hit: number } | null {
+  const want = tokens(phrase);
+  if (want.length < 3) return null;
+  let best = 0;
+  let at: OcrLine | null = null;
+  for (let i = 0; i < words.length; i++) {
+    if (!want.includes(words[i].w)) continue;
+    const win = new Set(words.slice(i, i + want.length + 2).map((x) => x.w));
+    const hit = want.filter((w) => win.has(w)).length / want.length;
+    if (hit > best) {
+      best = hit;
+      at = words[i].line;
+    }
+  }
+  return best >= 0.75 && at ? { line: at, hit: best } : null;
 }
 
 export interface SeenChest {

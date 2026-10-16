@@ -2,7 +2,7 @@
 // then scans the arena for offer labels / Spoils chests and pushes advice to the overlay.
 import { invoke } from "@tauri-apps/api/core";
 import { emitOverlay } from "./bus";
-import { chestAdvice, findChests, findOffers, looksLikeHordes, offerPhase, parseAether, trackerAether, trackerWave, type SeenChest, type SeenOffer } from "./hordes";
+import { chestAdvice, rankRemembered, rememberOffers, findChests, findOffers, looksLikeHordes, offerPhase, parseAether, trackerAether, trackerWave, type Remembered, type SeenChest, type SeenOffer } from "./hordes";
 import { captureRegion } from "./native";
 import { getActiveVariant, useSettings } from "./store";
 import { testModeOn } from "./testmode";
@@ -26,7 +26,7 @@ let lastTrackerLog = 0;
 let lastOffersKey = "";
 let lastChestsKey = "";
 /** offers seen during the current offer screen, with how many scans saw each */
-const remembered = new Map<string, { offer: SeenOffer; hits: number }>();
+const remembered: Remembered = new Map();
 let phase: "selecting" | "chosen" | null = null;
 let wave: number | null = null;
 
@@ -102,17 +102,8 @@ async function scanArena(rect: Rect) {
     if (wave != null) remembered.clear();
     wave = w;
   }
-  if (phase !== "chosen") for (const o of seenNow) remembered.set(o.key, { offer: o, hits: (remembered.get(o.key)?.hits ?? 0) + 1 });
-  const nowKeys = new Set(seenNow.map((o) => o.key));
-  const offers: SeenOffer[] =
-    phase === "chosen"
-      ? []
-      : [...remembered.values()]
-          .sort((x, y) => y.hits - x.hits)
-          .slice(0, 3) // three pillars per wave
-          .map(({ offer }) => ({ ...(seenNow.find((o) => o.key === offer.key) ?? offer), visible: nowKeys.has(offer.key) }))
-          .sort((x, y) => y.score - x.score)
-          .map((o, i) => ({ ...o, rank: i + 1 }));
+  if (phase !== "chosen") rememberOffers(remembered, seenNow);
+  const offers: SeenOffer[] = phase === "chosen" ? [] : rankRemembered(remembered, seenNow);
   const { variant, prog } = getActiveVariant();
   const adv = chestAdvice(variant, prog, state.aether);
   const chests = chestsSeen.map((c) => ({ ...c, order: adv.order.indexOf(c.name) + 1 || 99 })).sort((x, y) => x.order - y.order);
