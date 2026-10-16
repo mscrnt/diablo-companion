@@ -47,6 +47,21 @@ fn window_info(hwnd: windows::Win32::Foundation::HWND) -> (String, u32, Option<(
     }
 }
 
+/// The game's picture on screen: its client area, without the border and title bar a windowed (not
+/// borderless) game has. Overlays and screen reading were placed on the outer window, 8 px left and a
+/// title bar too high (2026-10-15 player report). Borderless: the same as the window rect.
+#[cfg(windows)]
+fn client_rect(hwnd: windows::Win32::Foundation::HWND) -> Option<(i32, i32, u32, u32)> {
+    use windows::Win32::UI::WindowsAndMessaging::{GetWindowInfo, WINDOWINFO};
+    unsafe {
+        let mut wi = WINDOWINFO { cbSize: std::mem::size_of::<WINDOWINFO>() as u32, ..Default::default() };
+        GetWindowInfo(hwnd, &mut wi).ok()?;
+        let c = wi.rcClient;
+        let (w, h) = ((c.right - c.left).max(0) as u32, (c.bottom - c.top).max(0) as u32);
+        (w > 0 && h > 0).then_some((c.left, c.top, w, h))
+    }
+}
+
 #[cfg(windows)]
 fn poll() -> GameStatus {
     use windows::core::w;
@@ -58,9 +73,9 @@ fn poll() -> GameStatus {
         let focused = title == "Diablo IV";
         let own = pid == std::process::id();
         let rect = if focused {
-            fg_rect
+            client_rect(fg).or(fg_rect)
         } else {
-            game.and_then(|h| window_info(h).2)
+            game.and_then(|h| client_rect(h).or(window_info(h).2))
         };
         let minimized = game.map(|h| IsIconic(h).as_bool()).unwrap_or(false);
         let overlaps = |a: (i32, i32, u32, u32), b: (i32, i32, u32, u32)| {

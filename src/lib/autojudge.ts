@@ -334,8 +334,25 @@ async function tick(isFocused: () => boolean) {
     const rect = gameRect();
     let cap: CaptureResult;
     if (rect) {
-      const [mx, my] = await cursorPosition();
+      let [mx, my] = await cursorPosition();
       if (mx < rect[0] || my < rect[1] || mx > rect[0] + rect[2] || my > rect[1] + rect[3]) return void (dbg.reason = "cursor outside the game window");
+      // Reading the screen is the app's heaviest work, and it ran nonstop: about 200 ms of every 400 ms on a
+      // 6-core CPU, which lagged the game (2026-10-15 report). A tooltip only shows once the cursor rests on
+      // an item, so read only then: not while it moves (fights), and not again over the same spot right away.
+      if (!scanning) {
+        await new Promise((r) => setTimeout(r, 90));
+        const [x2, y2] = await cursorPosition();
+        if (Math.hypot(x2 - mx, y2 - my) > 12) {
+          settle = "moving";
+          return void (dbg.reason = "cursor moving");
+        }
+        [mx, my] = [x2, y2];
+        if (Math.hypot(mx - lastScanAt[0], my - lastScanAt[1]) <= 4 && Date.now() - lastScanAt[2] < 1000) {
+          settle = "same";
+          return void (dbg.reason = "cursor still on the spot just read");
+        }
+      }
+      lastScanAt = [mx, my, Date.now()];
       cap = await captureRegion(tooltipRegion(rect, mx, c.width), { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true });
     } else cap = await captureAtCursor(c.width, c.height, { maxEdge: 640, quality: 70, ocr: true, ocrMaxChannel: true });
     onFrame(cap.ocr?.lines ?? [], cap.region);
@@ -485,14 +502,24 @@ async function tick(isFocused: () => boolean) {
 }
 
 let gameRect: () => [number, number, number, number] | null = () => null;
+/** why the last tick skipped reading the screen ("" = it read it) */
+let settle: "" | "moving" | "same" = "";
+/** where and when the screen was last read: x, y, time */
+let lastScanAt: [number, number, number] = [0, 0, 0];
 
 export function startAutoJudge(isFocused: () => boolean, rect?: () => [number, number, number, number] | null) {
   if (rect) gameRect = rect;
   if (timer) return;
   autoStatus.running = true;
   const loop = async () => {
+    settle = "";
+    const t0 = performance.now();
     await tick(isFocused);
-    const ms = Math.max(250, useSettings.getState().settings.autoJudge.intervalMs);
+    const took = performance.now() - t0;
+    const base = Math.max(250, useSettings.getState().settings.autoJudge.intervalMs);
+    // a skipped read (cursor moving or on the spot just read) costs nothing: look again soon. After a read,
+    // wait at least twice as long as it took, so reading the screen takes at most about a third of the time
+    const ms = settle ? 120 : Math.max(base, took * 2);
     timer = setTimeout(loop, ms);
   };
   loop();

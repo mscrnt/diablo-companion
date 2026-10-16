@@ -15,6 +15,8 @@ The release workflow publishes each version's section as its GitHub release note
 - **Infernal Hordes offers:** all four offers of a wave are ranked. The helper kept only three, the ones its camera read most often, so two players in one run could get different picks. The offer you stand next to (it shows its effects instead of its title) is recognised too, including offers that differ only by a number (2x, 2.25x, 2.5x Aether from spires) or share a title (two "Summoned Hellborne"). The order no longer flips between reads.
 - **Undercity:** the boss floor ("FLOOR 4/3") is part of the run, with its own split, and the timer stops when the boss dies. It used to stop as the boss floor began, then start and finish a bogus 2-second run.
 - **Boss timer:** another player's title under their name ("Bloodied Butcher") no longer starts a boss fight.
+- **Much less CPU, no more lag:** the loot judge read the screen nonstop, about half the time on a 6-core CPU, which made the game lag (player report). It now reads only when your cursor rests (a tooltip can't show while it moves, so fights cost almost nothing), not again over the same spot right away, and never more than about a third of the time.
+- **Overlays in the right place when the game runs windowed** (with a title bar): they were placed on the outer window, a border to the left and a title bar too high. Borderless Windowed Fullscreen was fine and stays the same.
 
 ## [0.2.3] - 2026-10-13
 
