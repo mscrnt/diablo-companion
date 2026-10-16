@@ -8,6 +8,7 @@ import { create } from "zustand";
 import { isTauri } from "./http";
 import { getActiveVariant, useBuilds, useLoot, useSettings } from "./store";
 import { withoutPersonal, isPersonalLine } from "./privacy";
+import { debugEvent } from "./debug";
 import type { ParseDebug, TooltipText } from "./parse";
 import type { JudgeResult, ParsedItem } from "./types";
 
@@ -244,7 +245,9 @@ export async function flush(): Promise<void> {
   }
   sending = true;
   try {
-    await invoke<number>("share_send", { install: cfg().installId, items: batch });
+    const t0 = performance.now();
+    const stored = await invoke<number>("share_send", { install: cfg().installId, items: batch });
+    debugEvent("share", "sent", { items: batch.length, stored, judgements: batch.filter((b) => b.kind === "judgement").length, images: batch.reduce((n, b) => n + (b.kind === "judgement" ? Object.keys(b.images ?? {}).length : 0), 0), kb: Math.round(chars / 1024), ms: Math.round(performance.now() - t0) });
     const done = new Set(batch);
     const recent: Sent[] = batch.map((it) => ({
       at: Date.now(),
@@ -256,6 +259,7 @@ export async function flush(): Promise<void> {
     useShare.setState((s) => ({ queue: s.queue.filter((q) => !done.has(q)), sent: s.sent + batch.length, lastSentAt: Date.now(), error: "", recent: [...recent.reverse(), ...s.recent].slice(0, 30) }));
   } catch (e) {
     useShare.setState({ error: String((e as Error)?.message ?? e) });
+    debugEvent("share", "send-failed", { items: batch.length, error: String((e as Error)?.message ?? e) });
   } finally {
     sending = false;
   }
