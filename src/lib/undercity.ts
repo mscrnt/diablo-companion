@@ -15,9 +15,19 @@ export interface UndercityHud {
   attunement: string | null;
   /** what adds time ("Slay Afflicted Monsters") */
   timeBonus: string | null;
-  /** the run is over: the game shows "FLOOR 4/3" (past the last floor) and "District Run" */
+  /**
+   * The boss floor: "FLOOR 4/3" (past the last floor) or "District Run", with the attunement bar ("I II III IV")
+   * still showing. The run isn't over: its boss is up ("YOCHE THE GOLDEN +6", "ALIA KURAST'S END +8").
+   */
+  boss: boolean;
+  /** the attunement bar ("I II III IV", OCR'd "11 111 IV") is on the tracker; it goes the moment the boss dies */
+  bar: boolean;
+  /** the run is over: past the last floor and the attunement bar gone (the boss is down) */
   done: boolean;
 }
+
+/** The attunement bar's numerals: "I II III IV", read as "11 111 IV", "1 11 111. IV", "|| ||| IV". */
+const BAR = /^\W*(?:[I1l|]{1,3}\W+){1,3}[I1l|]?V\W*$/;
 
 type Line = Pick<OcrLine, "text"> & Partial<Pick<OcrLine, "x" | "y" | "w" | "h">>;
 
@@ -51,7 +61,11 @@ export function parseUndercity(lines: Line[]): UndercityHud | null {
     }
   }
   const text = lines.map((l) => l.text).join("\n");
-  const up = text.match(/up[\s-]*grades?\W*\(?\s*(\d)\s*\/\s*(\d)/i);
+  const bar = lines.some((l) => BAR.test(l.text.trim()));
+  // "District Run" shows from the boss floor on, also when the floor number didn't read
+  const end = past || /district run/i.test(text);
+  // OCR can split it and put the count first: "4/4)" / "Reward Upgrades ("
+  const up = text.match(/up[\s-]*grades?\W*\(?\s*(\d)\s*\/\s*(\d)/i) ?? text.match(/(\d)\s*\/\s*(\d)\)\W*\n\W*reward\s*up/i);
   const att = text.match(/a?t+une?r?y?m?ent:\s*([^\n]+)/i)?.[1]?.trim() ?? null;
   const tb = text.match(/b[o0]nus\s*[:;]\s*([^\n]+)/i)?.[1]?.trim() ?? null;
   return {
@@ -62,6 +76,8 @@ export function parseUndercity(lines: Line[]): UndercityHud | null {
     upgradesMax: up ? Number(up[2]) : 4,
     attunement: att ? att.replace(/[•◆]\s*$/, "").trim() : null,
     timeBonus: tb ? tb.replace(/[•◆]\s*$/, "").trim() : null,
-    done: past || /district run/i.test(text),
+    boss: end && bar,
+    bar,
+    done: end && !bar,
   };
 }

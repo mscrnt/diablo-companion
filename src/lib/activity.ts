@@ -346,9 +346,12 @@ export interface UndercityState {
   torment: string | null;
 }
 /** `resumed`: rebuilt after an app restart mid-run; the first tracker read sets floor and upgrades quietly */
-let uc: (UndercityState & { lastSeen: number; lowRun: number; lowWarned: boolean; resumed?: boolean }) | null = null;
+/** `boss`: on the boss floor ("FLOOR 4/3"); `doneReads`: reads in a row with the attunement bar gone */
+let uc: (UndercityState & { lastSeen: number; lowRun: number; lowWarned: boolean; resumed?: boolean; boss?: boolean; doneReads?: number; doneAt?: number }) | null = null;
 /** when the last run was cleared: the end area still shows the floor block, which mustn't start a new run */
 let ucDoneAt = 0;
+/** when the boss floor or the end area was last on the tracker: a new run starts on a floor 1 read well after it */
+let ucEndSeen = 0;
 /** the tracker hides behind the map, the inventory and loading screens; only this long without it means you left */
 const UC_GONE_MS = 90_000;
 
@@ -358,6 +361,7 @@ function finishUndercity(cleared: boolean, why: string, at: number) {
   const runs = useRuns.getState();
   const active = runs.active;
   if (active?.activity === "Undercity") {
+    if (cleared && uc.boss) runs.split("Boss");
     runs.stop(cleared, at);
     overlayToast(cleared ? `Undercity done in ${mmss(at - active.start)}` : "Undercity ended", `Floor ${uc.floor}/${uc.floors} · ${uc.upgrades}/${uc.upgradesMax} reward upgrades`, cleared ? "#5fd18a" : "#b8aa9a", 7000);
   }
@@ -372,14 +376,19 @@ function undercityTick() {
   const now = Date.now();
   const hud = parseUndercity(trackerLines);
   const runs = useRuns.getState();
+  if (hud && (hud.boss || hud.done)) ucEndSeen = now;
   if (hud?.done) {
-    // the game says the run is complete ("FLOOR 4/3", "District Run")
-    if (uc) finishUndercity(true, "run complete (floor past the last)", now);
-    else ucDoneAt = now;
+    // past the last floor and the attunement bar gone: the boss is down (or the run is over without one).
+    // Two reads in a row: a single frame can miss the bar mid-fight
+    if (uc && !uc.doneReads) uc.doneAt = now;
+    if (uc && (uc.doneReads = (uc.doneReads ?? 0) + 1) >= 2) finishUndercity(true, uc.boss ? "boss down (attunement bar gone)" : "run complete (floor past the last)", uc.doneAt ?? now);
+    else if (!uc) ucDoneAt = now;
     return;
   }
-  // still in the end area after a clear: the floor block lingers there, so only floor 1 starts a new run
-  if (hud && !uc && (hud.floor ?? 1) > 1 && now - ucDoneAt < 5 * 60_000) return;
+  if (uc) uc.doneReads = 0;
+  // a new run starts on a floor 1 read off the tracker, well after the boss floor or the end area: one frame
+  // there that didn't read the floor (taken as floor 1) started and "cleared" 2 s runs (2026-10-15 test)
+  if (hud && !uc && (hud.floor !== 1 || now - ucEndSeen < 20_000 || now - ucDoneAt < 20_000)) return;
   if (hud) {
     const torment = trackerLines.map((l) => l.text.match(/torment\s*([ivxl1]{1,5})\b/i)?.[1]).find(Boolean)?.toUpperCase().replace(/1/g, "I") ?? null;
     if (!uc) {
@@ -401,7 +410,13 @@ function undercityTick() {
         debugEvent("activity", "undercity-resumed", { floor: uc.floor, upgrades: uc.upgrades });
       }
       if (torment) uc.torment = torment;
-      if (hud.floor != null && hud.floor > uc.floor) {
+      // "FLOOR 4/3" with the attunement bar up: the boss floor, part of the run (2026-10-15 test: Yoche the Golden)
+      if (hud.boss && !uc.boss) {
+        debugEvent("activity", "undercity-boss", { from: uc.floor, upgrades: uc.upgrades, secondsLeft: hud.secondsLeft });
+        if (runs.active?.activity === "Undercity") runs.split(`Floor ${uc.floor}`);
+        uc.boss = true;
+        overlayToast("Boss floor", `${uc.upgrades}/${uc.upgradesMax} reward upgrades`, "#c9a227", 3500);
+      } else if (hud.floor != null && hud.floor > uc.floor && !uc.boss) {
         debugEvent("activity", "undercity-floor", { from: uc.floor, to: hud.floor, upgrades: uc.upgrades, secondsLeft: hud.secondsLeft });
         if (runs.active?.activity === "Undercity") runs.split(`Floor ${uc.floor}`);
         uc.floor = hud.floor;

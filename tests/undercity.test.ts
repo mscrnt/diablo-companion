@@ -19,11 +19,23 @@ describe("Kurast Undercity tracker", () => {
     expect(parseUndercity(L("FLOOR | 1/3 | Torment X1 | Kürast Undercity | 11 111 IV | Reward Upgrades (0/4)"))).toMatchObject({ floor: 1, upgrades: 0 });
   });
 
-  it("knows the run is over: \"FLOOR 4/3\" (past the last floor) and \"District Run\"", () => {
-    // seen at the end of two real runs: not a misread of 3/3
-    expect(parseUndercity(L("FLOOR | 4/3 | 50 | Torment XI | Kurast Undercity | 11 111 IV | Reward Upgrades (4/4 | District Run"))).toMatchObject({ floor: 3, upgrades: 4, done: true });
+  it("\"FLOOR 4/3\" with the attunement bar is the boss floor, not the end", () => {
+    // 2026-10-15: fighting Alia, Kurast's End (+8) and Yoche the Golden (+6) on "FLOOR 4/3"
+    expect(parseUndercity(L("FLOOR | 4/3 | 58 | Torment X1 | Kurast Undercity | 11 111 IV | 4/4) | Reward Upgrades ( | District Run"))).toMatchObject({ floor: 3, upgrades: 4, boss: true, bar: true, done: false });
+    expect(parseUndercity(L("FLOOR | 4/3 | 50 | Torment XI | Kurast Undercity | 11 111 IV | Reward Upgrades (4/4 | District Run"))).toMatchObject({ boss: true, done: false });
+    expect(parseUndercity(L("FLOOR | 3/3 | Torment XI | Kurast Undercity | Reward Upgrades (2/4)"))).toMatchObject({ boss: false, done: false });
+  });
+
+  it("the run is over when the attunement bar goes (the boss died)", () => {
+    // seconds after the kill: the bar went first, then the upgrades line
+    expect(parseUndercity(L("FLOOR | 4/3 | 58 | Torment X1 | Kurast Undercity | 4/4) | Reward Upgrades ( | District Run | Purge the Kurast Undercity"))).toMatchObject({ boss: false, done: true });
+    expect(parseUndercity(L("FLOOR | 4/3 | 58 | Torment X1 | Kurast Undercity | District Run | Purge the Kurast Undercity@"))!.done).toBe(true);
     expect(parseUndercity(L("FLOOR | 4/3 | Torment XI | Kurast Undercity | District Run"))!.done).toBe(true);
-    expect(parseUndercity(L("FLOOR | 3/3 | Torment XI | Kurast Undercity | Reward Upgrades (2/4)"))!.done).toBe(false);
+  });
+
+  it("reads the attunement bar however OCR spells it", () => {
+    for (const bar of ["11 111 IV", "I II III IV", "1 11 111. IV", "|| ||| IV"]) expect(parseUndercity(L(`FLOOR | 4/3 | Kurast Undercity | ${bar}`))!.bar, bar).toBe(true);
+    for (const not of ["Torment XI", "4/4)", "IV"]) expect(parseUndercity(L(`FLOOR | 4/3 | Kurast Undercity | ${not}`))!.bar, not).toBe(false);
   });
 
   it("isn't the Undercity outside a run", () => {
