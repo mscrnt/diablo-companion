@@ -5,6 +5,8 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-16
+
 ### Added
 - **Help improve Sanctuary Toolkit:** a new step in the first-run setup, shown once to everyone who upgrades, and a card in Settings.
   - **Share my judgements** (off until you say yes): each loot-judge result goes to the developer, so the judge gets tested on every class, build and screen setup. It sends the item's tooltip text and a picture of the tooltip, the verdict and why, your build guide, and your screen size. Text in the picture that isn't the tooltip (names, chat) is blacked out. Never your BattleTag, character name, chat or a full screenshot. Kept for 30 days. **See what was sent** and **Delete my shared data** are in Settings.
@@ -171,7 +173,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/mscrnt/diablo-companion/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/mscrnt/diablo-companion/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/mscrnt/diablo-companion/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mscrnt/diablo-companion/compare/v0.2.0...v0.2.1
