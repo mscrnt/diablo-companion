@@ -140,6 +140,16 @@ describe("boss helper", () => {
     expect(findBoss([line("Tormented Echo of Varshan +1")])).toBe("Echo of Varshan");
   });
 
+  it("a player's title under their nameplate isn't a boss (2026-10-15 test)", () => {
+    const butcher = findBoss([line("Bloodied Butcher", 210, 40)]);
+    expect(butcher).toBeTruthy();
+    // "<JACG> Arminig | 70" walking through the top of the screen, with the title "Bloodied Butcher" under it
+    expect(findBoss([line("kJACG> Arminig '1 70 (231)", 200, 20), line("Bloodied Butcher", 210, 40)])).toBeNull();
+    expect(findBoss([line("<JACG> Arminig | 70", 200, 20), line("Bloodied Butcher", 210, 40)])).toBeNull();
+    // the same name on its own is still found
+    expect(findBoss([line("Valora | 70 (231)", 200, 300), line("Bloodied Butcher", 210, 40)])).toBe(butcher);
+  });
+
   it("lists the build items the boss drops", () => {
     const info = bossInfo("Grigoire, the Galvanic Saint", ctx.variant, ctx.prog);
     expect(info.wanted.map((w) => w.item)).toContain("Deathgrip");

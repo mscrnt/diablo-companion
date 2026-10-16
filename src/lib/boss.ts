@@ -3,6 +3,7 @@
 import { knowledge } from "./farm";
 import { normName, table, trigramSim } from "./names";
 import type { OcrLine } from "./native";
+import { isPersonalLine } from "./privacy";
 import type { BuildVariant, SlotProgress } from "./types";
 
 export interface BossInfo {
@@ -36,7 +37,12 @@ const bareBoss = (s: string) =>
 
 /** Find a known boss name among OCR lines of the health-bar area. */
 export function findBoss(lines: OcrLine[]): string | null {
+  // a player walking through the bar's area shows a nameplate ("<JACG> Arminig | 70") with their title under it,
+  // and titles can be boss names ("Bloodied Butcher": a 12 s Butcher fight after the Hordes, 2026-10-15 test)
+  const plates = lines.filter((l) => isPersonalLine(l.text));
+  const titled = (l: OcrLine) => plates.some((p) => p !== l && p.y < l.y && l.y - p.y < Math.max(p.h, l.h) * 2.5 && p.x < l.x + l.w && l.x < p.x + p.w);
   for (const l of lines) {
+    if (plates.includes(l) || titled(l)) continue;
     const t = bareBoss(l.text);
     if (t.length < 5) continue;
     for (const n of names()) {
