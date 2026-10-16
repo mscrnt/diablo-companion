@@ -11,6 +11,11 @@ The release workflow publishes each version's section as its GitHub release note
   - **Test mode** can be turned on right there, with how to mark a moment and send a debug report.
 - **Wrong verdict?** on the Loot page, with an optional note, and a hotkey to flag the last verdict (**Ctrl+Alt+W**). With sharing on, flags go to the developer with the judgement.
 
+### Fixed
+- **Infernal Hordes offers:** all four offers of a wave are ranked. The helper kept only three, the ones its camera read most often, so two players in one run could get different picks. The offer you stand next to (it shows its effects instead of its title) is recognised too, including offers that differ only by a number (2x, 2.25x, 2.5x Aether from spires) or share a title (two "Summoned Hellborne"). The order no longer flips between reads.
+- **Undercity:** the boss floor ("FLOOR 4/3") is part of the run, with its own split, and the timer stops when the boss dies. It used to stop as the boss floor began, then start and finish a bogus 2-second run.
+- **Boss timer:** another player's title under their name ("Bloodied Butcher") no longer starts a boss fight.
+
 ## [0.2.3] - 2026-10-13
 
 ### Added
