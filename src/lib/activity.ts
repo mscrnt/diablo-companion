@@ -141,7 +141,9 @@ async function helltideTick() {
     if (read != null && read !== ht.cinders) {
       const gain = ht.cinders == null ? 0 : read - ht.cinders;
       const confirmed = htPendingCinders != null && Math.abs(read - htPendingCinders) <= 10;
-      if (ht.cinders == null || (gain > 0 && gain <= 120) || confirmed) {
+      // the first read of a Helltide is taken as is unless it's implausible ("3598" for 598, 2026-10-16 test):
+      // that one waits for a second read to agree
+      if ((ht.cinders == null && read <= 1500) || (gain > 0 && gain <= 120) || confirmed) {
         cinders = read;
         htPendingCinders = null;
       } else htPendingCinders = read;
@@ -258,7 +260,10 @@ let nmd: { kind: NmdKind; stage: number | null; dungeon: string; objective: Obje
 
 function nmdTick() {
   const now = Date.now();
-  const i = trackerLines.findIndex((l) => !!nightmareKind(l.text.trim()));
+  // a Chronicle of Nightmares tooltip over the tracker ("NIGHTMARES / Rare Chronicle of Nightmares … Minor
+  // Nightmare") isn't a run: it started a 20 s one (2026-10-16 test). The tracker never names the item.
+  const tooltip = trackerLines.some((l) => /chronicle\s*of\s*nightmares|vivid\s*account/i.test(l.text));
+  const i = tooltip ? -1 : trackerLines.findIndex((l) => !!nightmareKind(l.text.trim()));
   const runs = useRuns.getState();
   if (i >= 0) {
     const marker = trackerLines[i];
@@ -472,7 +477,11 @@ async function bossTick(rect: Rect) {
   const [gx, gy, gw, gh] = rect;
   const r = { x: Math.round(gx + gw * 0.33), y: Math.round(gy), w: Math.round(gw * 0.34), h: Math.round(gh * 0.1) };
   const cap = await captureRegion(r, { ocr: true, ocrMaxChannel: true, maxEdge: 64, quality: 50 });
-  const name = findBoss(cap.ocr?.lines ?? []);
+  // the health bar's name sits at the very top (about 2% of the height, "YOCHE THE GOLDEN +6"); lower in this
+  // strip are players, titles and minions walking by ("Skeleton Guardian" started a Grigoire fight, "Bloodied
+  // Butcher" and "Duriel" others, 2026-10-16 test)
+  const band = (cap.ocr?.lines ?? []).filter((l) => l.y < r.h * 0.6);
+  const name = findBoss(band);
   const now = Date.now();
   const runs = useRuns.getState();
   if (boss && now - bossLogged > 15000) {
@@ -486,7 +495,7 @@ async function bossTick(rect: Rect) {
   if (name) {
     bossSeen = now;
     if (boss !== name) {
-      debugEvent("activity", "boss-start", { boss: name, previous: boss, runStarted: !runs.active });
+      debugEvent("activity", "boss-start", { boss: name, previous: boss, runStarted: !runs.active, read: band.slice(0, 6).map((l) => `${l.text} @${Math.round((l.y / r.h) * 100)}%`) });
       boss = name;
       const { variant, prog } = getActiveVariant();
       const info = bossInfo(name, variant, prog);
@@ -540,7 +549,9 @@ async function tick(rect: Rect) {
   if (wpp) {
     const prev = useWarPlans.getState().progress;
     if (!prev || prev.step !== wpp.step || prev.of !== wpp.of || prev.quest !== wpp.quest) {
-      debugEvent("activity", "warplan-progress", { step: wpp.step, of: wpp.of, quest: wpp.quest, prev: prev ? `${prev.step}/${prev.of}` : null });
+      // the quest text OCRs differently on every read: log the step changing, not each new spelling (385 events a night)
+      if (!prev || prev.step !== wpp.step || prev.of !== wpp.of)
+        debugEvent("activity", "warplan-progress", { step: wpp.step, of: wpp.of, quest: wpp.quest, prev: prev ? `${prev.step}/${prev.of}` : null });
       useWarPlans.getState().setProgress({ ...wpp, at: Date.now() });
       if (prev && prev.step === prev.of - 1 && wpp.step < prev.step) {
         const { variant, prog } = getActiveVariant();
