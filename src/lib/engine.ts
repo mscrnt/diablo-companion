@@ -10,7 +10,6 @@ import { judgeNow } from "./judgeRunner";
 import { snoozeJudge, startAutoJudge } from "./autojudge";
 import { guideNext, useGuide } from "./guide";
 import { listModels } from "./llm";
-import { fetchUpdatedAt } from "./mobalytics";
 import { checkForUpdate, type UpdateInfo } from "./version";
 import { captureMonitor, captureRegion, gameStatus, setOverlayCapturable, setOverlayInteractive, type GameStatus } from "./native";
 import { detectPillarbox, hamming, sceneSignature } from "./vision";
@@ -25,7 +24,7 @@ import { noteBars, onGameStatus, watchTestContext } from "./testmode";
 import { debugEvent, debugWanted, installMainDebugHooks, markMoment, startDebug } from "./debug";
 import { flagLastVerdict, sharingOn, startSharing } from "./share";
 import { MAP_PIN_PRESETS, getActiveVariant, nextPreset, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
-import { EVENT_META, fetchLive, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
+import { EVENT_META, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
 import type { GameEvent, JudgeResult } from "./types";
 
 interface Runtime {
@@ -207,15 +206,6 @@ function checkAlerts(events: GameEvent[]) {
         fired.add(key); // don't fire stale alerts on startup
       }
     }
-  }
-}
-
-async function refreshLive() {
-  try {
-    const live = await fetchLive();
-    useRuntime.setState({ live });
-  } catch (e) {
-    useRuntime.setState((r) => ({ live: { ...(r.live ?? { fetchedAt: 0 }), error: String(e), fetchedAt: Date.now() } }));
   }
 }
 
@@ -484,30 +474,13 @@ export async function startEngine() {
   tick();
   setInterval(tick, 1000);
 
-  refreshLive();
-  const pollLive = () => {
-    const secs = Math.max(30, useSettings.getState().settings.timers.pollSeconds);
-    setTimeout(async () => {
-      await refreshLive();
-      pollLive();
-    }, secs * 1000);
-  };
-  pollLive();
+  // Event times come from the app's own schedule. Nothing is polled from other sites (Kenneth, 2026-10-16:
+  // no other company's data, nothing pulled automatically); boss names and zones are read from the game screen.
 
   checkLlm();
   setInterval(checkLlm, 120_000);
 
-  const checkBuildUpdates = async () => {
-    const { builds, setUpdate } = useBuilds.getState();
-    for (const b of Object.values(builds)) {
-      if (!b.slug) continue;
-      const at = await fetchUpdatedAt(b.slug);
-      setUpdate(b.id, at && Date.parse(at) > Date.parse(b.updatedAt || "1970") ? at : null);
-    }
-  };
-  setTimeout(checkBuildUpdates, 15000);
-  setInterval(checkBuildUpdates, 6 * 3600_000);
-
+  // builds are imported only when you paste a link: no checking build sites for changes in the background
   const checkAppUpdate = () =>
     checkForUpdate()
       .then((update) => useRuntime.setState({ update }))

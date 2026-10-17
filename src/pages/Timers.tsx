@@ -1,5 +1,5 @@
 import { EventIcon, EventRow, NextEvents } from "../components/EventList";
-import { Card, Check, PageHead, timeAgo, useNow } from "../components/ui";
+import { Card, Check, PageHead, useNow } from "../components/ui";
 import { useRuntime } from "../lib/engine";
 import { useSettings } from "../lib/store";
 import { EVENT_META } from "../lib/timers";
@@ -7,7 +7,6 @@ import type { EventKind } from "../lib/types";
 
 export default function Timers() {
   const events = useRuntime((s) => s.events);
-  const live = useRuntime((s) => s.live);
   const { settings, update } = useSettings();
   const now = useNow(1000);
   const upcoming = events.filter((e) => (e.end ?? e.start) > now);
@@ -16,17 +15,8 @@ export default function Timers() {
     <>
       <PageHead
         title="World Events"
-        sub={
-          <>
-            Times are computed locally (they're deterministic); boss names & zones are live from{" "}
-            <a href="https://helltides.com" target="_blank" rel="noreferrer">
-              helltides.com
-            </a>
-            . {live && <span className="dim">Synced {timeAgo(live.fetchedAt)}.</span>}
-          </>
-        }
+        sub="Times are computed by the app, so they work offline. Boss names and zones show once the game has shown them to you (the map or the quest tracker)."
       />
-      {live?.error && <div className="note" style={{ marginBottom: 12 }}>Live data partially unavailable: {live.error}</div>}
       <div className="grid g2">
         <Card title="Up next">
           <NextEvents events={events} />

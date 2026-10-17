@@ -179,16 +179,6 @@ export default function SettingsPage() {
           <div className="small dim">One per line.</div>
         </Card>
 
-        <Card title="Live timer source">
-          <label className="field">
-            Poll every (seconds)
-            <input type="number" min={30} value={settings.timers.pollSeconds} onChange={(e) => update((s) => void (s.timers.pollSeconds = Number(e.target.value)))} />
-          </label>
-          <div className="small muted" style={{ marginTop: 6 }}>
-            Boss names/zones from helltides.com's public feed (be polite: ≥ 30s). Times are always computed locally, so timers work offline.
-          </div>
-        </Card>
-
         <HelpImproveCard />
 
         <About />
