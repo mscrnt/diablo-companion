@@ -3,6 +3,13 @@ import { Play, ScrollText, Skull, Square, Timer } from "lucide-react";
 import { Card, Empty, PageHead, Sparkline, fmtDur, timeAgo, useNow } from "../components/ui";
 import { runAction } from "../lib/engine";
 import { useRuns, useSettings, useWatchers } from "../lib/store";
+import type { Run } from "../lib/types";
+
+/** Where a step's time starts: the previous step (events inside the run keep their own time). */
+function splitBefore(run: Run, i: number) {
+  for (let k = i - 1; k >= 0; k--) if (run.splits[k].from == null) return run.splits[k].at;
+  return run.start;
+}
 
 export default function Runs() {
   const r = useRuns();
@@ -21,9 +28,9 @@ export default function Runs() {
 
   return (
     <>
-      <PageHead title="Runs & Splits" sub="Pit runs are tracked automatically from the quest tracker (start, Guardian split, finish, deaths, tier). Hotkeys/chords work for everything else.">
+      <PageHead title="Runs & Splits" sub="The Pit, Nightmare Dungeons, the Undercity and Infernal Hordes are timed from the quest tracker: start, splits, events, finish, deaths. Hotkeys and chords work for everything else.">
         <label className="row small" style={{ gap: 6 }}>
-          <input type="checkbox" checked={settings.autoRuns} onChange={(e) => useSettings.getState().update((s) => void (s.autoRuns = e.target.checked))} /> Auto-track Pit runs
+          <input type="checkbox" checked={settings.autoRuns} onChange={(e) => useSettings.getState().update((s) => void (s.autoRuns = e.target.checked))} /> Auto-track runs
         </label>
       </PageHead>
       <div className="grid g2">
@@ -70,9 +77,9 @@ export default function Runs() {
                 <tbody>
                   {r.active.splits.map((s, i) => (
                     <tr key={i}>
-                      <td>{s.label}</td>
+                      <td className={s.from != null ? "dim" : undefined}>{s.label}</td>
                       <td className="mono">{fmtDur(s.at - r.active!.start)}</td>
-                      <td className="mono dim">+{fmtDur(s.at - (i ? r.active!.splits[i - 1].at : r.active!.start))}</td>
+                      <td className="mono dim">+{fmtDur(s.at - (s.from ?? splitBefore(r.active!, i)))}</td>
                     </tr>
                   ))}
                 </tbody>

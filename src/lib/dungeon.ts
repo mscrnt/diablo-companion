@@ -71,6 +71,131 @@ export interface ObjectiveState {
   pending: Objective | null;
 }
 
+// ---- pop-up events inside a dungeon ----
+// They get their own block on the tracker, under the dungeon's ("Submerged Ruins / Destroy the Seaborn Shrine: 1 /
+// Nightmare Dungeon / Cursed Shrine", 2026-10-11), with a countdown and maybe a "Mastery:" objective; a failed
+// one reads "… Failed" like the Pit's masteries. Names from the game files (Quest_DE_*, Quest_Dungeon_ME_*, the
+// Undercity's beacon).
+export const DUNGEON_EVENTS = [
+  "Altar of Bishibosh",
+  "Cursed Chest",
+  "Cursed Shrine",
+  "Cursed Well",
+  "Demon Vessel",
+  "Eternal Torment",
+  "Grand Spirit Beacon",
+  "Hostage",
+  "Immolation",
+  "Impromptu Investigation",
+  "Last Stand",
+  "Legion",
+  "Nest",
+  "Potent Blood",
+  "Ravenous Soul",
+  "Rest For The Weary",
+  "Ritual of Blood",
+  "Rupture",
+  "Sanguine Battery",
+  "Shrine of Zagraal",
+  "Sole Survivor",
+  "Tides of Blood",
+  "Toll of the Deep",
+];
+
+/** An event's name line ("Cursed Shrine", "Nest •", "Impromptu lnvestigation"): the event, or null. */
+export function eventName(text: string): string | null {
+  const t = text.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "");
+  if (t.length < 4 || t.length > 30) return null;
+  for (const e of DUNGEON_EVENTS) {
+    // short names must match whole ("Nest" is in "Nesting", "Legion" in "Legion 10:00 PM")
+    if (e.length <= 7 ? t.toLowerCase() === e.toLowerCase() : trigramSim(t, e) >= 0.7) return e;
+  }
+  return null;
+}
+
+/** where a quest block other than the event's starts (the next one down the tracker) */
+const NEXT_BLOCK = /^\W*(nightmare\s*(dungeon|escalat)|minor\s*nightmare|conquer\s|purge\s|report\s*to|war\s*plans?|priority\s*quest|torment\b|fl[o0]{2}r\W*$)/i;
+
+export interface DungeonEvent {
+  name: string;
+  /** a "Mastery:" objective is on it */
+  mastery: boolean;
+  /** "… Failed" shows on it (a mastery that can't be met any more) */
+  failed: boolean;
+  /** the countdown, if read */
+  secondsLeft: number | null;
+  /** which tracker lines are the event's (they're never the dungeon's objective) */
+  lines: number[];
+}
+
+/** The event block on the tracker, if one is up. */
+export function readDungeonEvent(lines: { text: string }[]): DungeonEvent | null {
+  const i = lines.findIndex((l) => eventName(l.text));
+  if (i < 0) return null;
+  const own = [i];
+  for (let k = i + 1; k < Math.min(lines.length, i + 7); k++) {
+    if (NEXT_BLOCK.test(lines[k].text.trim()) || eventName(lines[k].text)) break;
+    own.push(k);
+  }
+  const block = own.map((k) => lines[k].text);
+  const timer = block.map((t) => t.match(/(?:^|[^\d])(\d{1,2})\s*[:.]\s*(\d{2})\W*$/)).find(Boolean);
+  return {
+    name: eventName(lines[i].text)!,
+    mastery: block.some((t) => /mast[e3]r[yv]/i.test(t)),
+    failed: block.some((t) => /fa[il1]{2}ed/i.test(t)),
+    secondsLeft: timer ? Number(timer[1]) * 60 + Number(timer[2]) : null,
+    lines: own,
+  };
+}
+
+/** An event being timed. */
+export interface EventRun {
+  name: string;
+  start: number;
+  lastSeen: number;
+  reads: number;
+  mastery: boolean;
+  failed: boolean;
+  /** reads in a row with the dungeon's block up but no event */
+  gone: number;
+}
+
+/** An event that ended: one split for it. `mastery`: null when it had no mastery objective. */
+export interface EventDone {
+  name: string;
+  start: number;
+  end: number;
+  mastery: "met" | "failed" | null;
+}
+
+/**
+ * Feed one tracker read while the dungeon's block is up (`read` null = no event on it). The event ends when two
+ * reads in a row don't show it; it ends when it was last seen. One read of a name isn't an event.
+ */
+export function stepEvent(cur: EventRun | null, read: DungeonEvent | null, now: number): { run: EventRun | null; done: EventDone | null } {
+  if (read && cur && read.name === cur.name) {
+    cur.lastSeen = now;
+    cur.reads++;
+    cur.gone = 0;
+    cur.mastery ||= read.mastery;
+    cur.failed ||= read.failed;
+    return { run: cur, done: null };
+  }
+  if (read) return { run: { name: read.name, start: now, lastSeen: now, reads: 1, mastery: read.mastery, failed: read.failed, gone: 0 }, done: cur ? closeEvent(cur) : null };
+  if (!cur) return { run: null, done: null };
+  if (++cur.gone < 2) return { run: cur, done: null };
+  return { run: null, done: closeEvent(cur) };
+}
+
+/** End an event (when it's gone, or the run ends): null when it was only a stray read. */
+export function closeEvent(e: EventRun): EventDone | null {
+  if (e.reads < 2) return null;
+  return { name: e.name, start: e.start, end: e.lastSeen, mastery: e.failed ? "failed" : e.mastery ? "met" : null };
+}
+
+/** The split's label: "Cursed Shrine: mastery met". */
+export const eventLabel = (e: EventDone) => `${e.name}${e.mastery ? `: mastery ${e.mastery}` : ""}`;
+
 /**
  * Feed one read. Returns the objective that just finished (split there) when two reads in a row
  * agree on something new; a lone misread only waits as `pending` and is forgotten.

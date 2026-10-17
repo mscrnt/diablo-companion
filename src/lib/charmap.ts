@@ -7,7 +7,8 @@ import { persist } from "zustand/middleware";
 import { overlayToast, playTone } from "./alerts";
 import { beginFlow, cancelGuide, flowAlive, guideGameRect, guideSet, guideSleep, guideWait, useGuide, type GuideItem } from "./guide";
 import { normName, table } from "./names";
-import { ocrRows, parseGlyphHover, parseSkillHover, parseStatSheet, tidyStats } from "./charsheet";
+import { glyphActiveText, looksLikeGlyph, ocrRows, parseGlyphHover, parseGlyphUpgrade, parseSkillHover, parseStatSheet, stepGlyphUpgrade, tidyStats, type GlyphUpgradeMemo } from "./charsheet";
+import { debugEvent } from "./debug";
 import { ocrVocabReady } from "./ocrfix";
 import { captureRegion, cursorPosition, type OcrLine } from "./native";
 import { glyphActiveAt } from "./glyphring";
@@ -253,10 +254,7 @@ export async function mapSkills(my?: number, embedded = false) {
  * layout; the red ring in the full-screen glyph list is the fallback. null when neither shows.
  */
 async function glyphActive(lines: string[]): Promise<boolean | null> {
-  if (lines.some((l) => /drag\s*to\s*equip/i.test(l))) return false;
-  // the OCR rows span the whole screen, so the hint can share a row with other text: match the word
-  if (lines.some((l) => /(^|[^a-z])un\s*equ[il1]p([^a-z]|$)/i.test(l) || /(^|[^a-z])locate([^a-z]|$)/i.test(l))) return true;
-  return glyphRingUnderCursor().catch(() => null);
+  return glyphActiveText(lines) ?? glyphRingUnderCursor().catch(() => null);
 }
 
 /** The red ring around an active glyph in the full-screen Paragon view's glyph list (left side). */
@@ -288,10 +286,7 @@ export async function mapGlyphs(my?: number, embedded = false) {
   my ??= beginFlow("character", "Paragon glyphs", 1);
   const { variant } = getActiveVariant();
   const key = useSettings.getState().settings.hotkeys.judge;
-  const cls = (getActiveVariant().build?.className ?? "").toLowerCase();
-  const names = Object.entries(table("glyphs"))
-    .filter(([, g]) => !cls || !g.c || g.c === cls)
-    .map(([slug, g]) => ({ slug, name: g.n }));
+  const names = glyphNames();
   const doneG = useCharacter.getState().session?.glyphs ?? [];
   const items: GuideItem[] = (variant?.paragon ?? []).map((p) => ({ key: p.glyphSlug, label: `${p.glyphName} (build: lvl ${p.glyphLevel})`, done: doneG.includes(p.glyphSlug), note: doneG.includes(p.glyphSlug) ? "done earlier" : undefined }));
   guideSet({
@@ -345,6 +340,52 @@ export async function mapGlyphs(my?: number, embedded = false) {
   );
   if (res === false) return;
   if (!embedded && flowAlive(my)) cancelGuide();
+}
+
+/** Every glyph your class can use (all of them before a build is picked). */
+function glyphNames() {
+  const cls = (getActiveVariant().build?.className ?? "").toLowerCase();
+  return Object.entries(table("glyphs"))
+    .filter(([, g]) => !cls || !g.c || g.c === cls)
+    .map(([slug, g]) => ({ slug, name: g.n }));
+}
+
+// ---- glyph levels kept current without the mapping flow ---------------------------------------
+
+const upgradeMemo: GlyphUpgradeMemo = new Map();
+
+/**
+ * Any OCR'd frame (auto-judge around the cursor, the Pit's left panel): a glyph tooltip anywhere (the Paragon
+ * screen's glyph list, the Pit's upgrade screen) saves that glyph's level, and the Pit's upgrade panel saves the
+ * new level after "Upgrade Success". Quiet, except for a toast when an upgrade lands.
+ */
+export function watchGlyphs(ocr: OcrLine[]) {
+  if (!ocr.some((l) => /glyph/i.test(l.text))) return;
+  // the mapping flow reads them itself (and asks which ones are active)
+  const g = useGuide.getState();
+  if (g.active && g.flow === "character") return;
+  const lines = rows(ocr);
+  if (lines.some((l) => /diablo-companion|d4 companion|sanctuary toolkit/i.test(l)) && !lines.some((l) => /success\s*chance/i.test(l))) return;
+  const names = glyphNames();
+  const up = parseGlyphUpgrade(lines, names);
+  if (up) {
+    const r = stepGlyphUpgrade(upgradeMemo, up);
+    if (r) saveGlyph(r.slug, r.name, r.level, null, r.upgraded ? "upgrade" : "upgrade panel");
+    return;
+  }
+  if (!looksLikeGlyph(lines)) return;
+  const hover = parseGlyphHover(lines, names);
+  if (hover) saveGlyph(hover.hit.slug, hover.hit.name, hover.level, glyphActiveText(lines), "hover");
+}
+
+function saveGlyph(slug: string, name: string, level: number, active: boolean | null, via: "hover" | "upgrade panel" | "upgrade") {
+  const prev = useCharacter.getState().glyphs[slug];
+  if (prev?.level === level && (active == null || prev.active === active)) return;
+  useCharacter.getState().setGlyph(slug, { name, level, active: active ?? prev?.active });
+  debugEvent("character", "glyph-level", { glyph: name, from: prev?.level ?? null, to: level, via });
+  if (via !== "upgrade" || (prev && prev.level >= level)) return;
+  const want = getActiveVariant().variant?.paragon.find((p) => p.glyphSlug === slug)?.glyphLevel ?? 0;
+  overlayToast(`${name} level ${level}`, want ? (level >= want ? "At the build's level" : `${want - level} to go for the build`) : "", "#5fd18a", 4000);
 }
 
 const pauseKey = () => (useSettings.getState().settings.hotkeys.mapCharacter || "the map hotkey").replace("CommandOrControl", "Ctrl");

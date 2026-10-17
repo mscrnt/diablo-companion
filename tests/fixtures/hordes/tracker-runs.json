@@ -1,0 +1,998 @@
+{
+ "note": "Quest tracker reads from two real Infernal Hordes runs (Torment XI). Only the tracker block's lines are kept.",
+ "runs": [
+  {
+   "name": "2026-10-17",
+   "reads": [
+    {
+     "at": "2026-10-17T06:04:29.134Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 0/10",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face• the Infemal Hordes and survive the •",
+      "THE FELL COUNCIL"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:04:47.056Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 0/10",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:04:49.087Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 0/ 10",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:04:49.745Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 0/10",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "- Revives remaining: 4",
+      "Face the Infernal Hordes"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:04:51.408Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 0/10",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:06:14.396Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 1/10",
+      "21",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:06:15.992Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 1/10",
+      "21",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:06:29.981Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 1/10",
+      "21",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:06:30.586Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 1/10",
+      "21",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:06:41.281Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 1/10",
+      "21",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:06:41.901Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 1/10",
+      "21",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:06:53.445Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 1/10",
+      "21",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infernal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:07:05.793Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 2/10",
+      "xo:50",
+      "25",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Slay monsters to draw out Aether •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:07:55.786Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 2/10",
+      "xo:01",
+      "83",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Slay monsters to draw out Aether •",
+      "Slay the Aether Fiend: 0/1 •",
+      "Onslaught"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:08:01.395Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 2/10",
+      "86",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:08:09.504Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 2/10",
+      "93",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:08:31.539Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 2/ 10",
+      "93",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:08:32.175Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 2/10",
+      "93",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:08:44.351Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 2/ 10",
+      "93",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:09:48.333Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 3/10",
+      "144",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:09:53.197Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 3/10",
+      "154",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the. •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:11:17.981Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 4/10",
+      "232",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:11:22.899Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 4/10",
+      "239",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:11:24.615Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 4/10",
+      "239",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "• Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •",
+      "Aether Fiends have greatly",
+      "Aether Fiends grant +2 Aether"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:11:29.555Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 4/10",
+      "239",
+      "Soulspires grant +3 Aether..—",
+      "Aether Fiends have greatly",
+      "Aether Fiends grant +2 Aether",
+      "spawn an Aether Fiend on death",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:11:42.754Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 5/10",
+      "xo:58",
+      "239",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Slay monsters to draw out Aether",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:12:51.987Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 5/10",
+      "326",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:12:53.702Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 5/10",
+      "328",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Onslaught",
+      "Face the Infernal Hordes",
+      "Face the Infernal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:12:55.276Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 5/10",
+      "328",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:14:42.178Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 6/10",
+      "432",
+      "'Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •",
+      "THE FELL COUNCIL"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:14:47.198Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 6/10",
+      "449",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:16:16.810Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 7/10",
+      "568",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the",
+      "FELL COUNCIL"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:16:20.123Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 7/10",
+      "568",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:17:46.751Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 8/10",
+      "717",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:19:34.834Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 9/10",
+      "872",
+      "THE FELL COUNCIL",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Onslaught",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survi the"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:19:36.461Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 9/10",
+      "877",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Revives remaining: 4",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:19:38.131Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 9/10",
+      "882",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Select an Infemal Offer •",
+      "Onslaught",
+      "Face the Infernal Hordes",
+      "Face the Infemal Hordes and survive the •"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:22:09.523Z",
+     "src": "tracker check",
+     "lines": [
+      "WAVE; 10/10",
+      "105",
+      "Spoils of Materials",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Dungeon cleared",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-17T06:22:10.194Z",
+     "src": "arena scan",
+     "lines": [
+      "WAVE: 10/10",
+      "105",
+      "Spoils of Materials",
+      "Torment XI",
+      "The Infernal Hordes",
+      "Dungeon cleared",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "2026-10-15",
+   "reads": [
+    {
+     "at": "2026-10-16T04:21:13.451Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 0/ 10",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:21:40.191Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 0/ 10",
+      "4",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:21:42.129Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 0/ 10",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:21:45.738Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 0/10",
+      "4",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:21:48.152Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 0/ 10",
+      "4",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:21:52.710Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 0/ 10",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:23:04.627Z",
+     "src": "mark",
+     "lines": [
+      "WAVE: 1/10",
+      "Torment",
+      "The Infernal Hordes",
+      "Select an Infernal Offer",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:23:07.173Z",
+     "src": "mark",
+     "lines": [
+      "WAVE: 1/10",
+      "77",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:23:08.863Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 1/10",
+      "77",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:23:10.317Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 1/10",
+      "77",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:23:14.474Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 1/10",
+      "77",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:23:30.252Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 1/10",
+      "77",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:23:32.501Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 1/10",
+      "77",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:24:43.349Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 2/ 10",
+      "134",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:24:46.201Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 2/ 10",
+      "134",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:24:48.107Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 2/ 10",
+      "-134",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:24:49.934Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 2/ 10",
+      "134",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:24:52.532Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 2/ 10",
+      "134",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:24:59.812Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 3/10",
+      "134",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Slay monsters-to out Aether",
+      "Stay neat Lthe Souls15ire and slay foes: 0/15",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:26:10.125Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 3/10",
+      "202",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:26:13.170Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 3/10",
+      "202",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:26:15.890Z",
+     "src": "mark",
+     "lines": [
+      "WAVE: 3/10",
+      "202",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:26:19.161Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 3/10",
+      "202",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:26:22.031Z",
+     "src": "mark",
+     "lines": [
+      "WAVE: 3/10",
+      "202",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:28:45.247Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 4/ 10",
+      "313",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:28:58.659Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 4/ 10",
+      "313",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:29:00.834Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 4/ 10",
+      "313",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:29:02.906Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 4/ 10",
+      "313",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Inferfial Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:29:05.442Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 4/ 10",
+      "313",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an 'Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:30:33.483Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 5/10",
+      "413",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:33:39.283Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 7/10",
+      "695",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Select an Infernal Offer •",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    },
+    {
+     "at": "2026-10-16T04:39:53.901Z",
+     "src": "mark",
+     "lines": [
+      "WAVE; 10/10",
+      "1,234",
+      "Torment X1",
+      "The Infernal Hordes",
+      "Defeat théFell Council",
+      "Onslaught",
+      "Revives remaining: 4"
+     ]
+    }
+   ]
+  }
+ ]
+}

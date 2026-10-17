@@ -253,15 +253,96 @@ export function parseSkillHover(lines: string[], names: NameRef[]): SkillRead | 
 
 /** A glyph tooltip: "Deadraiser" / "Legendary Glyph" / "LEVEL 85". A skill's "RANK 9/15" is not a glyph. */
 export function parseGlyphHover(lines: string[], names: NameRef[]): { hit: NameRef & { score: number; i: number }; level: number } | null {
-  const li = lines.findIndex((l) => /\blevel\s*:?\s*\d+/i.test(l));
+  // the Pit's upgrade panel also says "Pit Level: 95": that's the tier, not the glyph
+  const li = lines.findIndex((l) => GLYPH_LEVEL.test(l));
   if (li < 0) return null;
-  const level = Number(lines[li].match(/\blevel\s*:?\s*(\d+)/i)![1]);
+  const level = Number(lines[li].match(GLYPH_LEVEL)![1]);
   // the name sits a line or three above the level, next to "Legendary Glyph"
   const from = Math.max(0, li - 4);
   const hit = bestName(lines.slice(from, li + 1), names, 0.8);
   if (!hit) return null;
   hit.i += from;
   return { hit, level };
+}
+
+/** "LEVEL 85" (tooltip), "Level: 87 (+1) / 150" (upgrade panel); never "Pit Level: 95" */
+const GLYPH_LEVEL = /(?<!pit\s{0,2})\blevel\s*:?\s*(\d{1,3})\b/i;
+
+/** A glyph tooltip or the Pit's upgrade panel is on screen: both say "Glyph" and "Radius Size". */
+export const looksLikeGlyph = (lines: string[]) => lines.some((l) => /glyph/i.test(l)) && lines.some((l) => /rad[il1]us\s*s[il1]ze/i.test(l));
+
+/** Is the hovered glyph active? An active one offers "Unequip" / "Locate", an inactive one "Drag to Equip". */
+export function glyphActiveText(lines: string[]): boolean | null {
+  if (lines.some((l) => /drag\s*to\s*equip/i.test(l))) return false;
+  // the OCR rows span the whole screen, so the hint can share a row with other text: match the word
+  if (lines.some((l) => /(^|[^a-z])un\s*equ[il1]p([^a-z]|$)/i.test(l) || /(^|[^a-z])locate([^a-z]|$)/i.test(l))) return true;
+  return null;
+}
+
+/**
+ * The Pit's glyph upgrade panel (Awakened Glyphstone), as read in real runs (2026-10-11, 2026-10-16):
+ *   "UPGRADE GLYPH" (OCR'd "UPG DE GLYPH") / "Upgrades Available: 7" / "Warrior" / "Level: 90 (+1) / 150" /
+ *   "Radius Size: 5" / "Pit Level: 90 | Success Chance: 70%"
+ * While the result shows ("Upgrade Success" / "Upgrade Failed") the level line is hidden.
+ */
+export interface GlyphUpgradeRead {
+  hit: NameRef & { score: number; i: number };
+  /** the glyph's level now; null while the result covers it */
+  level: number | null;
+  /** levels a success adds ("(+1)") */
+  plus: number | null;
+  result: "success" | "failed" | null;
+  /** upgrades left ("Upgrades Available: 7"): one goes with every try */
+  available: number | null;
+}
+
+export function parseGlyphUpgrade(lines: string[], names: NameRef[]): GlyphUpgradeRead | null {
+  const top = lines.findIndex((l) => /upgrades?\s*ava[il1]{2}able/i.test(l));
+  const chance = lines.findIndex((l) => /success\s*chance/i.test(l));
+  if (top < 0 || chance <= top) return null;
+  const body = lines.slice(top + 1, chance);
+  const li = body.findIndex((l) => GLYPH_LEVEL.test(l));
+  // the name sits between "Upgrades Available" and the level (or the result that covers it)
+  const ri = body.findIndex((l) => /upgrade\s*(success|fa[il1]{2})/i.test(l));
+  const end = li >= 0 ? li : ri >= 0 ? ri : body.length;
+  const hit = bestName(body.slice(0, Math.max(1, end)), names, 0.8);
+  if (!hit) return null;
+  hit.i += top + 1;
+  const lv = li >= 0 ? body[li] : null;
+  const plus = lv?.match(/\(\s*\+\s*(\d{1,2})\s*\)/);
+  const res = ri >= 0 ? body[ri].match(/upgrade\s*(success|fa[il1]{2})/i)![1].toLowerCase() : null;
+  const av = lines[top].match(/ava[il1]{2}able\W*(\d{1,2})\b/i);
+  return {
+    hit,
+    level: lv ? Number(lv.match(GLYPH_LEVEL)![1]) : null,
+    plus: plus ? Number(plus[1]) : null,
+    result: res ? (res === "success" ? "success" : "failed") : null,
+    available: av ? Number(av[1]) : null,
+  };
+}
+
+/** What the upgrade panel last showed for each glyph. */
+export type GlyphUpgradeMemo = Map<string, { level: number; plus: number; counted: string | null }>;
+
+/**
+ * Feed one read of the upgrade panel. Returns the glyph's level to save when it's new: read off the panel, or
+ * the level before plus its "(+1)" when "Upgrade Success" shows (the panel may be closed before the level
+ * shows again). Each try spends an upgrade ("Upgrades Available" goes down), so one success counts once however
+ * many frames show it.
+ */
+export function stepGlyphUpgrade(memo: GlyphUpgradeMemo, read: GlyphUpgradeRead): { slug: string; name: string; level: number; upgraded: boolean } | null {
+  const { slug, name } = read.hit;
+  const m = memo.get(slug);
+  if (read.level != null) {
+    memo.set(slug, { level: read.level, plus: read.plus ?? m?.plus ?? 1, counted: m?.counted ?? null });
+    return { slug, name, level: read.level, upgraded: !!m && read.level > m.level };
+  }
+  if (read.result !== "success" || !m) return null;
+  const key = String(read.available ?? "?");
+  if (m.counted === key) return null;
+  m.counted = key;
+  m.level += m.plus;
+  return { slug, name, level: m.level, upgraded: true };
 }
 
 export const sameName = (a: string, b: string) => normName(a) === normName(b);
