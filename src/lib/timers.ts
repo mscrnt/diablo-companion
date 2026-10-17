@@ -48,6 +48,22 @@ export function predictWorldBoss(t: number): { boss: string; maybe?: string; exp
   return { boss: WB_ROTATION[slot], ...(WB_MAYBE[slot] ? { maybe: WB_MAYBE[slot] } : {}), expansion: mod(n, 4) === 0 };
 }
 
+/**
+ * The world boss's likely main zone: a 15-slot cycle that turns one step a week, at a phase offset Blizzard's side
+ * has moved a few times (late June to mid September 2026). About 2 in 3 right; shown as "probably". Slots that
+ * didn't settle in our data (6, 13, 14) give no guess. WB_ZONE_PHASE is the offset since 2026-09-19: when our own
+ * recordings show it moved, it changes here.
+ */
+const WB_ZONE_CYCLE: (string | null)[] = ["Scosglen", "Kehjistan", "Dry Steppes", "Scosglen", "Fractured Peaks", "Dry Steppes", null, "Hawezar", "Fractured Peaks", "Kehjistan", "Hawezar", "Fractured Peaks", "Kehjistan", null, null];
+const WB_ZONE_WEEK0 = Date.parse("2026-01-06T00:00:00Z") / 1000;
+const WB_ZONE_PHASE = 9;
+
+export function predictWorldBossZone(t: number): string | undefined {
+  const n = Math.round((t - WB_EPOCH) / WB_PERIOD);
+  const week = Math.floor((t - WB_ZONE_WEEK0) / (7 * 86400));
+  return WB_ZONE_CYCLE[mod(n + 7 * week + WB_ZONE_PHASE, 15)] ?? undefined;
+}
+
 /** The helltide zone for the hour starting at `t` (unix seconds), or undefined before the cycle began. */
 export function predictHelltideZone(t: number): string | undefined {
   if (t < HELLTIDE_ZONES_SINCE) return undefined;
@@ -69,11 +85,12 @@ export function localSchedule(nowMs = Date.now(), hours = 12): GameEvent[] {
   let wb = now - 900 + mod(WB_OFFSET - (now - 900), WB_PERIOD);
   for (; wb < end; wb += WB_PERIOD) {
     const p = predictWorldBoss(wb);
+    const likely = predictWorldBossZone(wb);
     out.push({
       kind: "worldBoss",
       name: p.boss,
-      // the primary zone isn't predictable; the expansion one is "Nahantu or Skovos"
-      zone: p.expansion ? "also Nahantu or Skovos" : undefined,
+      // the main zone is a likely guess (about 2 in 3); the expansion one is "Nahantu or Skovos"
+      zone: [likely && `probably ${likely}`, p.expansion && "also Nahantu or Skovos"].filter(Boolean).join(", ") || undefined,
       start: wb * 1000,
       end: (wb + 900) * 1000,
       source: "schedule",

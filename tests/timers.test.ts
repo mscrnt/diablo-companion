@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtCountdown, localSchedule, predictHelltideZone, predictWorldBoss } from "../src/lib/timers";
+import { fmtCountdown, localSchedule, predictHelltideZone, predictWorldBoss, predictWorldBossZone } from "../src/lib/timers";
 
 describe("local event schedule", () => {
   const t0 = Date.UTC(2026, 9, 10, 4, 0, 0);
@@ -72,6 +72,18 @@ describe("world bosses", () => {
       ["14:30", "Avarice"],
     ]);
     expect(wb[1].zone).toMatch(/Nahantu or Skovos/);
+  });
+
+  it("the likely main zone, where our data settled it (about 2 in 3 right)", () => {
+    // near-spawn zones: 2026-10-17 07:30 Scosglen, 11:00 Kehjistan (+ Nahantu), 2026-10-16 03:30 Hawezar
+    expect(predictWorldBossZone(at("2026-10-17T07:30:00Z"))).toBe("Scosglen");
+    expect(predictWorldBossZone(at("2026-10-17T11:00:00Z"))).toBe("Kehjistan");
+    expect(predictWorldBossZone(at("2026-10-16T03:30:00Z"))).toBe("Hawezar");
+    // an unsettled slot gives no guess
+    expect(predictWorldBossZone(at("2026-10-17T04:00:00Z"))).toBeUndefined();
+    const wb = localSchedule(Date.parse("2026-10-17T06:00:00Z"), 6).filter((e) => e.kind === "worldBoss");
+    expect(wb[0].zone).toBe("probably Scosglen");
+    expect(wb[1].zone).toBe("probably Kehjistan, also Nahantu or Skovos");
   });
 });
 

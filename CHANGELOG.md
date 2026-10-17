@@ -6,12 +6,24 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
-- **World events predicted by the app itself:** the world boss of every spawn (one slot in the rotation can be either of two bosses, and it says so), which world bosses also spawn in Nahantu or Skovos, and the zone of every Helltide. Nothing is fetched from other sites any more. A world boss's main zone and a Legion's zone can't be predicted yet; the game's map shows them about an hour before.
+- **World events predicted by the app itself:** the world boss of every spawn (one slot in the rotation can be either of two bosses, and it says so), its likely zone ("probably Scosglen", right about 2 times in 3), which world bosses also spawn in Nahantu or Skovos, and the zone of every Helltide. Nothing is fetched from other sites any more. A Legion's zone can't be predicted yet.
+- **Character profiles:** each character has its own builds (several per character, one active), gear, progress, stats and glyphs. The app switches by itself when the Character panel shows a character's name, and runs and loot are labelled by character.
+- **The loot judge checks every build of every character:** "Keep it: an upgrade for your Minion build" for this character, "Stash it: great for your Necromancer" for another. It only says scrap when no build of yours can use the item, and an item for another class says so.
+- **Infernal Hordes runs are timed,** with a split for every wave and the Fell Council.
+- **Events inside dungeons** (Cursed Shrine, Nest, Impromptu Investigation and others) get their own split in the dungeon's run, with how long they took and whether the mastery was met.
+- **Glyph levels stay current:** any glyph you hover, and each upgrade at the Pit, updates its level.
+- **Export your stats:** runs with splits, bests, loot history and character stats as CSV and JSON files (Runs page or Settings).
+- **"Judging for"** on the overlay and the Build page shows which build and variant the loot judge follows.
+- Option to only alert while Diablo IV is running.
+- **Black bar layout:** panels can be moved and reordered in each bar, also in game in edit mode (Ctrl+Shift+O), and "Leave room for Discord" keeps the top left clear.
 
 ### Changed
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
 - Up to 100 marked moments are kept (was 30, which a busy session filled in half an hour).
 - Shared judgements go out every minute, so fewer are lost when the app closes; in test mode a copy of each shared picture, blacked out as sent, is saved with the test log.
+- Keys, sigils, tributes, caches and other things you carry say "Keep it" instead of "Stash it".
+- The seal and charms you wear are remembered, so spare ones are judged even without the game's comparison.
+- World event timers no longer fetch anything from other sites, and imported builds are never checked for updates in the background: builds come only from a link you paste.
 
 ### Fixed
 - Opening the game's War Plans screen no longer shows the Helltide cinders panel (its "Helltide" tab and point counter looked like a Helltide) or starts the Infernal Hordes helper.
@@ -20,6 +32,8 @@ The release workflow publishes each version's section as its GitHub release note
 - **Boss timer:** only the health bar's name at the very top counts. Your minions ("Skeleton Guardian"), other players and their titles walking past no longer start a fight with Grigoire, Duriel or the Butcher.
 - **Keys and other non-gear seen without their title** are never judged as gear: the bottom of an Escalating Nightmare sigil ("Ancient Reservoir in Hawezar") was called boots and scrapped.
 - A Chronicle of Nightmares tooltip over the quest tracker no longer starts a Minor Nightmare run, and a misread first cinder count (3,598 for 598) waits for a second read.
+- **Helltide cinders** are counted from the first seconds of a Helltide; the timer's hourglass, read as a letter, hid the tracker for up to two minutes.
+- **Rings:** each of your two rings is remembered in its own slot, so a ring you replaced no longer leads to a wrong "wear this".
 
 ## [0.2.4] - 2026-10-16
 

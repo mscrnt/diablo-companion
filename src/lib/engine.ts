@@ -208,10 +208,12 @@ function checkAlerts(events: GameEvent[]) {
         fired.add(key);
         const meta = EVENT_META[e.kind];
         const title = lead === 0 ? `${meta.emoji} ${eventLabel(e)}: NOW` : `${meta.emoji} ${eventLabel(e)} in ${lead} min`;
-        // a world boss's main zone isn't predictable: the game's map shows it about an hour before
+        // a world boss's main zone is only a likely guess: the game's map shows it about an hour before
         const body =
           e.kind === "worldBoss"
-            ? `${e.extra?.expansion ? "Also in Nahantu or Skovos. " : ""}Its zone is on your map an hour before.`
+            ? e.zone
+              ? `${e.zone.charAt(0).toUpperCase()}${e.zone.slice(1)}. Your map shows it an hour before.`
+              : "Its zone is on your map an hour before."
             : (e.zone ?? meta.label);
         if (!alertsAllowed(alerts.onlyWhileGameRuns, useRuntime.getState().game)) {
           debugEvent("alerts", "skipped", { title, why: "Diablo IV isn't running" });
