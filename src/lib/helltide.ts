@@ -34,11 +34,19 @@ export interface HelltideInfo {
 export const isHelltideLabel = (text: string) => /^\W{0,3}h?e?[l1i|/]{1,3}t[il1]de\s*[:;.]?\s*(\d{1,2}\s*[:.]\s*\d{2})?\W{0,3}$/i.test(text.trim());
 
 /** Parse the HUD block: "Helltide: 51:37" with counters under the icons (cinders = the left one). */
+/**
+ * The War Plans screen: its activity tabs are named like the activities ("Helltide", "Infernal Hordes"), with
+ * point counters under them, and passed for a running Helltide (cinders 615) and Hordes (2026-10-16 test).
+ */
+export const isWarPlansScreen = (text: string) => /available\s*points|next\s*point\s*:|complete\s*war\s*plans/i.test(text);
+
 export function parseHelltideHud(lines: OcrLine[]): { cinders: number | null; secondsLeft: number | null } | null {
   // the HUD label is "Helltide" alone (maybe with ":" and its timer) — not an item or chest name
   // that contains the word ("Helltide Harvest…", "Tortured Gift of…" lists)
   const label = lines.find((l) => isHelltideLabel(l.text));
   if (!label) return null;
+  // the War Plans screen has a "Helltide" tab ("Helltide / Available Points / Next Point: 615/2,250"): not the run
+  if (isWarPlansScreen(lines.map((l) => l.text).join("\n"))) return null;
   const tm = label.text.match(/(\d{1,2}):(\d{2})/) ?? lines.map((l) => l.text.match(/^\D{0,3}(\d{1,2}):(\d{2})\s*$/)).find(Boolean) ?? null;
   const secondsLeft = tm ? Number(tm[1]) * 60 + Number(tm[2]) : null;
   // counters: short numeric lines below the label, roughly under it; the leftmost is cinders

@@ -2,6 +2,7 @@
 // Aether vs danger, and advises which Spoils chest to open at the end.
 // Offer texts come from the game files (src/generated/hordes.json, scripts/gen-hordes.mjs).
 import data from "../generated/hordes.json";
+import { isWarPlansScreen } from "./helltide";
 import { normName, trigramSim } from "./names";
 import type { OcrLine } from "./native";
 import type { BuildVariant, SlotProgress } from "./types";
@@ -305,6 +306,8 @@ export function looksLikeHordes(text: string) {
   // OCR garbles it ("commss (37)", "Legendary Infemal Hordes" for the type line "Legendary Infernal Hordes Compass")
   const keyTooltip = /gates of hell|\bco[mn]{1,3}p?a?s{1,2}\b|pass through the|legendary\s+[il1]nfe(?:rn|m|r)al/i;
   if (keyTooltip.test(text) && !/wave[:\s]*\d+\s*\/\s*\d+/i.test(text)) return false;
+  // the War Plans screen's "Infernal Hordes" tab isn't a run
+  if (isWarPlansScreen(text)) return false;
   // tolerate OCR slips: "Infemal" (rn→m), "lnfernal", "WAVE: 10/10"
   return /[il1]nfe(?:rn|m|r)al\s*hordes|bu(?:rn|m)ing\s*aether|\baether\b|wave[:\s]*\d+\s*\/\s*\d+/i.test(text);
 }

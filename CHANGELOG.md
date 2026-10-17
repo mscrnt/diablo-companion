@@ -8,6 +8,9 @@ The release workflow publishes each version's section as its GitHub release note
 ### Changed
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
 
+### Fixed
+- Opening the game's War Plans screen no longer shows the Helltide cinders panel (its "Helltide" tab and point counter looked like a Helltide) or starts the Infernal Hordes helper.
+
 ## [0.2.4] - 2026-10-16
 
 ### Added

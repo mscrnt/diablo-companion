@@ -73,6 +73,15 @@ describe("Infernal Hordes", () => {
     // a compass tooltip in the bag over the tracker, its "Compass" garbled (2026-10-11 RC test)
     expect(looksLikeHordes("INFERNAL HORDES commss (37) Legendary Infemal Hordes")).toBe(false);
     expect(looksLikeHordes("Infernal Hordes Compass Pass through the Gates of Hell")).toBe(false);
+    // the War Plans screen's Infernal Hordes tab (2026-10-16 test)
+    expect(looksLikeHordes("Infernal Hordes Available Points Lv 4/7 Next Point: 1,261/1,500")).toBe(false);
+    expect(looksLikeHordes("Lair Bosses Available Points Lv4/7 Next Point: 104/1,500")).toBe(false);
+  });
+
+  it("the War Plans screen's Helltide tab isn't a Helltide (cinders 615, 2026-10-16 test)", () => {
+    const warPlans = [line("Available Points", 40, 150), line("Helltide", 375, 140), line("Lv 5/7", 700, 175), line("Next Point: 615/2,250", 375, 200), line("615", 480, 200)];
+    expect(parseHelltideHud(warPlans)).toBeNull();
+    expect(parseHelltideHud([line("Helltide", 375, 140), line("615", 380, 170)])).not.toBeNull();
     expect(parseAether("Burning Aether 245")).toBe(245);
     expect(parseAether("245 Aether")).toBe(245);
   });
