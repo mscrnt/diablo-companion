@@ -55,3 +55,6 @@ private/
 # Cloudflare Worker local state and dev secrets
 worker/.wrangler
 worker/.dev.vars
+
+# rust-analyzer / cargo output when the editor builds from the repo root
+/target/
