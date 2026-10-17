@@ -12,7 +12,7 @@ const CASES = [
   { file: "accursed-touch-helm", name: /Accursed Touch/, slot: "helm", rarity: "legendary", verdict: "SCRAP", why: "aspect the build doesn't use" },
   { file: "sticker-thought-pants", name: /Thought/, slot: "pants", rarity: "legendary", verdict: "SCRAP", why: "aspect the build doesn't use" },
   { file: "deathgrip", name: /^Deathgrip$/, slot: "gloves", rarity: "unique", verdict: "WEAR", why: "core unique you don't own yet" },
-  { file: "whisper-cache", name: /Collection of Chestplates/, slot: "other", rarity: "legendary", verdict: "STASH", why: "not gear" },
+  { file: "whisper-cache", name: /Collection of Chestplates/, slot: "other", rarity: "legendary", verdict: "KEEP", why: "not gear" },
 ] as const;
 
 describe("loot judge on logged tooltips", () => {
@@ -90,7 +90,7 @@ describe("greater affixes read as a star character", () => {
     expect(item.affixes.filter((a) => a.greater).length).toBe(4);
     const r = decide(item, ctx.variant, { prog: ctx.prog }, item.compare);
     expect(r.verdict).toBe("STASH");
-    expect(r.action).toMatch(/Save it for later: 4★ greater affixes/);
+    expect(r.action).toMatch(/Stash it for later: 4★ greater affixes/);
   });
 });
 

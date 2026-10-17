@@ -5,13 +5,17 @@ import { runAction, useRuntime } from "../lib/engine";
 import { VERDICT_STYLE } from "../lib/judge";
 import { judgeImage, openJudgeLog } from "../lib/judgeRunner";
 import { openTestLog } from "../lib/testmode";
-import { useLoot, useSettings } from "../lib/store";
+import { profileLabel } from "../lib/profiles";
+import { useLoot, useProfiles, useSettings } from "../lib/store";
 import type { JudgeResult } from "../lib/types";
 import { shareFeedback, sharingOn } from "../lib/share";
 
 export default function Loot() {
   const { history, clear } = useLoot();
   const { settings, update } = useSettings();
+  const profiles = useProfiles((s) => s.profiles);
+  // whose loot it was, once you play more than one character
+  const whose = (h: JudgeResult) => (Object.keys(profiles).length > 1 && h.character && profiles[h.character] ? ` · ${profileLabel(profiles[h.character])}` : "");
   const judging = useRuntime((s) => s.judging);
   const [sel, setSel] = useState<JudgeResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -136,6 +140,7 @@ export default function Loot() {
                       </div>
                       <div className="small muted">
                         {h.item.itemType}
+                        {whose(h)}
                         {h.flagged && <span style={{ color: "var(--orange)" }}> · flagged wrong</span>}
                       </div>
                     </td>

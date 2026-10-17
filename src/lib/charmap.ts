@@ -125,6 +125,8 @@ export async function mapStats(my?: number, embedded = false) {
     async () => {
       const cap = await captureRegion(rect, { ocr: true, ocrMaxChannel: true, maxEdge: 64, quality: 50 });
       const lines = cap.ocr?.lines ?? [];
+      // the sheet is the Character panel: its name says whose stats these are (imported late: profiles.ts uses this module)
+      void import("./profiles").then((p) => p.noteCharacterFrame(lines));
       let added = 0;
       for (const [name, value] of Object.entries(parseStatSheet(lines))) {
         const v = (votes[name] ??= {});

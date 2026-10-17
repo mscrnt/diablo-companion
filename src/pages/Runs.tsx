@@ -3,7 +3,8 @@ import { Play, ScrollText, Skull, Square, Timer } from "lucide-react";
 import { Card, Empty, PageHead, Sparkline, fmtDur, timeAgo, useNow } from "../components/ui";
 import { ExportStatsButton } from "../components/ExportStats";
 import { runAction } from "../lib/engine";
-import { useRuns, useSettings, useWatchers } from "../lib/store";
+import { profileLabel } from "../lib/profiles";
+import { useProfiles, useRuns, useSettings, useWatchers } from "../lib/store";
 import type { Run } from "../lib/types";
 
 /** Where a step's time starts: the previous step (events inside the run keep their own time). */
@@ -18,13 +19,16 @@ export default function Runs() {
   const deaths = useWatchers((s) => s.deaths);
   const now = useNow(250);
   const [filter, setFilter] = useState<string>("");
+  const profiles = useProfiles((s) => s.profiles);
+  const chars = Object.values(profiles);
+  const [who, setWho] = useState<string>("");
 
   const act = r.active?.activity ?? r.activity;
   const same = r.runs.filter((x) => x.activity === act && x.end && x.success !== false);
   const durs = same.map((x) => x.end! - x.start);
   const pb = durs.length ? Math.min(...durs) : null;
   const avg = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null;
-  const list = r.runs.filter((x) => !filter || x.activity === filter);
+  const list = r.runs.filter((x) => (!filter || x.activity === filter) && (!who || x.character === who));
   const elapsed = r.active ? now - r.active.start : 0;
 
   return (
@@ -130,12 +134,24 @@ export default function Runs() {
         title="History"
         style={{ marginTop: 14 }}
         right={
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">All activities</option>
-            {settings.activities.map((a) => (
-              <option key={a}>{a}</option>
-            ))}
-          </select>
+          <>
+            {chars.length > 1 && (
+              <select value={who} onChange={(e) => setWho(e.target.value)}>
+                <option value="">All characters</option>
+                {chars.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {profileLabel(p)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <option value="">All activities</option>
+              {settings.activities.map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+            </select>
+          </>
         }
       >
         {list.length === 0 ? (
@@ -147,6 +163,7 @@ export default function Runs() {
                 <tr>
                   <th>When</th>
                   <th>Activity</th>
+                  {chars.length > 1 && <th>Character</th>}
                   <th>Tier</th>
                   <th>Time</th>
                   <th>Splits</th>
@@ -159,6 +176,7 @@ export default function Runs() {
                   <tr key={x.id}>
                     <td className="small dim nowrap">{timeAgo(x.start)}</td>
                     <td>{x.activity}</td>
+                    {chars.length > 1 && <td className="small">{x.character && profiles[x.character] ? profileLabel(profiles[x.character]) : ""}</td>}
                     <td>{x.tier}</td>
                     <td className="mono" style={{ color: x.success === false ? "var(--dim)" : x.end! - x.start === pb ? "var(--gold2)" : undefined }}>
                       {fmtDur((x.end ?? now) - x.start)}

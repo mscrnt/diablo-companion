@@ -1,10 +1,10 @@
 // Loot Judge decisions: a parsed tooltip (see parse.ts) → one plain-language action
 // for the active build variant.
-import { Archive, Box, CircleHelp, Coins, Gem, Hammer, ShieldCheck, Shirt, Sparkles, ThumbsUp, type LucideIcon } from "lucide-react";
-import { normName, similarity, trigramSim } from "./names";
+import { Archive, Backpack, Box, CircleHelp, Coins, Gem, Hammer, ShieldCheck, Shirt, Sparkles, type LucideIcon } from "lucide-react";
+import { normName, similarity, table, trigramSim, type Category } from "./names";
 import { knownWord, ocrVocabReady } from "./ocrfix";
 import { buildProfile, compareValue, rowsFromItems, standaloneValue, statKey, statWeight, type BuildProfile } from "./statvalue";
-import type { BuildVariant, CompareRow, GearSlot, JudgeResult, ParsedItem, SlotProgress, Verdict } from "./types";
+import type { BuildVariant, CompareRow, GearSlot, JudgeResult, ParsedItem, SlotProgress, Talisman, Verdict } from "./types";
 
 // ---- decision -------------------------------------------------------------------
 // Everything below turns a parsed tooltip into ONE plain instruction:
@@ -90,17 +90,24 @@ function quality(item: ParsedItem, slot: GearSlot): Quality {
 
 export interface Ctx {
   prog: (slot: string) => SlotProgress;
-  /** last seen stats of what you're wearing per build slot (from hovering your gear) */
-  worn?: (slot: string) => ParsedItem | undefined;
+  /** last seen stats of what you're wearing per build slot (from hovering your gear), and when; `doubt`: it may be gone */
+  worn?: (slot: string) => (ParsedItem & { at?: number; doubt?: boolean }) | undefined;
   /** Horadric Cube recipe that can turn a white base into a build unique */
   cubeHint?: (slot: GearSlot) => { recipe: string; baseType: string; pool: string[] } | undefined;
   /** the aspect (by slug) is already in your Codex of Power (Collection page) */
   inCodex?: (slug: string) => boolean;
   /** the build's stat weights (filled in by decide) */
   prof?: BuildProfile;
+  /** the build's class ("Necromancer"): another class's unique or aspect is no use to it */
+  className?: string;
+  /** the seal and charms you were last seen wearing */
+  talisman?: Talisman;
 }
 
 type Out = Omit<JudgeResult, "id" | "at" | "ms" | "thumb">;
+
+/** How long the memory of a ring (weapon) the game isn't showing is trusted: about a play session. */
+const WORN_TRUST_MS = 6 * 3600_000;
 
 /** "a", "a and b", "a, b and c" */
 const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -125,6 +132,11 @@ export function sameAsWorn(item: ParsedItem, worn: ParsedItem): boolean {
   const named = (!!normName(item.name) && normName(item.name) === normName(worn.name)) || (!!item.aspect?.name && !!worn.aspect?.name && normName(item.aspect.name) === normName(worn.aspect.name));
   if (!named || item.slot !== worn.slot) return false;
   if (item.itemPower && worn.itemPower && item.itemPower !== worn.itemPower) return false;
+  return sameNumbers(item, worn);
+}
+
+/** (Nearly) the same affix values, for telling two copies apart: OCR may drop or garble a line or two. */
+function sameNumbers(item: ParsedItem, worn: ParsedItem): boolean {
   const a = affixNumbers(item);
   const b = affixNumbers(worn);
   let common = 0;
@@ -141,6 +153,45 @@ export function sameAsWorn(item: ParsedItem, worn: ParsedItem): boolean {
 
 /** Uniques and mythics keep their own power: the Occultist can't imprint an aspect onto them. */
 const isUniqueItem = (item: ParsedItem) => /unique|mythic/i.test(item.rarity);
+
+const CLASS_ONLY = /\b(barbarian|druid|necromancer|rogue|sorcerer|spiritborn|paladin|warlock)s?\s+only\b/i;
+/** name → the classes that have it ("" = every class), per table */
+const classesByName = new Map<Category, Map<string, Set<string>>>();
+
+/**
+ * The classes a unique, aspect or charm belongs to (the game's data), by name: one entry per class for
+ * a shared aspect, none for one every class can use (null). Built once the tables are loaded.
+ */
+function classesOf(cat: Category, name: string): string[] | null {
+  let m = classesByName.get(cat);
+  if (!m) {
+    const entries = Object.values(table(cat));
+    if (!entries.length) return null;
+    m = new Map();
+    for (const e of entries) {
+      const k = normName(e.n);
+      if (!m.has(k)) m.set(k, new Set());
+      m.get(k)!.add(e.c ?? "");
+    }
+    classesByName.set(cat, m);
+  }
+  const cs = m.get(normName(name));
+  return cs && !cs.has("") ? [...cs] : null;
+}
+
+/**
+ * The classes that can use this item (["necromancer"]), or null for any: the tooltip saying so
+ * ("Sorcerer Only"), or a class's own unique, legendary aspect or charm. An imprinted aspect came from your Codex.
+ */
+export function itemClasses(item: ParsedItem): string[] | null {
+  const said = `${item.itemType}\n${item.rawText ?? ""}`.match(CLASS_ONLY)?.[1];
+  if (said) return [said.toLowerCase()];
+  const r = rarityOf(item);
+  if (r === "unique" || r === "mythic") return classesOf("uniques", item.name);
+  if (item.category === "talisman" || item.slot === "charm") return classesOf("charms", item.name);
+  if (r === "legendary" && item.aspect?.name && !item.aspect.imprinted) return classesOf("aspects", item.aspect.name);
+  return null;
+}
 
 /**
  * The to-do list for an item you wear (or are about to): Occultist imprint/enchant,
@@ -259,7 +310,7 @@ function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSl
   if (r === "mythic") return out(item, "STASH", "Stash it: mythics are rare; keep it for other builds.", why, slot, q);
   // a top-tier roll is worth more than its materials, even when this build has no use for it
   const top = topTier(item, slot, ctx?.prof ?? null);
-  if (top) return out(item, "STASH", `Save it for later: ${top}.`, reasons, slot, q);
+  if (top) return out(item, "STASH", `Stash it for later: ${top}.`, reasons, slot, q);
   const notes: string[] = [];
   if (buildAspect && item.aspect?.imprinted) {
     // an imprinted power came from your Codex already — salvaging it adds nothing new
@@ -319,11 +370,12 @@ function tributeAdvice(item: ParsedItem, variant: BuildVariant | undefined): Out
   const missingUnique = gear.find((g) => g.group === "gear" && (g.kind === "unique" || g.kind === "mythic"));
   // decide from what it earns, not the whole capture (neighbouring stash items can mention seals)
   const effect = earns ?? upgrade ?? "";
+  // you carry tributes and use them: "Keep it", never "Stash it"
   if (/charm|seal|horadr/i.test(effect) && usesTalismans)
-    return out(item, "SOCKET", "Use it on an Undercity run: it earns charms and a Seal, which your build uses.", reasons, null);
+    return out(item, "KEEP", "Keep it: use it on an Undercity run, it earns charms and a Seal, which your build uses.", reasons, null);
   if (/mythic|unique/i.test(effect) && missingUnique)
-    return out(item, "STASH", "Keep it for an Undercity run when you're chasing uniques or a Mythic.", reasons, null);
-  return out(item, "STASH", "Keep it: offer it at the Undercity Spirit Brazier before a run.", reasons, null);
+    return out(item, "KEEP", "Keep it: use it on an Undercity run when you're chasing uniques or a Mythic.", reasons, null);
+  return out(item, "KEEP", "Keep it: offer it at the Undercity Spirit Brazier before a run.", reasons, null);
 }
 
 /** Gems, runes, splinters, charms, consumables: never "scrap" them by gear rules. */
@@ -333,33 +385,59 @@ const charmSlots = (text?: string) => {
   return m ? Number(m[1]) : null;
 };
 
+const isSealItem = (x: ParsedItem | null | undefined): x is ParsedItem => !!x && x.rarity !== "unknown" && /seal/i.test(`${x.itemType} ${x.name}`);
+
 /**
- * A seal against the one you wear (the game's comparison column): a mythic seal and more charm slots win.
+ * A seal against the one you wear: the game's comparison column, else its "Properties lost when
+ * equipped", else the seal you were last seen wearing. A mythic seal and more charm slots win.
  * null when there's nothing to compare with.
  */
-function sealVerdict(item: ParsedItem, worn: ParsedItem | null | undefined): Out | null {
-  if (!worn || worn.rarity === "unknown" || !/seal/i.test(`${worn.itemType} ${worn.name}`)) {
+function sealVerdict(item: ParsedItem, worn: ParsedItem | null | undefined, remembered?: ParsedItem | null): Out | null {
+  const why: string[] = [];
+  if (!isSealItem(worn)) {
     // no column for yours: the tooltip's "Properties lost when equipped" still says what yours has more of
     // ("Unlocks 1 Charm Slots", "Seal Power" for each power this one lacks)
     const lost = (item.rawText ?? "").split(/properties lost when equipped/i)[1];
-    if (!lost) return null;
     const more = charmSlots(lost);
-    const powers = (lost.match(/seal power/gi) ?? []).length;
-    if (!more && !powers) return null;
-    const what = [more ? `${more} more charm slot${more > 1 ? "s" : ""}` : "", powers ? `${powers} seal power${powers > 1 ? "s" : ""} this one doesn't have` : ""].filter(Boolean).join(" and ");
-    return out(item, "SCRAP", `Salvage it: the seal you wear is better (${what}).`, [], null);
+    const powers = (lost?.match(/seal power/gi) ?? []).length;
+    if (more || powers) {
+      const what = [more ? `${more} more charm slot${more > 1 ? "s" : ""}` : "", powers ? `${powers} seal power${powers > 1 ? "s" : ""} this one doesn't have` : ""].filter(Boolean).join(" and ");
+      return out(item, "SCRAP", `Salvage it: the seal you wear is better (${what}).`, [], null);
+    }
+    // nothing from the game: the seal you were last seen wearing
+    if (!isSealItem(remembered)) return null;
+    worn = remembered;
+    why.push("Compared with the seal you were last seen wearing.");
   }
   const mine = charmSlots(item.rawText);
   const yours = charmSlots(worn.rawText);
   const mythic = (x: ParsedItem) => /mythic/i.test(`${x.rarity} ${x.itemType}`);
   const slots = mine != null && yours != null ? ` (${mine} charm slots vs your ${yours})` : "";
   if ((mythic(worn) && !mythic(item)) || (mine != null && yours != null && yours > mine))
-    return out(item, "SCRAP", `Salvage it: your ${worn.name} is better${mythic(worn) && !mythic(item) ? ", a mythic seal" : ""}${slots}.`, [], null);
-  if (mine != null && yours != null && mine > yours) return out(item, "WEAR", `Wear this seal: it unlocks more charm slots${slots}.`, [], null);
+    return out(item, "SCRAP", `Salvage it: your ${worn.name} is better${mythic(worn) && !mythic(item) ? ", a mythic seal" : ""}${slots}.`, why, null);
+  if (mine != null && yours != null && mine > yours) return out(item, "WEAR", `Wear this seal: it unlocks more charm slots${slots}.`, why, null);
   return null;
 }
 
-function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, compareTo?: ParsedItem | null): Out {
+/**
+ * A spare of a charm you wear (same name): the better roll stays on. null when you don't wear one,
+ * or either item power wasn't read.
+ */
+function spareCharm(item: ParsedItem, yours: ParsedItem | undefined): Out | null {
+  if (!yours || !item.itemPower || !yours.itemPower) return null;
+  const ip = `Item power ${item.itemPower} vs yours ${yours.itemPower}.`;
+  // the same numbers: it's the one you wear, opened from the talisman without its "Unequip" hint
+  if (item.itemPower === yours.itemPower && affixNumbers(item).join() === affixNumbers(yours).join())
+    return out(item, "WEARING", "You're wearing this: it's in your talisman.", [], null);
+  const ga = (x: ParsedItem) => x.affixes.filter((a) => a.greater).length;
+  if (item.itemPower > yours.itemPower || (item.itemPower === yours.itemPower && ga(item) > ga(yours)))
+    return out(item, "WEAR", `Wear this one: a better roll than the ${yours.name} you wear.`, [ip], null);
+  return out(item, "SCRAP", `Salvage it: you already wear ${yours.name}, and yours is as good.`, [ip], null);
+}
+
+function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, compareTo?: ParsedItem | null, ctx?: Ctx): Out {
+  // one you wear, hovered in the talisman panel
+  if (item.equipped && item.category === "talisman") return out(item, "WEARING", "You're wearing this: it's in your talisman.", [], null);
   const gear = variant?.gear ?? [];
   const uses: { name: string; where: string }[] = [];
   for (const g of gear) {
@@ -375,8 +453,14 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, comp
     return un.length > 2 && (n.includes(un) || un.includes(n) || trigramSim(u.name, item.name) >= 0.75);
   });
   // a spare seal: the one you wear may simply be better
-  if (item.category === "talisman" && /seal/i.test(`${item.itemType} ${item.slot}`)) {
-    const v = sealVerdict(item, compareTo);
+  const seal = /seal/i.test(`${item.itemType} ${item.slot}`);
+  if (item.category === "talisman" && seal) {
+    const v = sealVerdict(item, compareTo, ctx?.talisman?.seal);
+    if (v) return v;
+  }
+  // a spare of a charm you wear: only the better roll is worth wearing
+  if (item.category === "talisman" && !seal) {
+    const v = spareCharm(item, ctx?.talisman?.charms.find((c) => normName(c.name) === normName(item.name)));
     if (v) return v;
   }
   if (hit.length) {
@@ -385,8 +469,9 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, comp
   }
   const all = item.rawText ?? "";
   if (item.category === "tribute") return tributeAdvice(item, variant);
+  // things you carry and use say "Keep it" (in your bag); "Stash it" is for what you store away
   if (item.category === "socketable") {
-    if (/amalgam/i.test(all)) return out(item, "STASH", "Keep it for the Horadric Cube: amalgamate it with others into a stronger one.", ["Your build doesn't socket this one directly."], null);
+    if (/amalgam/i.test(all)) return out(item, "KEEP", "Keep it: amalgamate it with others in the Horadric Cube into a stronger one.", ["Your build doesn't socket this one directly."], null);
     return out(item, "SELL", "Your build doesn't use this socketable: sell it or keep it for another build.", [], null);
   }
   // keys: Hordes compass, Escalation and Nightmare sigils, Chronicles of Nightmares (each opens something different)
@@ -398,23 +483,23 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, comp
     const affixes = ai >= 0 ? lines.slice(ai + 1, ai + 4).filter((l) => l.length > 3 && !/vivid account|account bound|seasonal|sell value/i.test(l)) : [];
     const why = affixes.length ? [`Affixes: ${affixes.join(", ")}.`] : [];
     const at = dungeon ? ` (${dungeon})` : "";
-    if (/compass|gates of hell|infernal hordes/i.test(keyText)) return out(item, "STASH", "Keep it: it opens the Infernal Hordes. It isn't gear.", why, null);
-    if (/escalation/i.test(keyText)) return out(item, "STASH", `Keep it: it opens an Escalating Nightmare, a series of dungeons${at}. It isn't gear.`, why, null);
-    if (/chronicle|vivid account of horrors/i.test(keyText)) return out(item, "STASH", `Keep it: use it on a Waking Nightmare${at}. It isn't gear.`, why, null);
-    return out(item, "STASH", `Keep it: it opens a Nightmare Dungeon${at}. It isn't gear.`, why, null);
+    if (/compass|gates of hell|infernal hordes/i.test(keyText)) return out(item, "KEEP", "Keep it: it opens the Infernal Hordes. It isn't gear.", why, null);
+    if (/escalation/i.test(keyText)) return out(item, "KEEP", `Keep it: it opens an Escalating Nightmare, a series of dungeons${at}. It isn't gear.`, why, null);
+    if (/chronicle|vivid account of horrors/i.test(keyText)) return out(item, "KEEP", `Keep it: use it on a Waking Nightmare${at}. It isn't gear.`, why, null);
+    return out(item, "KEEP", `Keep it: it opens a Nightmare Dungeon${at}. It isn't gear.`, why, null);
   }
-  if (/horadric cube|cube material/i.test(keyText)) return out(item, "STASH", "Keep it: it's for the Horadric Cube, not gear.", [], null);
+  if (/horadric cube|cube material/i.test(keyText)) return out(item, "KEEP", "Keep it: it's for the Horadric Cube, not gear.", [], null);
   if (item.category === "talisman") {
     // "Peace of the Black Shroud": another piece of a set your build wears
     const setOf = (n: string) => normName(n).match(/ of the (.+)$/)?.[1] ?? "";
     const set = setOf(item.name);
     const sameSet = set ? gear.find((g) => g.group === "talisman" && setOf(g.itemName) === set) : undefined;
-    if (sameSet) return out(item, "STASH", `Keep it: it's from the ${titleSet(set)} set your build uses.`, [`Your build wears ${gear.filter((g) => g.group === "talisman" && setOf(g.itemName) === set).map((g) => g.itemName).join(", ")}.`], null);
-    return out(item, "STASH", "Not part of your build's talisman: stash it (or salvage if you have spares).", [], null);
+    if (sameSet) return out(item, "STASH", `Stash it: it's from the ${titleSet(set)} set your build uses.`, [`Your build wears ${gear.filter((g) => g.group === "talisman" && setOf(g.itemName) === set).map((g) => g.itemName).join(", ")}.`], null);
+    return out(item, "STASH", "Stash it: it isn't part of your build's talisman (or salvage it if you have spares).", [], null);
   }
-  if (/amount of\s+experience|experience tome/i.test(keyText)) return out(item, "STASH", "Use it: it grants experience. It isn't gear.", [], null);
-  if (/\bcache\b|receive your rewards/i.test(keyText)) return out(item, "STASH", "Open it: use it from your bag to get the rewards inside. It isn't gear.", [], null);
-  return out(item, "STASH", "Not gear: use it or keep it, nothing to judge here.", [], null);
+  if (/amount of\s+experience|experience tome/i.test(keyText)) return out(item, "KEEP", "Keep it: use it from your bag, it grants experience. It isn't gear.", [], null);
+  if (/\bcache\b|receive your rewards/i.test(keyText)) return out(item, "KEEP", "Keep it: open it from your bag to get the rewards inside. It isn't gear.", [], null);
+  return out(item, "KEEP", "Keep it: it isn't gear, nothing to judge here.", [], null);
 }
 
 /** An item you wear in a build slot: how it measures up and its to-do list (never a scrap verdict). */
@@ -441,8 +526,8 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   // only a seal "Unlocks N Charm Slots": a capture that starts below the title left the AI read guessing
   // ("Legendary Horadric Seal", slot "offhand"), and it was scrapped as gear (2026-10-11 RC test)
   if (category !== "tribute" && category !== "consumable" && /unlocks\s+\d+\s+charm\s+slots|horadric seal/i.test(`${text}\n${item.affixes.map((a) => a.text).join("\n")}`))
-    return decideNonGear({ ...item, category: "talisman", slot: "seal", itemType: item.itemType || "Horadric Seal" }, variant, compareTo);
-  if (category && category !== "gear") return decideNonGear({ ...item, category }, variant, compareTo);
+    return decideNonGear({ ...item, category: "talisman", slot: "seal", itemType: item.itemType || "Horadric Seal" }, variant, compareTo, ctx);
+  if (category && category !== "gear") return decideNonGear({ ...item, category }, variant, compareTo, ctx);
   if (!variant) return out(item, "UNKNOWN", "Import your build first (Build page).", [], null);
   const gear = variant.gear.filter((g) => g.group === "gear");
   const r = rarityOf(item);
@@ -457,6 +542,10 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     if (!slot) return out(item, "WEARING", "You're wearing this: this slot isn't part of your build.", [], null);
     return wearing(item, slot, ctx);
   }
+
+  // another class's own unique or aspect: no use to this build, whatever its stats
+  const only = ctx.className ? itemClasses(item) : null;
+  if (only && !only.includes(ctx.className!.toLowerCase())) return dispose(item, gear, [`It's for a ${only.map(titleSet).join(" or ")}, not your ${ctx.className}.`], null, undefined, ctx);
 
   // ---- white base that the cube turns into a build unique ----
   if (isWhite) {
@@ -486,19 +575,36 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   // rings/weapons: the game compares with ONE of your two (Alt switches) and says which kind it is;
   // the other one is still judged, against what you were last seen wearing there
   const isUniq = (g: GearSlot) => g.kind === "unique" || g.kind === "mythic";
-  // a named comparison (the EQUIPPED column) belongs to the slot you wear that piece in
-  const byName =
-    compareTo && compareTo.rarity !== "unknown" && candidates.length > 1
-      ? candidates.filter((c) => {
-          const r = ctx.worn?.(c.slot);
-          return (!!r && sameItem(r.name, compareTo.name)) || (isUniq(c) && sameItem(compareTo.name, c.itemName));
-        })
+  // the game's piece belongs to the slot you were last seen wearing it in: its numbers (or the EQUIPPED
+  // column's name and numbers) against each slot's memory; true / false / null = can't tell
+  const seen =
+    compareTo && candidates.length > 1
+      ? candidates.map((c) => (isUniq(c) && compareTo.rarity !== "unknown" && sameItem(compareTo.name, c.itemName)) || comparedIsWorn(compareTo, item.compareRows, ctx.worn?.(c.slot)))
       : [];
-  const compared = byName.length
-    ? byName
-    : !named && item.compareKind && candidates.length > 1
-      ? candidates.filter((g) => (item.compareKind === "unique") === isUniq(g))
-      : candidates;
+  // it's none of the pieces you remember: you've replaced one since (a ring you took off stayed in Ring 1
+  // and made a wrong "wear this"), and nothing says which, so the game's piece stands in for both
+  const stale = seen.length > 0 && seen.every((m) => m === false);
+  const compared = seen.some((m) => m === true)
+    ? candidates.filter((_, i) => seen[i] === true)
+    : stale
+      ? candidates
+      : seen.some((m) => m === false)
+        ? candidates.filter((_, i) => seen[i] !== false)
+        : !named && item.compareKind && candidates.length > 1
+          ? candidates.filter((g) => (item.compareKind === "unique") === isUniq(g))
+          : candidates;
+  // the game's piece is what you wear now; the other ring's memory only counts while it's sure: not in
+  // doubt (gearTrack.ts) unless the game shows it, and seen this play session
+  const unsure = (c: GearSlot, i: number) => {
+    const w = ctx.worn?.(c.slot);
+    if (!w || seen[i] === true) return false;
+    return stale || !!w.doubt || (!!compareTo && !compared.includes(c) && !!w.at && Date.now() - w.at > WORN_TRUST_MS);
+  };
+  const forget = new Set(candidates.filter(unsure).map((c) => c.slot));
+  if (forget.size) {
+    const remembered = ctx.worn;
+    ctx = { ...ctx, worn: (s) => (forget.has(s) ? undefined : remembered?.(s)) };
+  }
   const gameCompares = (c: GearSlot) => !compared.length || compared.includes(c);
   if (!candidates.length) return dispose(item, gear, ["Your build doesn't use this kind of item."], null, undefined, ctx);
 
@@ -627,17 +733,8 @@ const rowKey = (label: string, match?: string | null) => (match ? normName(match
  * every number the game does show, its other stats are what's missing: add them as yours-only.
  */
 function withRemembered(rows: CompareRow[], rem: ParsedItem | null | undefined): CompareRow[] {
-  if (!rem || rem.rarity === "unknown" || !rem.affixes.length) return rows;
+  if (!rem || rem.rarity === "unknown" || !rem.affixes.length || rowsAgree(rows, rem) !== true) return rows;
   const theirs = rem.affixes.map((a) => ({ key: rowKey(a.text, a.match), v: firstNumber(a.text), a }));
-  let overlap = 0;
-  for (const r of rows) {
-    if (r.yours == null) continue;
-    const same = theirs.filter((t) => t.key === rowKey(r.label, r.match));
-    if (!same.length) continue;
-    if (!same.some((t) => t.v != null && Math.abs(t.v - r.yours!) <= Math.max(Math.abs(t.v), 1) * 0.03)) return rows; // another piece
-    overlap++;
-  }
-  if (overlap < 2) return rows;
   const have = new Set(rows.map((r) => rowKey(r.label, r.match)));
   const extra: CompareRow[] = [];
   for (const t of theirs) {
@@ -646,6 +743,39 @@ function withRemembered(rows: CompareRow[], rem: ParsedItem | null | undefined):
     extra.push({ label: cleanAffix(t.a.text).replace(/^[+x\-]?\s*[\d.,]+%?\s*/i, ""), mine: null, yours: t.v, unit: /%/.test(t.a.text) ? "%" : "", wanted: false, match: t.a.match ?? null });
   }
   return extra.length ? [...rows, ...extra] : rows;
+}
+
+/**
+ * Do the comparison's numbers for yours (its deltas worked back) match a remembered piece? true when
+ * they agree (one OCR slip in a few allowed), false when they don't, null when too few are shared to tell.
+ */
+function rowsAgree(rows: CompareRow[] | undefined, rem: ParsedItem): boolean | null {
+  if (!rows?.length) return null;
+  const theirs = rem.affixes.map((a) => ({ key: rowKey(a.text, a.match), v: firstNumber(a.text) }));
+  let agree = 0;
+  let differ = 0;
+  for (const r of rows) {
+    if (r.yours == null) continue;
+    const same = theirs.filter((t) => t.key === rowKey(r.label, r.match) && t.v != null);
+    if (!same.length) continue;
+    if (same.some((t) => Math.abs(t.v! - r.yours!) <= Math.max(Math.abs(t.v!), 1) * 0.03)) agree++;
+    else differ++;
+  }
+  if (agree >= 2 && differ * 3 <= agree) return true;
+  return differ > 0 ? false : null;
+}
+
+/**
+ * Is `worn` (what you were last seen wearing in a slot) the piece the game compares this item with?
+ * The comparison's numbers decide; else the EQUIPPED column's stat values or name. null when nothing tells.
+ */
+export function comparedIsWorn(compareTo: ParsedItem | null | undefined, rows: CompareRow[] | undefined, worn: ParsedItem | null | undefined): boolean | null {
+  if (!worn || worn.rarity === "unknown") return null;
+  const byRows = rowsAgree(rows, worn);
+  if (byRows !== null) return byRows;
+  if (!compareTo || compareTo.rarity === "unknown" || /^your equipped item$/i.test(compareTo.name)) return null;
+  // a garbled title ("Blood Mo N Che G") still has the same numbers
+  return sameNumbers(compareTo, worn) || sameItem(compareTo.name, worn.name) || trigramSim(compareTo.name, worn.name) >= 0.6;
 }
 
 /** The numbers in a power's text, in order ("up to 100% and deal 235%" → [100, 235]). */
@@ -794,6 +924,7 @@ export const VERDICT_STYLE: Record<string, { label: string; icon: LucideIcon; co
   CUBE: { label: "Cube it", icon: Box, color: "#7fd6ff" },
   EXTRACT: { label: "Salvage for the power", icon: Sparkles, color: "#ff9b4a" },
   STASH: { label: "Stash it", icon: Archive, color: "#e08cff" },
+  KEEP: { label: "Keep it", icon: Backpack, color: "#63a8ff" },
   SCRAP: { label: "Scrap it", icon: Hammer, color: "#b8aa9a" },
   SELL: { label: "Sell it", icon: Coins, color: "#c9b37a" },
   SOCKET: { label: "Keep (build uses it)", icon: Gem, color: "#7fd6ff" },
@@ -801,7 +932,6 @@ export const VERDICT_STYLE: Record<string, { label: string; icon: LucideIcon; co
   // older history entries
   BIS: { label: "Wear this", icon: Shirt, color: "#5fd18a" },
   UPGRADE: { label: "Wear this", icon: Shirt, color: "#5fd18a" },
-  KEEP: { label: "Keep", icon: ThumbsUp, color: "#63a8ff" },
   IMPRINT: { label: "Salvage for the power", icon: Sparkles, color: "#ff9b4a" },
   SALVAGE: { label: "Scrap it", icon: Hammer, color: "#b8aa9a" },
   EQUIPPED: { label: "Wearing", icon: ShieldCheck, color: "#8fd3c7" },

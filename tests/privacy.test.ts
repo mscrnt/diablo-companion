@@ -1,8 +1,8 @@
 // Shared judgements never carry a player's name: lines that name one are dropped from the text, and their
 // boxes blacked out in the picture. Real OCR lines from 2026-10-12/13 logs.
 import { readFileSync, readdirSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { isPersonalLine, withoutPersonal } from "../src/lib/privacy";
+import { afterEach, describe, expect, it } from "vitest";
+import { isPersonalLine, setCharacterNames, withoutNames, withoutPersonal } from "../src/lib/privacy";
 
 describe("lines that name a player", () => {
   it("nameplates, guild tags, chat and BattleTags", () => {
@@ -42,5 +42,26 @@ describe("lines that name a player", () => {
 
   it("drops them from a block of text", () => {
     expect(withoutPersonal("THE PENITENT'S\nRING\n<TSG> Malzahar | 70\nAncestral Legendary Ring")).toBe("THE PENITENT'S\nRING\nAncestral Legendary Ring");
+  });
+});
+
+describe("your own characters' names", () => {
+  afterEach(() => setCharacterNames([]));
+
+  it("a line with one, as the Character panel shows it behind a tooltip, names a player", () => {
+    expect(isPersonalLine("232 BAZAQ Aged Boots")).toBe(false);
+    setCharacterNames(["Bazaq", "Zorvak", ""]);
+    expect(isPersonalLine("232 BAZAQ Aged Boots")).toBe(true);
+    expect(isPersonalLine("Zorvak")).toBe(true);
+    // only the whole word
+    for (const t of ["Bazaqs Ring", "Pact of Bone", "+144 Intelligence"]) expect(isPersonalLine(t), t).toBe(false);
+  });
+
+  it("are taken out of a verdict before it's shared", () => {
+    setCharacterNames(["Bazaq"]);
+    expect(withoutNames("Stash it: great for your Necromancer (Bazaq).")).toBe("Stash it: great for your Necromancer ([character]).");
+    expect(withoutNames("Wear this: it's better than yours.")).toBe("Wear this: it's better than yours.");
+    setCharacterNames([]);
+    expect(withoutNames("Stash it: great for your Necromancer (Bazaq).")).toBe("Stash it: great for your Necromancer (Bazaq).");
   });
 });

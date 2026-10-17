@@ -50,7 +50,7 @@ describe("the bottom of a seasonal socketable", () => {
   it("isn't gear, and is kept to amalgamate", () => {
     const item = fastParse([L("Amalgamable"), L("Account Bound"), L("Ø Seasonal Item"), L("Sell Value: 800 •")], false, undefined)!;
     expect(item.category).toBe("socketable");
-    expect(decide(item, undefined).verdict).toBe("STASH");
+    expect(decide(item, undefined).verdict).toBe("KEEP");
   });
 });
 
@@ -60,7 +60,7 @@ describe("non-gear seen without its title (2026-10-16 test)", () => {
     const item = fastParse(lines.map((t) => L(t)), false, undefined)!;
     expect(item.category).toBe("consumable");
     const r = decide(item, undefined);
-    expect(r.verdict).toBe("STASH");
+    expect(r.verdict).toBe("KEEP");
     expect(r.action).toMatch(/Escalating Nightmare/);
   });
 
