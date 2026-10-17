@@ -29,9 +29,12 @@ export interface HelltideInfo {
 
 /**
  * The HUD label "Helltide:" (maybe with its timer) as OCR reads it: "Helitide: 01:16", "e//tide.".
+ * The timer's hourglass icon reads as a letter in front of it ("Helitide: X35:49", "HelitiderX31:13", "Heiltide: X"):
+ * those reads weren't the HUD, and a Helltide went 100 s without a cinder count (2026-10-17 04:17).
  * A line with more words ("Helltide Harvest…", "Helltide Kehjistan ends 24m") is never the HUD.
  */
-export const isHelltideLabel = (text: string) => /^\W{0,3}h?e?[l1i|/]{1,3}t[il1]de\s*[:;.]?\s*(\d{1,2}\s*[:.]\s*\d{2})?\W{0,3}$/i.test(text.trim());
+export const isHelltideLabel = (text: string) =>
+  /^\W{0,3}h?e?[l1i|/]{1,3}t[il1]de\s*[:;.,]{0,2}\s*(?:[^\s\d]{0,2}\s*(?:\d{1,2}\s*[:.]\s*\d{2}|\d{3,4})|[xX×*•])?\W{0,3}$/i.test(text.trim());
 
 /** Parse the HUD block: "Helltide: 51:37" with counters under the icons (cinders = the left one). */
 /**

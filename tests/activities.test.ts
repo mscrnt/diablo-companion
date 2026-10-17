@@ -132,6 +132,10 @@ describe("Helltide", () => {
     expect(parseHelltideHud([line("Helitide: 01:16", 1057, 36), line("24", 1051, 160), line("97", 1161, 178)])).toMatchObject({ cinders: 24 });
     expect(parseHelltideHud([line("e//tide.", 1057, 36)])).not.toBeNull();
     expect(parseHelltideHud([line("Helitide:", 1070, 40)])).not.toBeNull();
+    // the timer's hourglass reads as a letter: these weren't the HUD, and a Helltide went 100 s without its
+    // cinder count (2026-10-17 04:17)
+    expect(parseHelltideHud([line("Helitide: X35:49", 1012, 24, 190), line("38", 1010, 146, 30), line("109", 1127, 146, 35)])).toEqual({ cinders: 38, secondsLeft: 2149 });
+    for (const t of ["Helltide: X44:31", "HelitiderX31:13", "Heiltide: X", "Helltide:, X"]) expect(parseHelltideHud([line(t, 1012, 24, 190)]), t).not.toBeNull();
   });
 
   it("isn't fooled by other text with the word in it", () => {
