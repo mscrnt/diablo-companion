@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { persistStorage } from "./persist";
-import type { Build, EventKind, JudgeResult, Run, SlotProgress } from "./types";
+import { setCharacterNames } from "./privacy";
+import type { CharacterProfile } from "./charmap";
+import type { Build, EventKind, JudgeResult, ParsedItem, Run, SlotProgress, Talisman } from "./types";
 
 // ---- settings ---------------------------------------------------------------
 
@@ -333,9 +335,16 @@ interface BuildState {
   /** buildId → newer updatedAt seen on Mobalytics */
   updates: Record<string, string>;
   setUpdate: (id: string, at: string | null) => void;
-  /** last parsed tooltip of what you're wearing, per build slot */
-  worn: Record<string, import("./types").ParsedItem & { at: number }>;
-  setWorn: (slot: string, item: import("./types").ParsedItem) => void;
+  /**
+   * last parsed tooltip of what you're wearing, per build slot. `doubt`: you put on a new ring (weapon)
+   * and nothing said which of the two it replaced, so this one may be gone
+   */
+  worn: Record<string, ParsedItem & { at: number; doubt?: boolean }>;
+  setWorn: (slot: string, item: ParsedItem) => void;
+  doubtWorn: (slots: string[]) => void;
+  /** the seal and charms you were last seen wearing */
+  talisman: Talisman;
+  setTalisman: (item: ParsedItem) => void;
   addBuild: (b: Build, variant?: string) => void;
   removeBuild: (id: string) => void;
   setActive: (buildId: string, variantId?: string) => void;
@@ -344,6 +353,19 @@ interface BuildState {
 }
 
 export const emptyProgress: SlotProgress = { state: "missing", greater: [], have: [], tempered: false, masterwork: 0 };
+
+export const emptyTalisman: Talisman = { seal: null, charms: [] };
+
+const isSeal = (item: ParsedItem) => /seal/i.test(`${item.itemType} ${item.slot}`);
+
+/** A seal replaces the one you wore; a charm joins the ones you wear (at most 6, the newest kept). */
+export function rememberTalisman(t: Talisman, item: ParsedItem): Talisman {
+  // the text stays: a seal's "Unlocks 6 Charm Slots" is in it
+  const seen = { ...item, at: Date.now() };
+  if (isSeal(item)) return { ...t, seal: seen };
+  const same = (c: ParsedItem) => c.name.trim().toLowerCase() === item.name.trim().toLowerCase();
+  return { ...t, charms: [seen, ...t.charms.filter((c) => !same(c))].slice(0, 6) };
+}
 
 export const useBuilds = create<BuildState>()(
   persist(
@@ -358,6 +380,9 @@ export const useBuilds = create<BuildState>()(
       setUpdate: (id, at) => set((s) => { const updates = { ...s.updates }; if (at) updates[id] = at; else delete updates[id]; return { updates }; }),
       worn: {},
       setWorn: (slot, item) => set((s) => ({ worn: { ...s.worn, [slot]: { ...item, rawText: undefined, at: Date.now() } } })),
+      doubtWorn: (slots) => set((s) => ({ worn: Object.fromEntries(Object.entries(s.worn).map(([k, w]) => [k, slots.includes(k) ? { ...w, doubt: true } : w])) })),
+      talisman: emptyTalisman,
+      setTalisman: (item) => set((s) => ({ talisman: rememberTalisman(s.talisman ?? emptyTalisman, item) })),
       addBuild: (b, variant) =>
         set((s) => ({
           builds: { ...s.builds, [b.id]: b },
@@ -407,6 +432,62 @@ export function getActiveVariant() {
     (build && variant && progress[`${build.id}:${variant.id}:${slot}`]) || emptyProgress;
   return { build, variant, prog };
 }
+
+// ---- character profiles ------------------------------------------------------
+// One per character (see profiles.ts). The active character's builds and gear live in useBuilds and
+// its mapped stats in useCharacter; the other characters' are kept here until you play them again.
+
+/** One character's builds and gear: what useBuilds holds while that character is active. */
+export type GearData = Pick<BuildState, "builds" | "activeBuildId" | "activeVariantId" | "progress" | "variantOf" | "worn" | "talisman">;
+
+export interface Profile {
+  id: string;
+  /** the character's name as read in game ("Bazaq"); "" until it's been read */
+  name: string;
+  /** the class when no build says it (from the skills read in game) */
+  className: string;
+  createdAt: number;
+  seenAt: number;
+  /** its builds and gear while another character is active (null for the active one: they're in useBuilds) */
+  gear: GearData | null;
+  /** its mapped stats, skills and glyphs while another character is active (null for the active one) */
+  sheet: CharacterProfile | null;
+}
+
+interface ProfileState {
+  profiles: Record<string, Profile>;
+  activeId: string;
+}
+
+/** The profile everything saved before 0.3.0 belongs to (named the first time a name is read). */
+export const FIRST_PROFILE = "first";
+
+export const newProfile = (id: string, name: string): Profile => ({ id, name, className: "", createdAt: Date.now(), seenAt: Date.now(), gear: null, sheet: null });
+
+/**
+ * Saved profiles, or (first run of 0.3.0, or a fresh install) one unnamed profile for the builds,
+ * gear and stats already saved: they stay where they are, as that profile's live data.
+ */
+export function withFirstProfile(persisted: any): ProfileState {
+  const saved: Record<string, Profile> | undefined = persisted?.profiles;
+  const profiles = saved && Object.keys(saved).length ? saved : { [FIRST_PROFILE]: newProfile(FIRST_PROFILE, "") };
+  const activeId = profiles[persisted?.activeId] ? (persisted.activeId as string) : Object.keys(profiles)[0];
+  return { profiles, activeId };
+}
+
+export const useProfiles = create<ProfileState>()(
+  persist(() => withFirstProfile(null), {
+    name: "profiles",
+    storage: persistStorage,
+    version: 1,
+    merge: (persisted, current) => ({ ...current, ...withFirstProfile(persisted) }),
+  }),
+);
+
+// names never leave this computer: shared judgements drop every line with one (privacy.ts)
+const shareNames = (s: ProfileState) => setCharacterNames(Object.values(s.profiles).map((p) => p.name));
+shareNames(useProfiles.getState());
+useProfiles.subscribe(shareNames);
 
 // ---- loot history ------------------------------------------------------------
 
@@ -458,7 +539,7 @@ export const useRuns = create<RunState>()(
       setActivity: (activity, tier) => set((s) => ({ activity, tier: tier ?? s.tier })),
       start: () =>
         set((s) => ({
-          active: { id: crypto.randomUUID(), activity: s.activity, tier: s.tier, start: Date.now(), splits: [], deaths: 0 },
+          active: { id: crypto.randomUUID(), activity: s.activity, tier: s.tier, start: Date.now(), splits: [], deaths: 0, character: useProfiles.getState().activeId },
         })),
       split: (label) =>
         set((s) =>

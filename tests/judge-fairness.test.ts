@@ -46,7 +46,7 @@ describe("keeping rare items for other builds", () => {
   it("saves a 3★+ item for later instead of scrapping it", () => {
     const r = decide(junk(4), ctx.variant, { prog: ctx.prog });
     expect(r.verdict).toBe("STASH");
-    expect(r.action).toMatch(/Save it for later: 4★ greater affixes/);
+    expect(r.action).toMatch(/Stash it for later: 4★ greater affixes/);
   });
   it("saves a 2★ unique, and a 2★ legendary only when both ★ are on stats the class uses", () => {
     expect(decide(junk(2, "unique"), ctx.variant, { prog: ctx.prog }).verdict).toBe("STASH");

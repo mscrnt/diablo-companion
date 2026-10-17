@@ -6,7 +6,7 @@ import Welcome from "./pages/Welcome";
 import { loadStaticData } from "./lib/names";
 import { tidyCharacter } from "./lib/charmap";
 import { APP_VERSION, RELEASES_URL } from "./lib/version";
-import { useBuilds, useCoach, useLoot, useSettings } from "./lib/store";
+import { useBuilds, useCoach, useLoot, useProfiles, useSettings } from "./lib/store";
 import { HelpImproveModal } from "./components/HelpImprove";
 import Dashboard from "./pages/Dashboard";
 import Timers from "./pages/Timers";
@@ -76,7 +76,10 @@ export default function App() {
       // wait for persisted builds, then seed the user's build on first run
       if (!useBuilds.persist.hasHydrated()) await new Promise<void>((r) => useBuilds.persist.onFinishHydration(() => r()));
       if (!useSettings.persist.hasHydrated()) await new Promise<void>((r) => useSettings.persist.onFinishHydration(() => r()));
-      if (!Object.keys(useBuilds.getState().builds).length) setWelcome(true);
+      if (!useProfiles.persist.hasHydrated()) await new Promise<void>((r) => useProfiles.persist.onFinishHydration(() => r()));
+      // first run only: a new character without a build yet isn't one
+      const anyBuild = Object.keys(useBuilds.getState().builds).length || Object.values(useProfiles.getState().profiles).some((p) => Object.keys(p.gear?.builds ?? {}).length);
+      if (!anyBuild) setWelcome(true);
       else if (!useSettings.getState().settings.share.asked) setAskHelp(true);
       setReady(true);
       startEngine();

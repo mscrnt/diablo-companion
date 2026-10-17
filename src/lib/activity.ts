@@ -16,6 +16,7 @@ import { localSchedule } from "./timers";
 import { bossInfo, findBoss } from "./boss";
 import { bestTrees, needs, parseWarPlan, useWarPlans } from "./warplans";
 import { getActiveVariant, useRuns, useSettings } from "./store";
+import { noteCharacterFrame } from "./profiles";
 import { debugEvent } from "./debug";
 import { parseUndercity } from "./undercity";
 import { isDungeonCleared, isNightmareCleansed, nightmareKind, readObjective, stepObjective, stripPickup, type NmdKind, type Objective } from "./dungeon";
@@ -64,6 +65,8 @@ let syncedRun = "";
 
 /** Called with OCR'd frames (auto-judge around the cursor, left-panel scans): free extra signals. */
 export function onFrame(lines: OcrLine[], region?: { x: number; y: number }) {
+  // the Character panel names the character you play: its profile becomes the active one
+  noteCharacterFrame(lines);
   if (region) {
     const { variant, prog } = getActiveVariant();
     const caches = findWhisperCaches(lines, region, variant, prog);

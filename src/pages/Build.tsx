@@ -5,7 +5,8 @@ import { importMobalytics } from "../lib/mobalytics";
 import { scanSkillBar, useSkillBar } from "../lib/skillbar";
 import { useRuntime } from "../lib/engine";
 import { describe, normName } from "../lib/names";
-import { emptyProgress, useActiveVariant, useBuilds, useSettings } from "../lib/store";
+import { moveBuild, profileClass, profileLabel, removeProfile, switchProfile } from "../lib/profiles";
+import { emptyProgress, useActiveVariant, useBuilds, useProfiles, useSettings } from "../lib/store";
 import type { GearSlot, OwnState } from "../lib/types";
 
 const STATES: OwnState[] = ["missing", "have", "upgrade", "perfect"];
@@ -14,6 +15,8 @@ const STATE_LABEL: Record<OwnState, string> = { missing: "Missing", have: "Have 
 export default function BuildPage() {
   const { builds, activeBuildId, setActive, removeBuild, addBuild, updates, setUpdate } = useBuilds();
   const { build, variant } = useActiveVariant();
+  const { profiles, activeId } = useProfiles();
+  const others = Object.values(profiles).filter((p) => p.id !== activeId);
   const flaresolverr = useSettings((s) => s.settings.flaresolverr);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -78,7 +81,13 @@ export default function BuildPage() {
         {variant?.description && <div className="muted small" style={{ marginTop: 6 }}>{variant.description}</div>}
       </Card>
 
-      <Card title={`My builds (${Object.keys(builds).length})`} style={{ marginTop: 14 }} right={<span className="small muted">the active build drives the loot judge, farm plan and overlays · other builds still get "stash it for…" advice</span>}>
+      <Characters />
+
+      <Card
+        title={`${profileLabel(profiles[activeId])}'s builds (${Object.keys(builds).length})`}
+        style={{ marginTop: 14 }}
+        right={<span className="small muted">the active build drives the loot judge, farm plan and overlays · nothing is scrapped while another build or character can use it</span>}
+      >
         <div className="grid g3">
           {Object.values(builds).map((b) => {
             const active = b.id === activeBuildId;
@@ -106,6 +115,16 @@ export default function BuildPage() {
                     <a className="btn ghost sm" href={b.url} target="_blank" rel="noreferrer">
                       Open
                     </a>
+                  )}
+                  {others.length > 0 && (
+                    <select value="" onChange={(e) => e.target.value && moveBuild(b.id, e.target.value)} title="This build is for another character" style={{ maxWidth: 130 }}>
+                      <option value="">Move to…</option>
+                      {others.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {profileLabel(p)}
+                        </option>
+                      ))}
+                    </select>
                   )}
                   <button className="btn ghost sm right" onClick={() => confirm(`Remove ${b.name}? Its tracked progress is kept if you re-import it.`) && removeBuild(b.id)}>
                     ✕
@@ -136,6 +155,45 @@ export default function BuildPage() {
         </>
       )}
     </>
+  );
+}
+
+/** Your characters, each with its own builds and gear: the app switches when the Character panel shows a name. */
+function Characters() {
+  const { profiles, activeId } = useProfiles();
+  const builds = useBuilds((s) => s.builds);
+  const list = Object.values(profiles).sort((a, b) => Number(b.id === activeId) - Number(a.id === activeId) || b.seenAt - a.seenAt);
+  return (
+    <Card title={`Characters (${list.length})`} style={{ marginTop: 14 }} right={<span className="small muted">switches by itself when you open the Character panel in game</span>}>
+      <div className="grid g3">
+        {list.map((p) => {
+          const active = p.id === activeId;
+          const n = Object.keys(active ? builds : p.gear?.builds ?? {}).length;
+          return (
+            <div key={p.id} className="slot" style={{ gridTemplateColumns: "1fr", borderColor: active ? "var(--gold)" : undefined }}>
+              <div className="row" style={{ gap: 6 }}>
+                <b className={active ? "rar-unique" : ""}>{profileLabel(p)}</b>
+                {active && <span className="badge" style={{ color: "var(--gold)" }}>playing</span>}
+              </div>
+              <div className="small muted">
+                {profileClass(p) || "Class not known yet"} · {n} build{n === 1 ? "" : "s"}
+              </div>
+              {!p.name && <div className="small dim">Open the Character panel in game so I can read the name.</div>}
+              {!active && (
+                <div className="row" style={{ marginTop: 6 }}>
+                  <button className="btn sm gold" onClick={() => switchProfile(p.id)}>
+                    Switch
+                  </button>
+                  <button className="btn ghost sm right" onClick={() => confirm(`Forget ${profileLabel(p)}? Their builds and gear memory are deleted.`) && removeProfile(p.id)}>
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

@@ -7,7 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { isTauri } from "./http";
 import { getActiveVariant, useBuilds, useLoot, useSettings } from "./store";
-import { withoutPersonal, isPersonalLine } from "./privacy";
+import { withoutNames, withoutPersonal, isPersonalLine } from "./privacy";
 import { debugEvent } from "./debug";
 import { testLog } from "./testmode";
 import type { ParseDebug, TooltipText } from "./parse";
@@ -162,9 +162,10 @@ export async function shareJudgement(x: ShareInput): Promise<void> {
     const data: Record<string, unknown> = {
       v: 1,
       verdict: r.verdict,
-      action: r.action,
-      reasons: r.reasons,
-      steps: r.steps,
+      // "Stash it: great for your Necromancer (Bazaq)": never a character's name
+      action: r.action && withoutNames(r.action),
+      reasons: r.reasons.map(withoutNames),
+      steps: r.steps?.map(withoutNames),
       score: r.score,
       slot: r.slot,
       matched: r.matched,

@@ -31,7 +31,7 @@ import {
 } from "./debugcore";
 import { isTauri } from "./http";
 import { captureMonitor, captureRegion } from "./native";
-import { useSettings, type Settings } from "./store";
+import { useProfiles, useSettings, type Settings } from "./store";
 import { APP_VERSION } from "./version";
 
 export const DEBUG_DIR = "debug";
@@ -46,7 +46,9 @@ const listeners = new Set<(e: DebugEvent) => void>();
 let pending: string[] = [];
 
 const testOn = () => isTauri && useSettings.getState().settings.testMode.enabled;
-const secrets = () => secretValues(useSettings.getState().settings);
+// your characters' names too (as the app writes them and as the panel shows them): a debug report never carries them
+const names = () => Object.values(useProfiles.getState().profiles).flatMap((p) => (p.name.length >= 2 ? [p.name, p.name.toUpperCase()] : []));
+const secrets = () => [...secretValues(useSettings.getState().settings), ...names()];
 
 // ---- events ---------------------------------------------------------------------------------
 

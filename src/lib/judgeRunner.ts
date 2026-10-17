@@ -12,7 +12,9 @@ import { normName } from "./names";
 import { captureAtCursor, captureRegion, cursorPosition, ocrImage } from "./native";
 import { parseTooltipText, type ParseDebug, type TooltipText } from "./parse";
 import { fastParse, looksSane } from "./fastparse";
-import { getActiveVariant, useBuilds, useLoot, useSettings } from "./store";
+import { judgeEveryBuild } from "./everyBuild";
+import { otherBuilds } from "./profiles";
+import { getActiveVariant, useBuilds, useLoot, useProfiles, useSettings } from "./store";
 import type { JudgeResult, ParsedItem } from "./types";
 import type { TooltipBox } from "./autojudge";
 import { debugEvent } from "./debug";
@@ -29,7 +31,11 @@ export function onJudged(fn: Listener) {
   return () => listeners.delete(fn);
 }
 
-export const cachedVerdict = (sig: string) => cache.get(sig);
+/** The verdict for an item seen before, while you play the same character. */
+export const cachedVerdict = (sig: string) => {
+  const v = cache.get(sig);
+  return v && v.character === useProfiles.getState().activeId ? v : undefined;
+};
 
 async function thumbnail(b64: string, maxW = 360): Promise<string> {
   const img = new Image();
@@ -81,7 +87,7 @@ export async function judgeTooltips(
   meta?: { sig?: string; box?: TooltipBox; quiet?: boolean; debug?: (d: JudgeDebug) => void },
 ): Promise<JudgeResult | null> {
   const { settings } = useSettings.getState();
-  const { variant, prog } = getActiveVariant();
+  const { build, variant, prog } = getActiveVariant();
   const t0 = performance.now();
   const id = crypto.randomUUID();
   const { useRuntime } = await import("./engine");
@@ -124,24 +130,12 @@ export async function judgeTooltips(
     }
     const worn = (slot: string) => useBuilds.getState().worn[slot];
     const inCodex = (slug: string) => !!useBuilds.getState().owned[slug];
-    let scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex }, equipped ?? hovered.compare ?? null);
-    // junk for the active build — but maybe great for another build you've bookmarked?
-    if ((scored.verdict === "SCRAP" || scored.verdict === "SELL") && !hovered.equipped) {
-      const bs = useBuilds.getState();
-      for (const b of Object.values(bs.builds)) {
-        if (b.id === bs.activeBuildId) continue;
-        const ov = b.variants.find((x) => x.id === bs.variantOf[b.id]) ?? b.variants[b.variants.length - 1];
-        if (!ov) continue;
-        const oprog = (slot: string) => bs.progress[`${b.id}:${ov.id}:${slot}`] ?? { state: "missing" as const, greater: [], have: [], tempered: false, masterwork: 0 };
-        const other = decide(hovered, ov, { prog: oprog, cubeHint });
-        if (other.verdict === "WEAR") {
-          scored = { ...scored, verdict: "STASH", action: `Stash it: great for your ${b.name} build (${ov.gear.find((g) => g.slot === other.slot)?.slotLabel ?? "gear"}).`, reasons: [other.action ?? "", ...other.reasons].filter(Boolean) };
-          break;
-        }
-      }
-    }
+    const { talisman } = useBuilds.getState();
+    const scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex, talisman, className: build?.className }, equipped ?? hovered.compare ?? null);
     const result: JudgeResult = {
-      ...scored,
+      // no use to the active build: maybe to another build, or another character (the stash is shared)
+      ...judgeEveryBuild(hovered, scored, otherBuilds(), { cubeHint, inCodex }),
+      character: useProfiles.getState().activeId,
       id,
       at: Date.now(),
       ms: Math.round(performance.now() - t0),

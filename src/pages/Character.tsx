@@ -3,12 +3,14 @@ import { ChartColumn, Diamond, ScrollText, Sparkles } from "lucide-react";
 import { Card, Empty, PageHead, timeAgo } from "../components/ui";
 import { mapCharacter, mapGlyphs, mapSkills, mapStats, useCharacter } from "../lib/charmap";
 import { cancelGuide, useGuide } from "../lib/guide";
-import { useActiveVariant, useSettings } from "../lib/store";
+import { profileLabel } from "../lib/profiles";
+import { useActiveVariant, useProfiles, useSettings } from "../lib/store";
 
 export default function Character() {
   const c = useCharacter();
   const g = useGuide();
   const { variant } = useActiveVariant();
+  const who = useProfiles((s) => s.profiles[s.activeId]);
   const key = useSettings((s) => s.settings.hotkeys.judge);
   const [q, setQ] = useState("");
 
@@ -19,7 +21,7 @@ export default function Character() {
 
   return (
     <>
-      <PageHead title="Character" sub="Your real stats, skill ranks and glyph levels, read from the game with guided overlays, then compared to your build.">
+      <PageHead title="Character" sub={`${profileLabel(who)}: real stats, skill ranks and glyph levels, read from the game with guided overlays, then compared to the build.`}>
         {g.active && g.flow === "character" ? (
           <button className="btn" onClick={cancelGuide}>
             Stop guide

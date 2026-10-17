@@ -190,6 +190,8 @@ export type Verdict =
   | "CUBE"
   | "EXTRACT"
   | "STASH"
+  /** carry it and use it (keys, tributes, caches), or keep it in your bag for another build */
+  | "KEEP"
   | "SCRAP"
   | "SELL"
   | "SOCKET"
@@ -197,7 +199,6 @@ export type Verdict =
   // legacy values from older history entries
   | "BIS"
   | "UPGRADE"
-  | "KEEP"
   | "IMPRINT"
   | "SALVAGE"
   | "EQUIPPED";
@@ -222,6 +223,14 @@ export interface JudgeResult {
   ms: number;
   /** the player flagged this verdict as wrong (Loot page or hotkey) */
   flagged?: boolean;
+  /** the character profile it was judged for (its id, see profiles.ts) */
+  character?: string;
+}
+
+/** The seal and charms you were last seen wearing (talisman), for judging spares. */
+export interface Talisman {
+  seal: (ParsedItem & { at: number }) | null;
+  charms: (ParsedItem & { at: number })[];
 }
 
 // ---- timers ---------------------------------------------------------------
@@ -252,6 +261,8 @@ export interface Run {
   loot?: string[];
   deaths?: number;
   success?: boolean;
+  /** the character profile that ran it (its id, see profiles.ts) */
+  character?: string;
 }
 
 export interface CompareRow {
