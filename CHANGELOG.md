@@ -5,6 +5,9 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+### Added
+- **World events predicted by the app itself:** the world boss of every spawn (one slot in the rotation can be either of two bosses, and it says so), which world bosses also spawn in Nahantu or Skovos, and the zone of every Helltide. Nothing is fetched from other sites any more. A world boss's main zone and a Legion's zone can't be predicted yet; the game's map shows them about an hour before.
+
 ### Changed
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
 - Up to 100 marked moments are kept (was 30, which a busy session filled in half an hour).

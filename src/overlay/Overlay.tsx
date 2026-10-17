@@ -12,7 +12,7 @@ import type { MapPinsFrame } from "../lib/mapPinsRunner";
 import type { PoiKind } from "../lib/mappins";
 import { BookOpen, Castle, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, MapPin, Package, ScrollText, Skull, Sparkles, Star, TreeDeciduous, Warehouse, type LucideIcon } from "lucide-react";
 import { VERDICT_STYLE } from "../lib/judge";
-import { EVENT_META, fmtCountdown, isActive } from "../lib/timers";
+import { EVENT_META, eventLabel, fmtCountdown, isActive } from "../lib/timers";
 import type { JudgeResult } from "../lib/types";
 import { cssToScreen, installDebugHooks, type Box, type OverlayRender, type RenderedElement } from "../lib/debugcore";
 
@@ -370,7 +370,7 @@ function TimersPanel({ st, now, big }: { st: OverlayState; now: number; big: boo
                 <Ico icon={EvIcon} size={big && !i ? 17 : 15} />
               </span>
               <span style={{ minWidth: 0 }}>
-                <b>{e.name}</b>
+                <b>{eventLabel(e)}</b>
                 {e.zone && <div className="small muted">{e.zone}</div>}
               </span>
               <span className="t" style={{ color: active ? EVENT_META[k].color : undefined }}>

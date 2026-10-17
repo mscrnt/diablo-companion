@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { EVENT_META, fmtCountdown, isActive } from "../lib/timers";
+import { EVENT_META, eventLabel, fmtCountdown, isActive } from "../lib/timers";
 import type { GameEvent } from "../lib/types";
 import { useNow } from "./ui";
 
@@ -19,7 +19,7 @@ export function EventRow({ e, now }: { e: GameEvent; now: number }) {
       </span>
       <div style={{ color: "var(--text)", minWidth: 0 }}>
         <div style={{ fontWeight: 700 }}>
-          {e.name}
+          {eventLabel(e)}
           {e.extra?.predicted ? <span className="dim small"> (predicted)</span> : null}
           {e.extra?.whisper ? <span className="small" style={{ color: "var(--purple)" }}> · counts as a Whisper</span> : null}
         </div>

@@ -24,7 +24,7 @@ import { noteBars, onGameStatus, watchTestContext } from "./testmode";
 import { debugEvent, debugWanted, installMainDebugHooks, markMoment, startDebug } from "./debug";
 import { flagLastVerdict, sharingOn, startSharing } from "./share";
 import { MAP_PIN_PRESETS, getActiveVariant, nextPreset, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
-import { EVENT_META, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
+import { EVENT_META, eventLabel, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
 import type { GameEvent, JudgeResult } from "./types";
 
 interface Runtime {
@@ -195,8 +195,12 @@ function checkAlerts(events: GameEvent[]) {
       if (now >= at && now < at + 20_000) {
         fired.add(key);
         const meta = EVENT_META[e.kind];
-        const title = lead === 0 ? `${meta.emoji} ${e.name}: NOW` : `${meta.emoji} ${e.name} in ${lead} min`;
-        const body = e.zone ? e.zone : meta.label;
+        const title = lead === 0 ? `${meta.emoji} ${eventLabel(e)}: NOW` : `${meta.emoji} ${eventLabel(e)} in ${lead} min`;
+        // a world boss's main zone isn't predictable: the game's map shows it about an hour before
+        const body =
+          e.kind === "worldBoss"
+            ? `${e.extra?.expansion ? "Also in Nahantu or Skovos. " : ""}Its zone is on your map an hour before.`
+            : (e.zone ?? meta.label);
         if (alerts.sound) playTone("alert", alerts.volume);
         if (alerts.toast) toast(title, body);
         overlayToast(title, body, meta.color, 8000);
