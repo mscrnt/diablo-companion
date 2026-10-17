@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Anvil, Diamond, ScanEye, ScrollText, Sparkles, Star } from "lucide-react";
 import { Badge, Card, Empty, PageHead, timeAgo } from "../components/ui";
+import { judgingFor } from "../lib/buildlabel";
 import { importMobalytics } from "../lib/mobalytics";
 import { scanSkillBar, useSkillBar } from "../lib/skillbar";
 import { useRuntime } from "../lib/engine";
@@ -73,6 +74,12 @@ export default function BuildPage() {
               </button>
             ))}
             <span className="dim small right">fetched {timeAgo(Date.parse(build.fetchedAt))}</span>
+          </div>
+        )}
+        {build && (
+          <div className="small" style={{ marginTop: 8 }}>
+            Judging for: <b style={{ color: "var(--gold)" }}>{judgingFor(build.name, variant?.name)}</b>
+            {build.variants.length > 1 && <span className="muted">. Pick the variant you play now: leveling and endgame want different gear.</span>}
           </div>
         )}
         {variant?.description && <div className="muted small" style={{ marginTop: 6 }}>{variant.description}</div>}

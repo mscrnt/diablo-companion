@@ -65,6 +65,11 @@ export default function Timers() {
               <Check checked={settings.alerts.toast} onChange={(v) => update((s) => void (s.alerts.toast = v))} label="Windows toast" />
               <span className="small muted">+ overlay toast always</span>
             </div>
+            <Check
+              checked={settings.alerts.onlyWhileGameRuns}
+              onChange={(v) => update((s) => void (s.alerts.onlyWhileGameRuns = v))}
+              label="Only alert while Diablo IV is running"
+            />
           </div>
         </Card>
       </div>

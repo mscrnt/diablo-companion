@@ -50,6 +50,14 @@ export function playTone(tone: Tone, volume = 0.5) {
   }
 }
 
+/**
+ * World event alerts (sound, toasts, Discord) fire whether or not the game runs, unless the player
+ * asked for them only while Diablo IV is running. An alert skipped this way isn't sent later.
+ */
+export function alertsAllowed(onlyWhileGameRuns: boolean, game: { running: boolean } | null | undefined): boolean {
+  return !onlyWhileGameRuns || !!game?.running;
+}
+
 let permission: boolean | null = null;
 export async function toast(title: string, body: string) {
   if (!isTauri) return;

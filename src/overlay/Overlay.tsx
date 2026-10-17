@@ -10,8 +10,10 @@ import type { HelltideInfo } from "../lib/helltide";
 import type { BossInfo } from "../lib/boss";
 import type { MapPinsFrame } from "../lib/mapPinsRunner";
 import type { PoiKind } from "../lib/mappins";
-import { BookOpen, Castle, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, MapPin, Package, ScrollText, Skull, Sparkles, Star, TreeDeciduous, Warehouse, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Castle, ChevronDown, ChevronUp, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, MapPin, Package, ScrollText, Skull, Sparkles, Star, TreeDeciduous, Warehouse, X, type LucideIcon } from "lucide-react";
 import { VERDICT_STYLE } from "../lib/judge";
+import { BAR_LABELS, clampDiscordRoom, normalizeBars, splitBar, type BarItem, type BarMove, type BarPanel, type Side } from "../lib/barlayout";
+import { judgingFor } from "../lib/buildlabel";
 import { EVENT_META, eventLabel, fmtCountdown, isActive } from "../lib/timers";
 import type { JudgeResult } from "../lib/types";
 import { cssToScreen, installDebugHooks, type Box, type OverlayRender, type RenderedElement } from "../lib/debugcore";
@@ -127,6 +129,8 @@ export default function Overlay() {
   const [boss, setBoss] = useState<BossInfo | null>(null);
   const [mapPins, setMapPins] = useState<(MapPinsFrame & { labelUntil?: number }) | null>(null);
   const [now, setNow] = useState(Date.now());
+  /** edit mode: the Discord room's height while its edge is dragged */
+  const [roomDrag, setRoomDrag] = useState<number | null>(null);
   const vTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const tipTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pinTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -221,6 +225,15 @@ export default function Overlay() {
     });
   }, [verdict?.id]);
 
+  // edit mode: Esc finishes (the overlay has the keyboard while it's interactive)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && stRef.current?.edit) emitMain("overlay-action", "overlayEdit");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   if (!st) return null;
   const dpr = window.devicePixelRatio || 1;
   // absolute physical screen px → overlay CSS px
@@ -232,6 +245,7 @@ export default function Overlay() {
   const bars = st.settings.layout === "bars" && !!st.settings.gameBounds && st.settings.gameBounds.left > 0.03;
   const guideOn = !!guide?.active;
   const visible = st.visible || guideOn;
+  const judgeFor = judgingFor(st.build?.name, st.build?.variant);
 
   const panels = {
     timers: st.settings.widgets.timers.on && <TimersPanel st={st} now={now} big={bars} />,
@@ -283,12 +297,49 @@ export default function Overlay() {
     ),
   };
 
+  // bar layout: each bar's panels in the player's order (top group, then bottom group)
+  const barCfg = st.settings.bars;
+  const barLists = normalizeBars(barCfg);
+  const barContent: Record<BarPanel, ReactNode> = {
+    activity: (hordes?.active || helltide?.active || undercity || boss) && (
+      <>
+        {hordes?.active && <HordesPanel h={hordes} />}
+        {helltide?.active && <HelltidePanel h={helltide} />}
+        {undercity && <UndercityPanel u={undercity} />}
+        {boss && <BossPanel b={boss} />}
+      </>
+    ),
+    ...panels,
+  };
+  // panels switched off on the Overlay page don't take a slot, even in edit mode
+  const barOn = (id: BarPanel) => id === "activity" || st.settings.widgets[id].on;
+  const discordRoom = barCfg.discord ? (roomDrag ?? barCfg.discordRoom) : 0;
+  const renderBar = (side: Side) => {
+    const list = barLists[side];
+    const { top, bottom } = splitBar(list);
+    const slot = (id: BarPanel) =>
+      barOn(id) && (barContent[id] || st.edit) ? (
+        <BarSlot key={id} id={id} list={list} edit={st.edit}>
+          {barContent[id]}
+        </BarSlot>
+      ) : null;
+    return (
+      <>
+        {top.map(slot)}
+        <div className="ov-gap" data-dbg={st.edit ? `bar-gap:${side}` : undefined}>
+          {st.edit && <span>above: from the top · below: from the bottom</span>}
+        </div>
+        {bottom.map(slot)}
+      </>
+    );
+  };
+
   return (
     <div className={"ov-root " + (st.edit ? "edit" : "")} style={{ opacity: visible ? st.settings.opacity : 0, transition: "opacity .15s" }}>
       {st.edit && (
         <div className="ov-bar">
           <b style={{ color: "var(--gold)" }}>Overlay edit mode</b>
-          <span className="small muted">{bars ? "Bar layout is automatic: switch to Free layout on the Overlay page to drag." : "Drag widgets anywhere."}</span>
+          <span className="small muted">{bars ? "Move panels with the arrows. Esc or Done to finish." : "Drag widgets anywhere. Esc or Done to finish."}</span>
           <button className="btn sm primary" onClick={() => emitMain("overlay-action", "overlayEdit")}>
             Done
           </button>
@@ -297,20 +348,28 @@ export default function Overlay() {
 
       {bars ? (
         <>
-          <div className="ov-col" data-dbg="bar-left" style={{ left: 0, width: `${st.settings.gameBounds!.left * 100}%` }}>
-            {hordes?.active && <HordesPanel h={hordes} />}
-            {helltide?.active && <HelltidePanel h={helltide} />}
-            {undercity && <UndercityPanel u={undercity} />}
-            {boss && <BossPanel b={boss} />}
-            {panels.timers}
-            {panels.run}
-            {panels.farm}
-            {panels.build}
+          <div className="ov-col" data-dbg="bar-left" style={{ left: 0, width: `${st.settings.gameBounds!.left * 100}%`, top: `${discordRoom * 100}%` }}>
+            {st.edit && !barCfg.discord && (
+              <button className="btn sm ov-discord-add" onClick={() => emitMain("bar-layout", { discord: true })}>
+                Leave room for Discord here
+              </button>
+            )}
+            {renderBar("left")}
           </div>
+          {st.edit && barCfg.discord && (
+            <DiscordRoom
+              width={`${st.settings.gameBounds!.left * 100}%`}
+              room={discordRoom}
+              onDrag={setRoomDrag}
+              onDone={(h) => {
+                setRoomDrag(null);
+                emitMain("bar-layout", { discordRoom: h });
+              }}
+              onRemove={() => emitMain("bar-layout", { discord: false })}
+            />
+          )}
           <div className="ov-col" data-dbg="bar-right" style={{ left: `${st.settings.gameBounds!.right * 100}%`, width: `${(1 - st.settings.gameBounds!.right) * 100}%`, bottom: 200 }}>
-            {panels.verdict}
-            {panels.watchers}
-            {panels.toasts}
+            {renderBar("right")}
           </div>
         </>
       ) : (
@@ -324,7 +383,7 @@ export default function Overlay() {
         )
       )}
 
-      {tip && <TooltipBadge t={tip} style={toCss(tip.box)} />}
+      {tip && <TooltipBadge t={tip} style={toCss(tip.box)} judgeFor={judgeFor} />}
 
       {hordes?.active && <HordesBadges h={hordes} toCss={toCss} />}
       {advisor && advisor.items.length > 0 && <AdvisorBadges a={advisor} toCss={toCss} />}
@@ -340,6 +399,7 @@ export default function Overlay() {
           tip={tip}
           verdict={verdict}
           autoJudge={st.autoJudge}
+          judgeFor={judgeFor}
           now={now}
           width={bars ? `calc(${(1 - st.settings.gameBounds!.right) * 100}% - 24px)` : "380px"}
         />
@@ -518,7 +578,7 @@ function VerdictPanel({ v, detailed, judging }: { v: JudgeResult; detailed: bool
 }
 
 /** Card beside the in-game tooltip (left of it if there's room, else right). */
-function TooltipBadge({ t, style }: { t: TooltipEvt; style: CSSProperties }) {
+function TooltipBadge({ t, style, judgeFor }: { t: TooltipEvt; style: CSSProperties; judgeFor: string | null }) {
   const v = t.verdict;
   const s = v ? VERDICT_STYLE[v.verdict] ?? VERDICT_STYLE.UNKNOWN : null;
   const left = Number(style.left);
@@ -550,6 +610,7 @@ function TooltipBadge({ t, style }: { t: TooltipEvt; style: CSSProperties }) {
             <span style={{ fontFamily: "var(--display)", fontWeight: 800, fontSize: 22, letterSpacing: ".05em", textTransform: "uppercase" }}>{s!.label}</span>
           </div>
           {v.action && <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.35 }}>{v.action}</div>}
+          {judgeFor && !t.quiet && <JudgingFor label={judgeFor} />}
         </>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -565,7 +626,16 @@ function TooltipBadge({ t, style }: { t: TooltipEvt; style: CSSProperties }) {
 }
 
 /** Always-on status card in the bottom-right corner: watching / checking / last outcome. */
-function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: TooltipEvt | null; verdict: JudgeResult | null; autoJudge: boolean; width: string; now: number; hordes?: HordesState | null }) {
+/** Which build and variant the judge follows, so judging with the wrong variant gets noticed. */
+function JudgingFor({ label }: { label: string }) {
+  return (
+    <div className="small dim" data-dbg="judging-for" style={{ marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={label}>
+      Judging for: {label}
+    </div>
+  );
+}
+
+function StatusCorner({ tip, verdict, autoJudge, judgeFor, width, now, hordes }: { tip: TooltipEvt | null; verdict: JudgeResult | null; autoJudge: boolean; judgeFor: string | null; width: string; now: number; hordes?: HordesState | null }) {
   const checking = !!tip && tip.state !== "done";
   const recent = verdict && now - verdict.at < 15_000 ? verdict : null;
   const s = recent ? VERDICT_STYLE[recent.verdict] ?? VERDICT_STYLE.UNKNOWN : null;
@@ -620,6 +690,7 @@ function StatusCorner({ tip, verdict, autoJudge, width, now, hordes }: { tip: To
           <span className="muted">{autoJudge ? "Watching: hover any item" : "Hover an item and press the judge key"}</span>
         </div>
       )}
+      {judgeFor && <JudgingFor label={judgeFor} />}
     </div>
   );
 }
@@ -926,6 +997,61 @@ function MapPinsLayer({ m, toCss, now }: { m: MapPinsFrame & { labelUntil?: numb
         </div>
       )}
     </>
+  );
+}
+
+/** A panel in a black bar. In edit mode: its name and arrows to move it (up, down, to the other bar). */
+function BarSlot({ id, list, edit, children }: { id: BarPanel; list: BarItem[]; edit: boolean; children: ReactNode }) {
+  if (!edit) return <>{children}</>;
+  const i = list.indexOf(id);
+  const move = (m: BarMove) => emitMain("bar-layout", { id, move: m });
+  return (
+    <div className="ov-slot" data-dbg={`bar-slot:${id}`}>
+      <div className="ov-slot-ctl">
+        <span className="ov-slot-name">{BAR_LABELS[id]}</span>
+        <button className="btn sm" title="Move up" disabled={i <= 0} onClick={() => move("up")}>
+          <Ico icon={ChevronUp} size={13} />
+        </button>
+        <button className="btn sm" title="Move down" disabled={i >= list.length - 1} onClick={() => move("down")}>
+          <Ico icon={ChevronDown} size={13} />
+        </button>
+        <button className="btn sm" title="Move to the other side" onClick={() => move("swap")}>
+          <Ico icon={ArrowLeftRight} size={13} />
+        </button>
+      </div>
+      {children || <div className="ov-panel small muted">{BAR_LABELS[id]} shows here</div>}
+    </div>
+  );
+}
+
+/** Edit mode: the space kept clear for Discord's voice overlay, with an edge to drag. */
+function DiscordRoom({ width, room, onDrag, onDone, onRemove }: { width: string; room: number; onDrag: (h: number) => void; onDone: (h: number) => void; onRemove: () => void }) {
+  const [dragging, setDragging] = useState(false);
+  const at = (e: { clientY: number }) => clampDiscordRoom(e.clientY / innerHeight);
+  return (
+    <div className="ov-discord" data-dbg="discord-room" style={{ width, height: `${room * 100}%` }}>
+      <div className="row" style={{ gap: 6 }}>
+        <b className="small">Room for Discord</b>
+        <button className="btn ghost sm right" title="Don't leave room" onClick={onRemove}>
+          <Ico icon={X} size={13} />
+        </button>
+      </div>
+      <div
+        className="ov-discord-edge"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setDragging(true);
+        }}
+        onPointerMove={(e) => dragging && onDrag(at(e))}
+        onPointerUp={(e) => {
+          if (!dragging) return;
+          setDragging(false);
+          onDone(at(e));
+        }}
+      >
+        drag to resize
+      </div>
+    </div>
   );
 }
 

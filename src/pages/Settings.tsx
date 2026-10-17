@@ -7,6 +7,7 @@ import { useSettings, type ActionId } from "../lib/store";
 import { staticMeta } from "../lib/names";
 import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate, installUpdate } from "../lib/version";
 import { DebugReportButton } from "../components/DebugReport";
+import { ExportStatsButton } from "../components/ExportStats";
 import { HelpImproveCard } from "../components/HelpImprove";
 
 const ACTIONS: { id: ActionId; label: string }[] = [
@@ -125,6 +126,11 @@ export default function SettingsPage() {
               Volume {Math.round(settings.alerts.volume * 100)}%
               <input type="range" min={0} max={1} step={0.05} value={settings.alerts.volume} onChange={(e) => update((s) => void (s.alerts.volume = Number(e.target.value)))} />
             </label>
+            <Check
+              checked={settings.alerts.onlyWhileGameRuns}
+              onChange={(v) => update((s) => void (s.alerts.onlyWhileGameRuns = v))}
+              label="Only alert while Diablo IV is running (world events: sound, toasts and Discord)"
+            />
             <label className="field">
               Discord webhook URL (event alerts)
               <input type="url" value={settings.alerts.discordWebhook} onChange={(e) => update((s) => void (s.alerts.discordWebhook = e.target.value))} />
@@ -243,6 +249,9 @@ function About() {
           GitHub
         </a>
         <DebugReportButton label="Report a problem" className="btn ghost sm" />
+      </div>
+      <div className="row" style={{ marginTop: 8 }}>
+        <ExportStatsButton className="btn ghost sm" />
       </div>
       {progress !== undefined && (
         <div className="progress" style={{ marginTop: 8 }}>

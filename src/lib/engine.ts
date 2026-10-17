@@ -2,7 +2,8 @@
 // controller chords, the loot judge, screen watchers and overlay sync.
 import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
 import { create } from "zustand";
-import { discord, overlayToast, playTone, toast } from "./alerts";
+import { alertsAllowed, discord, overlayToast, playTone, toast } from "./alerts";
+import { clampDiscordRoom, movePanel, type BarMove, type BarPanel } from "./barlayout";
 import { emitOverlay, onGlobal, onMain } from "./bus";
 import { planFarm } from "./farm";
 import { isTauri } from "./http";
@@ -140,6 +141,17 @@ export async function setOverlayEdit(on: boolean) {
   if (isTauri) await setOverlayInteractive(on).catch(() => {});
 }
 
+/** Bar layout changes, from the Overlay page or the overlay's edit mode. */
+export function editBars(p: { id?: BarPanel; move?: BarMove; discord?: boolean; discordRoom?: number }) {
+  useSettings.getState().update((s) => {
+    const b = s.overlay.bars;
+    if (p.id && p.move) Object.assign(b, movePanel(b, p.id, p.move));
+    if (p.discord != null) b.discord = p.discord;
+    if (p.discordRoom != null) b.discordRoom = clampDiscordRoom(p.discordRoom);
+  });
+  pushOverlay();
+}
+
 // ---- hotkeys & controller ---------------------------------------------------------
 
 export async function applyHotkeys() {
@@ -201,6 +213,10 @@ function checkAlerts(events: GameEvent[]) {
           e.kind === "worldBoss"
             ? `${e.extra?.expansion ? "Also in Nahantu or Skovos. " : ""}Its zone is on your map an hour before.`
             : (e.zone ?? meta.label);
+        if (!alertsAllowed(alerts.onlyWhileGameRuns, useRuntime.getState().game)) {
+          debugEvent("alerts", "skipped", { title, why: "Diablo IV isn't running" });
+          continue;
+        }
         if (alerts.sound) playTone("alert", alerts.volume);
         if (alerts.toast) toast(title, body);
         overlayToast(title, body, meta.color, 8000);
@@ -532,6 +548,10 @@ export async function startEngine() {
         w.y = Math.min(0.98, Math.max(0, y));
       }
     });
+  });
+  onMain<Parameters<typeof editBars>[0]>("bar-layout", (p) => {
+    debugEvent("input", "bar-layout", p);
+    editBars(p);
   });
   onMain("overlay-ready", () => {
     pushOverlay(true);
