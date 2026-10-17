@@ -10,6 +10,10 @@ The release workflow publishes each version's section as its GitHub release note
 
 ### Fixed
 - Opening the game's War Plans screen no longer shows the Helltide cinders panel (its "Helltide" tab and point counter looked like a Helltide) or starts the Infernal Hordes helper.
+- **Tree of Whispers:** cache names that wrap onto two lines ("Greater Collection of / Chestplates", "Ancestral Collection of / Rings") are read whole. Each one was read as a Boots cache, so the advice ranked caches you weren't offered.
+- **Loot judge:** a stat your guide lists twice for a slot counts once, so "N of M stats" and the verdict aren't inflated.
+- **Boss timer:** only the health bar's name at the very top counts. Your minions ("Skeleton Guardian"), other players and their titles walking past no longer start a fight with Grigoire, Duriel or the Butcher.
+- A Chronicle of Nightmares tooltip over the quest tracker no longer starts a Minor Nightmare run, and a misread first cinder count (3,598 for 598) waits for a second read.
 
 ## [0.2.4] - 2026-10-16
 

@@ -93,11 +93,19 @@ export function rankCache(c: WhisperCache, variant: BuildVariant | undefined, pr
 export function findWhisperCaches(lines: OcrLine[], region: { x: number; y: number }, variant: BuildVariant | undefined, prog: (slot: string) => SlotProgress): RankedCache[] {
   const found = new Map<string, RankedCache>();
   for (const l of lines) {
-    const t = l.text.trim();
-    if (t.length < 10 || !/collection|cache/i.test(t)) continue;
+    if (l.text.trim().length < 10 || !/collection|cache/i.test(l.text)) continue;
+    // long names wrap: "GREATER COLLECTION OF" / "CHESTPLATES", "COLLECTION OF TWO-HANDED" / "WEAPONS". The first
+    // line alone matched whichever cache has the shortest ending, so every wrapped cache read as Boots (2026-10-16)
+    const next = lines.find((n) => n !== l && n.y > l.y && n.y - l.y < l.h * 2.2 && Math.abs(n.x - l.x) < l.h * 3 && !/collection|cache|accept|close/i.test(n.text));
+    const t = `${l.text.trim()} ${next?.text.trim() ?? ""}`.replace(/[^A-Za-z' -]+/g, " ").replace(/\s+/g, " ").trim();
+    // the kind is the words after "of" ("Rings", "Leg Guards"): it has to match on its own, not just the shared "Collection of"
+    const kind = t.match(/\bof\s+(.+)$/i)?.[1] ?? "";
+    if (kind.length < 3) continue;
     let best: WhisperCache | null = null;
     let bs = 0;
     for (const c of WHISPER_CACHES) {
+      const ck = c.name.match(/\bof\s+(.+)$/i)?.[1] ?? c.name;
+      if (trigramSim(kind, ck) < 0.6) continue;
       const s = trigramSim(t, c.name);
       if (s > bs) {
         bs = s;

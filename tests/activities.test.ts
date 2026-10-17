@@ -104,6 +104,17 @@ describe("Tree of Whispers", () => {
     expect(r.find((c) => /one-handed/i.test(c.name))?.why).toMatch(/two-handed/);
   });
 
+  it("long cache names wrapping onto a second line (2026-10-16 test: every one read as Boots)", () => {
+    const W = (t: string, y: number) => line(t, 100, y, 400, 30);
+    const names = (ls: ReturnType<typeof W>[]) => findWhisperCaches(ls, { x: 0, y: 0 }, ctx.variant, ctx.prog).map((c) => c.name).sort();
+    expect(
+      names([W("GREATER COLLECTION OF", 490), W("CHESTPLATES", 522), W("COLLECTION OF LEG GUARDS", 643), W("ANCESTRAL COLLECTION OF", 763), W("RINGS *", 796), W("COLLECTION OF TALISMANS", 916)]),
+    ).toEqual(["Ancestral Collection of Rings", "Collection of Leg Guards", "Collection of Talismans", "Greater Collection of Chestplates"]);
+    expect(
+      names([W("COLLECTION OF CHESTPLATES", 505), W("COLLECTION OF AMULETS", 643), W("COLLECTION OF TWO-HANDED", 763), W("WEAPONS", 796), W("GREATER COLLECTION OF RINGS", 916)]),
+    ).toEqual(["Collection of Amulets", "Collection of Chestplates", "Collection of Two-Handed Weapons", "Greater Collection of Rings"]);
+  });
+
   it("parses Grim Favors", () => {
     expect(parseGrimFavors("Grim Favors 7/10")).toEqual({ have: 7, max: 10 });
     expect(parseGrimFavors("nothing here")).toBeNull();
