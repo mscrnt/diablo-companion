@@ -29,6 +29,9 @@ KEEP_DAYS = "30"              # releases (and their zips) are deleted after this
 # shared judgements (opt-in in the app): POST /judgements, one JSON batch every few minutes per player
 JUDGE_MAX_BYTES = "8388608"   # 8 MB per batch (up to 50 judgements with their tooltip crops)
 GITHUB_DELETE_LABELS = "delete-request" # label for "delete my data" issues (must exist in the repo)
+# research: record helltides.com's world events (hourly current + schedule every 6 h) to work out the rotation
+EVENTS_RECORDER = "on"
+RESEARCH_PREFIX = "research/events/"  # no expiry rule (debug/ is deleted after 30 days)
 
 # storage keys: upload-only MinIO user, kept in the Cloudflare Secrets Store (never in this repo)
 [[secrets_store_secrets]]
@@ -40,6 +43,17 @@ secret_name = "D4_COMPANION_S3_ACCESS_KEY"
 binding = "S3_SECRET_KEY"
 store_id = "bcb7b4f126c34f73bf937626027200fa"
 secret_name = "D4_COMPANION_S3_SECRET_KEY"
+
+# research storage: a second write-only MinIO user, PutObject on d4-companion/research/* only
+[[secrets_store_secrets]]
+binding = "RESEARCH_S3_ACCESS_KEY"
+store_id = "bcb7b4f126c34f73bf937626027200fa"
+secret_name = "D4_COMPANION_S3_RESEARCH_ACCESS_KEY"
+
+[[secrets_store_secrets]]
+binding = "RESEARCH_S3_SECRET_KEY"
+store_id = "bcb7b4f126c34f73bf937626027200fa"
+secret_name = "D4_COMPANION_S3_RESEARCH_SECRET_KEY"
 
 # fine-grained token, one repo (mscrnt/sanctuary-toolkit-reports), Issues read/write
 [[secrets_store_secrets]]
@@ -66,6 +80,6 @@ id = "f4aad7f13293465c9ba4178afacc2040"
 
 # IP_SALT is a Worker secret: `npx wrangler secret put IP_SALT` (any long random string)
 
-# daily: delete report releases older than KEEP_DAYS
+# daily: delete report releases older than KEEP_DAYS; hourly at :05: the event recorder
 [triggers]
-crons = ["23 9 * * *"]
+crons = ["23 9 * * *", "5 * * * *"]

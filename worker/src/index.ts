@@ -4,6 +4,7 @@
 // private repo, attaches the zip to that day's release; a daily cron deletes releases after KEEP_DAYS.
 import { AwsClient } from "aws4fetch";
 import { batchKey, deleteIssue, deleteKey, isInstallId, parseBatch } from "./judgements";
+import { jobsFor, parseSchedule, recordKey, type EventRecord } from "./events";
 import { checkSize, deleteOn, expiredReleaseTags, isZip, issueFor, objectKey, parseMeta, releaseTag, ulid, type ReportMeta } from "./validate";
 
 export interface Env {
@@ -37,6 +38,13 @@ export interface Env {
   JUDGE_MAX_BYTES: string;
   /** label for "delete my data" issues (must exist in the repo) */
   GITHUB_DELETE_LABELS: string;
+  /** "on": record helltides.com's world events for our own research (see src/events.ts) */
+  EVENTS_RECORDER: string;
+  /** where recordings go, e.g. "research/events/" (no expiry rule, unlike debug/) */
+  RESEARCH_PREFIX: string;
+  /** a second write-only storage key, limited to research/* (the report key stays limited to debug/*) */
+  RESEARCH_S3_ACCESS_KEY?: SecretsStoreSecret;
+  RESEARCH_S3_SECRET_KEY?: SecretsStoreSecret;
 }
 
 // s3.mscrnt.com sits behind Cloudflare's Browser Integrity Check, which rejects requests without a real-looking UA
@@ -115,14 +123,55 @@ export default {
     return json(201, { id });
   },
 
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(cleanUp(env).catch((e) => console.log("cleanup failed", String(e))));
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (event.cron === "23 9 * * *") ctx.waitUntil(cleanUp(env).catch((e) => console.log("cleanup failed", String(e))));
+    const jobs = jobsFor(event.cron, new Date(event.scheduledTime));
+    if (env.EVENTS_RECORDER === "on" && (jobs.current || jobs.schedule)) ctx.waitUntil(recordEvents(env, jobs).catch((e) => console.log("event recording failed", String(e))));
   },
 };
 
 const storage = async (env: Env) =>
   new AwsClient({ accessKeyId: await env.S3_ACCESS_KEY.get(), secretAccessKey: await env.S3_SECRET_KEY.get(), service: "s3", region: env.S3_REGION });
 const objectUrl = (env: Env, key: string) => `${env.S3_ENDPOINT.replace(/\/$/, "")}/${env.S3_BUCKET}/${key}`;
+
+/**
+ * Research only: record what helltides.com predicts (world bosses, every 6 h, from its schedule page) and reports
+ * now (world boss, helltide, legion, hourly, from its public data), so we can work out the rotation and check our
+ * own prediction. A handful of requests a day from one place, not from every player; the app never reads this.
+ */
+async function recordEvents(env: Env, jobs: { current: boolean; schedule: boolean }): Promise<void> {
+  if (!env.RESEARCH_S3_ACCESS_KEY || !env.RESEARCH_S3_SECRET_KEY) return void console.log("event recorder: no research storage key bound");
+  const aws = new AwsClient({ accessKeyId: await env.RESEARCH_S3_ACCESS_KEY.get(), secretAccessKey: await env.RESEARCH_S3_SECRET_KEY.get(), service: "s3", region: env.S3_REGION });
+  const now = new Date();
+  const headers = { "user-agent": "SanctuaryToolkit-EventRecorder/1.0 (+https://github.com/mscrnt/diablo-companion)" };
+  const save = async (kind: EventRecord["kind"], data: unknown) => {
+    const res = await aws.fetch(objectUrl(env, recordKey(env.RESEARCH_PREFIX || "research/events/", kind, now)), {
+      method: "PUT",
+      body: JSON.stringify({ at: now.toISOString(), kind, data } satisfies EventRecord),
+      headers: { "content-type": "application/json", "user-agent": UA },
+    });
+    if (!res.ok) console.log("event recorder: write failed", kind, res.status, (await res.text()).slice(0, 200));
+  };
+  if (jobs.current) {
+    const base = "https://helltides-7e530-default-rtdb.firebaseio.com";
+    const read = async (node: string) => {
+      const r = await fetch(`${base}/${node}.json`, { headers });
+      return r.ok ? await r.json() : { error: r.status };
+    };
+    const [world_boss, helltide, legion] = await Promise.all(["world_boss", "helltide", "legion"].map(read));
+    await save("current", { world_boss, helltide, legion });
+  }
+  if (jobs.schedule) {
+    const r = await fetch("https://helltides.com/schedule", { headers });
+    let data: unknown;
+    try {
+      data = r.ok ? { bosses: parseSchedule(await r.text()) } : { error: r.status };
+    } catch (e) {
+      data = { error: String(e) };
+    }
+    await save("schedule", data);
+  }
+}
 
 /** A JSON body up to `max` bytes, or the response that refuses it. */
 async function readJson(req: Request, max: number): Promise<{ ok: true; value: unknown } | { ok: false; res: Response }> {

@@ -99,6 +99,16 @@ Players who opt in send their loot-judge results in batches every minute: `{ v: 
 - **30 days:** the bucket's lifecycle rule `expire-debug-30d` expires everything under `debug/` (reports and judgements alike). `mc` isn't available for this MinIO; manage the bucket with the MinIO Python SDK and an admin key.
 - **Delete my data** (`POST /judgements/delete`, `{ v: 1, install }`): the storage key can't delete, so the Worker writes `debug/judgements-deleted/<install>.json` and opens a private issue (label `delete-request`) with a MinIO Python SDK snippet that deletes that install's batches. The app stops sending and forgets the id at once.
 
+## World event recorder (research, cron)
+
+To work out the world boss, helltide and legion rotations ourselves, the Worker records what helltides.com predicts and reports. One place, a handful of requests a day, instead of every player polling it; **the app never reads these recordings or helltides.com** (it will run our own prediction, checked against them).
+
+- Every hour at :05: the current world boss, helltide and legion (their public data nodes).
+- Every 6 hours (00:05, 06:05, …): the upcoming world bosses with zones from their schedule page (`src/events.ts` parses it, unit tested; the page shows about 14 hours ahead).
+- Stored as one object per read: `research/events/<UTC day>/<HHMM>-current.json` / `-schedule.json`, under `research/`, which has **no expiry rule** (`debug/` is deleted after 30 days).
+- Written with a **second** write-only MinIO user limited to `PutObject` on `d4-companion/research/*`, in the Secrets Store as `D4_COMPANION_S3_RESEARCH_ACCESS_KEY` / `D4_COMPANION_S3_RESEARCH_SECRET_KEY`. The report key stays limited to `debug/*`.
+- Off switch: `EVENTS_RECORDER` in `wrangler.toml`.
+
 ## Rules
 
 - Never commit credentials. The MinIO and GitHub keys live only in the Secrets Store, and `IP_SALT` is a Worker secret.
