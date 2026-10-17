@@ -58,7 +58,13 @@ interface Quality {
 }
 
 function quality(item: ParsedItem, slot: GearSlot): Quality {
-  const targets = [...slot.implicits, ...slot.affixes];
+  // a guide can list a stat twice for a slot (an implicit and an affix): one Intelligence line on the item
+  // counted as two wanted stats, and the verdict card listed it twice (3,200 React key errors, 2026-10-16)
+  const seen = new Set<string>();
+  const targets = [...slot.implicits, ...slot.affixes].filter((t) => {
+    const k = normName(t.name);
+    return !seen.has(k) && !!seen.add(k);
+  });
   const matched: string[] = [];
   let greater = 0;
   for (const t of targets) {

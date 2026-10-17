@@ -501,7 +501,7 @@ function VerdictPanel({ v, detailed, judging }: { v: JudgeResult; detailed: bool
             Stats your build wants ({v.matched.length} of {total})
           </div>
           {[...v.matched.map((m) => [m, true] as const), ...v.missing.map((m) => [m, false] as const)].map(([m, ok]) => (
-            <div key={m} className="small" style={{ color: ok ? "var(--green)" : "var(--dim)" }}>
+            <div key={`${ok}-${m}`} className="small" style={{ color: ok ? "var(--green)" : "var(--dim)" }}>
               {ok ? "✓" : "✗"} {m}
             </div>
           ))}

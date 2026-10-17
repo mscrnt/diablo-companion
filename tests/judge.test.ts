@@ -102,3 +102,25 @@ describe("unique names read through OCR slips", () => {
     expect(canonicalUnique("Shard of Verathiel")).toBe("Shard of Verathiel");
   });
 });
+
+describe("a stat the guide lists twice for a slot", () => {
+  it("counts once (one Intelligence line isn't two wanted stats)", async () => {
+    const ctx = await exampleBuild();
+    const v = structuredClone(ctx.variant);
+    const helm = v.gear.find((g) => g.slot === "helm")!;
+    helm.implicits = [{ name: "Intelligence" } as any];
+    helm.affixes = [{ name: "Intelligence" } as any, ...helm.affixes.filter((a) => !/intelligence/i.test(a.name))];
+    const item = {
+      name: "Test Helm",
+      rarity: "rare",
+      itemType: "Rare Helm",
+      slot: "helm",
+      itemPower: 900,
+      affixes: [{ text: "+120 Intelligence", greater: false, match: "Intelligence" }],
+      aspect: null,
+    } as any;
+    const r = decide(item, v, { prog: ctx.prog });
+    expect(r.matched.filter((m) => /intelligence/i.test(m))).toHaveLength(1);
+    expect(r.missing.some((m) => /intelligence/i.test(m))).toBe(false);
+  });
+});
