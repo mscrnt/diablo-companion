@@ -92,7 +92,7 @@ Setup, for reference:
 
 ## Shared judgements (`POST /judgements`, opt-in in the app)
 
-Players who opt in send their loot-judge results in batches every couple of minutes: `{ v: 1, install, version, os, items }`, where an item is a `judgement` (`id`, `at`, `data` up to 64 KB, optional `images.tooltip` / `images.equipped` as base64 jpeg up to ~300 KB) or a `feedback` (`id` of the judgement, `signal`: `wrong` / `right` / `worn`, optional `note`). Checks (`src/judgements.ts`, unit tested): a v4 install id, version, OS, 1 to 50 items, item times within the last week, known fields only (anything else is dropped), at most 8 MB per batch.
+Players who opt in send their loot-judge results in batches every minute: `{ v: 1, install, version, os, items }`, where an item is a `judgement` (`id`, `at`, `data` up to 64 KB, optional `images.tooltip` / `images.equipped` as base64 jpeg up to ~300 KB) or a `feedback` (`id` of the judgement, `signal`: `wrong` / `right` / `worn`, optional `note`). Checks (`src/judgements.ts`, unit tested): a v4 install id, version, OS, 1 to 50 items, item times within the last week, known fields only (anything else is dropped), at most 8 MB per batch.
 
 - Stored as one object per batch: `debug/judgements/<UTC day>/<install id>/<ULID>.json`, under the MinIO user's existing write scope.
 - Rate limit: the `JUDGE_BURST` binding, 6 batches a minute per IP (salted hash), plus the zone's WAF rule. No KV counters: with batches every few minutes from every player, they'd use up the free plan's 1,000 KV writes a day.

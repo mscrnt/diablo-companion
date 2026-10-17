@@ -36,7 +36,8 @@ import { APP_VERSION } from "./version";
 
 export const DEBUG_DIR = "debug";
 const MARKS_DIR = `${DEBUG_DIR}/marks`;
-const MARK_KEEP = 30;
+// about 1.6 MB each; 30 filled up in half an hour of a busy test session (2026-10-15)
+const MARK_KEEP = 100;
 const MARK_WINDOW_MS = 90_000;
 
 const ring = new EventRing(MARK_WINDOW_MS, 3000);

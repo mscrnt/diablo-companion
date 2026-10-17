@@ -147,7 +147,7 @@ export default function Debug() {
           </div>
         </Card>
 
-        <Card title="Marked moments" right={<span className="small dim">newest 30 kept</span>}>
+        <Card title="Marked moments" right={<span className="small dim">newest 100 kept</span>}>
           {marks.length === 0 ? (
             <div className="small dim">None yet. Press the mark key in game when something looks wrong.</div>
           ) : (

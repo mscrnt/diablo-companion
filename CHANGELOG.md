@@ -7,6 +7,8 @@ The release workflow publishes each version's section as its GitHub release note
 
 ### Changed
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
+- Up to 100 marked moments are kept (was 30, which a busy session filled in half an hour).
+- Shared judgements go out every minute, so fewer are lost when the app closes; in test mode a copy of each shared picture, blacked out as sent, is saved with the test log.
 
 ### Fixed
 - Opening the game's War Plans screen no longer shows the Helltide cinders panel (its "Helltide" tab and point counter looked like a Helltide) or starts the Infernal Hordes helper.

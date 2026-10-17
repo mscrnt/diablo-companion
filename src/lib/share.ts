@@ -9,6 +9,7 @@ import { isTauri } from "./http";
 import { getActiveVariant, useBuilds, useLoot, useSettings } from "./store";
 import { withoutPersonal, isPersonalLine } from "./privacy";
 import { debugEvent } from "./debug";
+import { testLog } from "./testmode";
 import type { ParseDebug, TooltipText } from "./parse";
 import type { JudgeResult, ParsedItem } from "./types";
 
@@ -37,7 +38,8 @@ interface ShareState {
 
 export const useShare = create<ShareState>(() => ({ queue: [], sent: 0, lastSentAt: null, error: "", recent: [] }));
 
-const FLUSH_MS = 2 * 60_000;
+// every minute: what's still queued when the app closes is lost (about a dozen judgements a session at 2 min)
+const FLUSH_MS = 60_000;
 const FLUSH_AT = 20;
 const MAX_QUEUE = 200;
 const MAX_BATCH_CHARS = 6 * 1024 * 1024;
@@ -191,6 +193,9 @@ export async function shareJudgement(x: ShareInput): Promise<void> {
     const [tooltip, equipped] = await Promise.all([redactedCrop(x.hov).catch(() => undefined), redactedCrop(x.eq).catch(() => undefined)]);
     const images = tooltip || equipped ? { ...(tooltip ? { tooltip } : {}), ...(equipped ? { equipped } : {}) } : undefined;
     push({ kind: "judgement", id: r.id, at: r.at, data: fit(data), ...(images ? { images } : {}) });
+    // test mode keeps a copy of exactly what was sent, pictures blacked out as sent, to check them
+    if (tooltip) testLog("shared", { id: r.id, verdict: r.verdict, item: r.item.name }, tooltip);
+    if (equipped) testLog("shared-equipped", { id: r.id }, equipped);
   } catch (e) {
     useShare.setState({ error: `Couldn't prepare a judgement: ${String((e as Error).message ?? e)}` });
   }
@@ -266,7 +271,7 @@ export async function flush(): Promise<void> {
 }
 
 let timer: ReturnType<typeof setInterval> | null = null;
-/** Started with the engine: sends every couple of minutes, and on the way out. */
+/** Started with the engine: sends every minute, and on the way out. */
 export function startSharing() {
   if (timer || !isTauri) return;
   timer = setInterval(() => void flush(), FLUSH_MS);
