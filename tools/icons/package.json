@@ -1,0 +1,13 @@
+{
+  "name": "sanctuary-icon-library",
+  "private": true,
+  "type": "module",
+  "description": "Builds the icon library (SigLIP2 vectors of the unique art in the game install, names only, never the art)",
+  "scripts": {
+    "build": "node build-library.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "4.3.1",
+    "sharp": "0.35.5"
+  }
+}
