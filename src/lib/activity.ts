@@ -6,7 +6,7 @@
 //   warn when the countdown runs low, finish when the block is gone (cleared = reached the last floor).
 // Tracker strings come from the datamined game files (Quest_PIT_Logic).
 import { overlayToast, playTone } from "./alerts";
-import { useCharacter } from "./charmap";
+import { useCharacter, watchGlyphs } from "./charmap";
 import { captureRegion, type OcrLine } from "./native";
 import { emitOverlay } from "./bus";
 import { invoke } from "@tauri-apps/api/core";
@@ -18,7 +18,24 @@ import { bestTrees, needs, parseWarPlan, useWarPlans } from "./warplans";
 import { getActiveVariant, useRuns, useSettings } from "./store";
 import { debugEvent } from "./debug";
 import { parseUndercity } from "./undercity";
-import { isDungeonCleared, isNightmareCleansed, nightmareKind, readObjective, stepObjective, stripPickup, type NmdKind, type Objective } from "./dungeon";
+import {
+  closeEvent,
+  eventLabel,
+  isDungeonCleared,
+  isNightmareCleansed,
+  nightmareKind,
+  readDungeonEvent,
+  readObjective,
+  stepEvent,
+  stepObjective,
+  stripPickup,
+  type DungeonEvent,
+  type EventDone,
+  type EventRun,
+  type NmdKind,
+  type Objective,
+} from "./dungeon";
+import { readHordesTracker, stepHordes, type HordesAction, type HordesTracker } from "./hordes";
 import { trigramSim } from "./names";
 
 export interface AdvisorState {
@@ -69,6 +86,8 @@ export function onFrame(lines: OcrLine[], region?: { x: number; y: number }) {
     const caches = findWhisperCaches(lines, region, variant, prog);
     if (caches.length >= 2) pushAdvisor("Tree of Whispers", caches);
   }
+  // a glyph tooltip or the Pit's glyph upgrade panel: keep the glyph's level current
+  watchGlyphs(lines);
   const text = lines.map((l) => l.text).join("\n");
   // stylised "OBELISK" can OCR as "0BELISK" — "Select Tier" under the dropdown is a second anchor
   // only the obelisk's own panel (not "Artificer's Pit" in a quest or another tier list), only between
@@ -268,9 +287,14 @@ function nmdTick() {
   if (i >= 0) {
     const marker = trackerLines[i];
     const kind = nightmareKind(marker.text.trim())!;
+    // a pop-up event's block ("Cursed Shrine", its countdown, "Mastery: …") is timed on its own and is never
+    // the dungeon's name or objective
+    const byY = [...trackerLines].sort((a, b) => a.y - b.y);
+    const ev = readDungeonEvent(byY);
+    const evLines = new Set(ev?.lines.map((k) => byY[k]));
     const above = trackerLines
       // damage numbers float over the tracker in fights ("1,413M"): never a dungeon name or an objective
-      .filter((l) => l.y < marker.y && marker.y - l.y < marker.h * 6 && !/torment|\btab\b|\d{1,2}:\d{2}/i.test(l.text) && !/^\W*[\d,.]+\s*[kmb]?\W*$/i.test(l.text.trim()))
+      .filter((l) => l.y < marker.y && marker.y - l.y < marker.h * 6 && !evLines.has(l) && !/torment|\btab\b|\d{1,2}:\d{2}/i.test(l.text) && !/^\W*[\d,.]+\s*[kmb]?\W*$/i.test(l.text.trim()))
       // and pickup notices ("16 Veiled Crystals", "20 Iron Chunks Diablo II - Forgotten Tower")
       .map((l) => ({ ...l, text: stripPickup(l.text.trim()) }))
       .filter((l) => l.text)
@@ -287,6 +311,7 @@ function nmdTick() {
     if (nmd && ((stage != null && nmd.stage != null && stage !== nmd.stage) || (nmd.done && !cleared && objective && dungeon && trigramSim(dungeon, nmd.dungeon) < 0.5))) {
       debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: nmd.done ? "next stage" : "next stage before a clear was seen" });
       const active = runs.active;
+      flushEvent(nmd.kind);
       if (active?.activity === nmd.kind && !nmd.done) runs.stop(true, nmd.lastSeen);
       nmd = null;
     }
@@ -311,9 +336,11 @@ function nmdTick() {
         nmd.dungeon = dungeon;
       }
       const active = runs.active?.activity === nmd.kind ? runs.active : null;
+      if (active && !cleared) eventTick(nmd.kind, ev);
       if (active && cleared) {
         // the boss is down: stop the clock now, not when you walk out
         debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: "dungeon cleared" });
+        flushEvent(nmd.kind);
         if (nmd.objective) runs.split(nmd.objective.label || "Objective");
         const dur = now - active.start;
         runs.stop(true);
@@ -331,12 +358,42 @@ function nmdTick() {
   } else if (nmd && now - nmd.lastSeen > 12000) {
     debugEvent("activity", "nmd-end", { dungeon: nmd.dungeon, why: nmd.done ? "left after the clear" : "tracker marker gone for 12 s" });
     const active = runs.active;
+    flushEvent(nmd.kind);
     if (active?.activity === nmd.kind && !nmd.done) {
       runs.stop(true, now - 12000);
       overlayToast(`${nmd.kind} done in ${mmss(now - 12000 - active.start)}`, nmd.dungeon, "#5fd18a", 6000);
     }
     nmd = null;
   }
+}
+
+// ---- pop-up events inside a dungeon run (Nightmare Dungeons, the Undercity) ----
+/** the event being timed, and the run it belongs to */
+let dEvent: (EventRun & { activity: string }) | null = null;
+
+/** One read while the dungeon's block is on the tracker (`read` null = no event on it). */
+function eventTick(activity: string, read: DungeonEvent | null) {
+  const cur = dEvent?.activity === activity ? dEvent : null;
+  const { run, done } = stepEvent(cur, read, Date.now());
+  if (run && run !== cur) debugEvent("activity", "dungeon-event-start", { event: run.name, activity, mastery: run.mastery });
+  dEvent = run && { ...run, activity };
+  if (done) eventSplit(activity, done);
+}
+
+/** The run ends (or moves on): an event still open ends where it was last seen. */
+function flushEvent(activity: string) {
+  const done = dEvent?.activity === activity ? closeEvent(dEvent) : null;
+  dEvent = null;
+  if (done) eventSplit(activity, done);
+}
+
+/** The event's own split: its duration and whether its mastery was met; the dungeon's steps keep theirs. */
+function eventSplit(activity: string, e: EventDone) {
+  debugEvent("activity", "dungeon-event", { event: e.name, activity, durS: Math.round((e.end - e.start) / 1000), mastery: e.mastery });
+  const runs = useRuns.getState();
+  if (runs.active?.activity !== activity) return;
+  runs.split(eventLabel(e), { at: e.end, from: e.start });
+  overlayToast(`${e.name} done in ${mmss(e.end - e.start)}`, e.mastery === "met" ? "Mastery met" : e.mastery === "failed" ? "Mastery failed" : "", e.mastery === "failed" ? "#b8aa9a" : "#5fd18a", 4000);
 }
 
 // ---- Kurast Undercity: floors, countdown, reward upgrades ----
@@ -365,6 +422,7 @@ function finishUndercity(cleared: boolean, why: string, at: number) {
   debugEvent("activity", "undercity-end", { floor: uc.floor, upgrades: uc.upgrades, cleared, why });
   const runs = useRuns.getState();
   const active = runs.active;
+  flushEvent("Undercity");
   if (active?.activity === "Undercity") {
     if (cleared && uc.boss) runs.split("Boss");
     runs.stop(cleared, at);
@@ -435,6 +493,8 @@ function undercityTick() {
         overlayToast(maxed ? "Rewards maxed" : `Reward upgrade ${hud.upgrades}/${uc.upgradesMax}`, maxed ? "All upgrades done: head down when you're ready" : uc.attunement ? `Keep going: ${uc.attunement}` : "", "#5fd18a", 4000);
       }
     }
+    // a pop-up event on the floor gets its own split; the floors keep theirs
+    if (runs.active?.activity === "Undercity") eventTick("Undercity", readDungeonEvent([...trackerLines].sort((a, b) => a.y - b.y)));
     if (hud.secondsLeft != null) uc.secondsLeft = hud.secondsLeft;
     if (hud.attunement) uc.attunement = hud.attunement;
     if (hud.timeBonus) uc.timeBonus = hud.timeBonus;
@@ -453,6 +513,49 @@ function undercityTick() {
   } else if (uc && now - uc.lastSeen > UC_GONE_MS) {
     // gone for good without the completion screen: you left (or the app missed the end); the run ends when last seen
     finishUndercity(uc.floor >= uc.floors, "floor block gone for 90 s", uc.lastSeen);
+  }
+}
+
+// ---- Infernal Hordes: start on wave 1, split per wave, finish when the Fell Council is down ----
+const hz: HordesTracker = { run: null, endSeen: 0 };
+
+function hordesTick() {
+  const read = readHordesTracker(trackerLines);
+  const active = useRuns.getState().active;
+  // another run going (a manual one, or a dungeon's) keeps the clock; a leftover boss timer gives way
+  const canStart = !active || active.activity.startsWith("Boss:");
+  for (const a of stepHordes(hz, read, Date.now(), canStart)) applyHordes(a);
+}
+
+function applyHordes(a: HordesAction) {
+  const runs = useRuns.getState();
+  const mine = runs.active?.activity === "Infernal Hordes" ? runs.active : null;
+  if (a.kind === "start") {
+    endBoss("left");
+    debugEvent("activity", "hordes-start", { torment: a.torment, lateS: Math.round((Date.now() - a.at) / 1000), runStarted: !useRuns.getState().active });
+    if (useRuns.getState().active) return;
+    runs.setActivity("Infernal Hordes", a.torment ? `Torment ${a.torment}` : "");
+    runs.start();
+    const started = useRuns.getState().active!;
+    // wave 1 was over by the time the tracker showed again: the run began when the offer was picked
+    if (a.at < started.start - 1000) useRuns.setState({ active: { ...started, start: a.at } });
+    overlayToast("Infernal Hordes", "Timer running", "#e0543c", 3000);
+  } else if (a.kind === "split") {
+    debugEvent("activity", "hordes-split", { label: a.label });
+    if (mine) runs.split(a.label);
+  } else if (a.kind === "death") {
+    debugEvent("activity", "hordes-death", { n: a.n, revivesLeft: hz.run?.revives ?? null });
+    if (mine) for (let k = 0; k < a.n; k++) runs.addDeath();
+  } else if (a.kind === "discard") {
+    debugEvent("activity", "hordes-discard", { why: a.why, wave: a.wave });
+    if (mine) useRuns.setState({ active: null });
+  } else {
+    debugEvent("activity", "hordes-end", { success: a.success, why: a.why, wave: a.wave });
+    if (!mine) return;
+    const dur = a.at - mine.start;
+    runs.stop(a.success, a.at);
+    if (a.success) overlayToast(`Infernal Hordes done in ${mmss(dur)}`, mine.tier ?? "", "#5fd18a", 7000);
+    else overlayToast("Infernal Hordes ended", `Not completed (${mmss(dur)}), wave ${a.wave}`, "#b8aa9a", 6000);
   }
 }
 
@@ -538,8 +641,9 @@ async function readCenter(rect: Rect) {
 }
 
 async function tick(rect: Rect) {
-  // between runs, glance at the obelisk panel every ~4 s to pick up the chosen tier
-  if (phase === "none" && Date.now() - obeliskCheck > 3000) {
+  // between runs, glance at the obelisk panel every ~4 s to pick up the chosen tier; after a clear, at the
+  // glyph upgrade panel (same side) to keep the upgraded glyphs' levels
+  if ((phase === "none" || phase === "done") && Date.now() - obeliskCheck > 3000) {
     obeliskCheck = Date.now();
     await readObelisk(rect).catch(() => {});
   }
@@ -564,6 +668,7 @@ async function tick(rect: Rect) {
   if (phase === "none") {
     nmdTick();
     undercityTick();
+    hordesTick();
     // in a dungeon the boss panel still shows what it drops; the dungeon's run keeps the time (a boss only starts one when nothing runs)
     await bossTick(rect).catch(() => {});
   }
@@ -652,6 +757,8 @@ export function activityDebug() {
     pit: { phase, pendingTier: pendingTier || null, lastSeenAgoS: lastSeenPit ? Math.round((now - lastSeenPit) / 1000) : null, survivalFailed },
     nmd: nmd && { ...nmd, lastSeen: undefined, lastSeenAgoS: Math.round((now - nmd.lastSeen) / 1000) },
     undercity: uc && { ...uc, lastSeen: undefined, lastSeenAgoS: Math.round((now - uc.lastSeen) / 1000) },
+    hordes: hz.run && { ...hz.run, lastSeen: undefined, lastSeenAgoS: Math.round((now - hz.run.lastSeen) / 1000) },
+    event: dEvent && { name: dEvent.name, activity: dEvent.activity, forS: Math.round((now - dEvent.start) / 1000), mastery: dEvent.mastery, failed: dEvent.failed },
     boss: boss && { name: boss, lastSeenAgoS: Math.round((now - bossSeen) / 1000) },
     helltide: ht.active ? { ...ht, lastSeenAgoS: Math.round((now - htLastSeen) / 1000) } : { active: false },
     tree: advisorLast && { title: advisorLast.title, ranked: advisorLast.items.slice(0, 4).map((i) => `${i.rank}. ${i.name}`), shownAgoS: Math.round((now - advisorShownAt) / 1000) },
@@ -668,6 +775,10 @@ export function startActivityWatcher(isFocused: () => boolean, gameRect: () => R
   // usual 90 s (ending at the restart) instead of leaving it running forever
   if (useRuns.getState().active?.activity === "Undercity" && !uc)
     uc = { floor: 1, floors: 3, upgrades: 0, upgradesMax: 4, secondsLeft: null, attunement: null, timeBonus: null, torment: null, lastSeen: Date.now(), lowRun: 0, lowWarned: false, resumed: true };
+  // the same for a Hordes run: its waves carry on from the next tracker read
+  const open = useRuns.getState().active;
+  if (open?.activity === "Infernal Hordes" && !hz.run)
+    hz.run = { wave: 0, running: true, startAt: open.start, council: false, done: false, lastSeen: Date.now(), wave0At: null, pending: null, restart: null, revives: null, revivesPending: null, resumed: true };
   emitOverlay("boss", null);
   setInterval(async () => {
     const rect = gameRect();

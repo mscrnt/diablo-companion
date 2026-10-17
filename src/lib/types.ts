@@ -247,7 +247,8 @@ export interface Run {
   tier?: string;
   start: number;
   end?: number;
-  splits: { label: string; at: number }[];
+  /** `from`: an event inside the run (a dungeon's pop-up event) with its own start, not a step of the run */
+  splits: { label: string; at: number; from?: number }[];
   notes?: string;
   loot?: string[];
   deaths?: number;

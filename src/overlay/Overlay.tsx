@@ -467,7 +467,8 @@ function RunPanel({ st, now, big }: { st: OverlayState; now: number; big: boolea
       {st.run?.splits.slice(big ? -8 : -4).map((s, i) => (
         <div key={i} className="small" style={{ display: "flex" }}>
           <span className="muted">{s.label}</span>
-          <span className="right mono">{fmt(s.at - st.run!.start)}</span>
+          {/* an event inside the run shows how long it took */}
+          <span className="right mono">{s.from != null ? `+${fmt(s.at - s.from)}` : fmt(s.at - st.run!.start)}</span>
         </div>
       ))}
     </div>

@@ -453,7 +453,8 @@ interface RunState {
   tier: string;
   setActivity: (a: string, tier?: string) => void;
   start: () => void;
-  split: (label?: string) => void;
+  /** `at`: when it happened, if before now; `from`: an event inside the run (its own timer), not a step of it */
+  split: (label?: string, opts?: { at?: number; from?: number }) => void;
   /** `at`: when the run really ended, if that was before now */
   stop: (success?: boolean, at?: number) => void;
   toggle: () => void;
@@ -474,10 +475,18 @@ export const useRuns = create<RunState>()(
         set((s) => ({
           active: { id: crypto.randomUUID(), activity: s.activity, tier: s.tier, start: Date.now(), splits: [], deaths: 0 },
         })),
-      split: (label) =>
+      split: (label, opts) =>
         set((s) =>
           s.active
-            ? { active: { ...s.active, splits: [...s.active.splits, { label: label ?? `Split ${s.active.splits.length + 1}`, at: Date.now() }] } }
+            ? {
+                active: {
+                  ...s.active,
+                  splits: [
+                    ...s.active.splits,
+                    { label: label ?? `Split ${s.active.splits.length + 1}`, at: Math.max(s.active.start, Math.min(opts?.at ?? Date.now(), Date.now())), ...(opts?.from != null ? { from: Math.max(s.active.start, opts.from) } : {}) },
+                  ],
+                },
+              }
             : {},
         ),
       stop: (success = true, at) =>

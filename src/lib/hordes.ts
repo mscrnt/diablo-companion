@@ -1,7 +1,9 @@
 // Infernal Hordes helper: spots the Infernal Offers on screen, ranks them for
-// Aether vs danger, and advises which Spoils chest to open at the end.
+// Aether vs danger, advises which Spoils chest to open at the end, and times the run
+// (wave by wave) from the quest tracker.
 // Offer texts come from the game files (src/generated/hordes.json, scripts/gen-hordes.mjs).
 import data from "../generated/hordes.json";
+import { isDungeonCleared } from "./dungeon";
 import { isWarPlansScreen } from "./helltide";
 import { normName, trigramSim } from "./names";
 import type { OcrLine } from "./native";
@@ -318,9 +320,12 @@ export function parseAether(text: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** "WAVE: 6/10" as OCR reads it: "WAVE; 2/ 10", "MWAVE: 6/10". */
+const WAVE = /wave\W{0,2}(\d{1,2})\s*\/\s*(\d{1,2})/i;
+
 /** The Aether count from the tracker: the number on its own just below "WAVE: 6/10" (and the timer). */
 export function trackerAether(lines: { text: string }[]): number | null {
-  const i = lines.findIndex((l) => /wave[:\s]*\d+\s*\/\s*\d+/i.test(l.text));
+  const i = lines.findIndex((l) => WAVE.test(l.text));
   if (i < 0) return null;
   for (const l of lines.slice(i + 1, i + 4)) {
     const m = l.text.trim().match(/^(\d{1,4})$/);
@@ -331,7 +336,7 @@ export function trackerAether(lines: { text: string }[]): number | null {
 
 /** The wave number from the tracker ("WAVE: 6/10" → 6). */
 export function trackerWave(text: string): number | null {
-  const m = text.match(/wave[:\s]*(\d{1,2})\s*\/\s*\d{1,2}/i);
+  const m = text.match(WAVE);
   return m ? Number(m[1]) : null;
 }
 
@@ -343,6 +348,196 @@ export function offerPhase(text: string): "selecting" | "chosen" | null {
 }
 
 export const offerByTitle = (t: string) => OFFERS.find((o) => normName(o.title) === normName(t));
+
+// ---- timing a run from the quest tracker ----
+// The block reads "WAVE: 3/10 / 0:50 / 134 (Aether) / Torment XI / The Infernal Hordes / <objective> / Onslaught /
+// Revives remaining: 4". The wave number is the wave being fought, and stays on the offer screen after it:
+// "WAVE: 0/10" + "Select an Infernal Offer" before wave 1, "WAVE: 1/10" + "Slay monsters to draw out Aether" in
+// it, "WAVE: 1/10" + "Select an Infernal Offer" after it. After wave 10: "Defeat the Fell Council", then
+// "Dungeon cleared" with the Spoils chests (2026-10-15 and 2026-10-17 runs).
+
+/** offer = choosing an Infernal Offer, wave = fighting, council = the Fell Council, cleared = the run is won */
+export type HordesPhase = "offer" | "wave" | "council" | "cleared";
+
+export interface HordesRead {
+  wave: number;
+  waves: number;
+  phase: HordesPhase | null;
+  /** "XI" from "Torment X1" */
+  torment: string | null;
+  revives: number | null;
+}
+
+/** Read the Hordes block off the tracker; null when it isn't there. */
+export function readHordesTracker(lines: { text: string }[]): HordesRead | null {
+  const text = lines.map((l) => l.text).join("\n");
+  const m = text.match(WAVE);
+  if (!m) return null;
+  const wave = Number(m[1]);
+  const waves = Number(m[2]);
+  if (waves < 5 || waves > 20 || wave > waves) return null;
+  // the rest of the block, so another tracker's "WAVE n/N" never passes for it
+  if (!/[il1]nfe(?:rn|m|r)al\s*hordes|onslaught|revives\s*remaining|aether|fe[l1]{2}\s*council|select\s*an\W{0,3}[il1]nfe/i.test(text)) return null;
+  const phase: HordesPhase | null =
+    isDungeonCleared(text) || /spoils\s*of/i.test(text)
+      ? "cleared"
+      : // "Defeat th�Fell Council"; the council's name over its NPCs in the arena ("THE FELL COUNCIL") has no "Defeat"
+        /defeat\W*th\S{0,3}\s*fe[l1]{2}/i.test(text)
+        ? "council"
+        : /select\s*an\W{0,3}[il1]nfe/i.test(text)
+          ? "offer"
+          : // the wave's objectives ("Slay monsters to draw out Aether", "Stay near the Soulspire…", "Slay the Aether
+            // Fiend: 0/1") or its countdown ("xo:50" for 0:50)
+            /slay\s*monsters|draw\s*out|soulspire|aether\s*fiend|^\W{0,2}[xX]?[o0\d]{0,2}\s*[:.;]\s*\d{2}\s*$/im.test(text)
+            ? "wave"
+            : null;
+  const torment = lines.map((l) => l.text.match(/torment\s*([ivxl1]{1,5})\b/i)?.[1]).find(Boolean)?.toUpperCase().replace(/[1L]/g, "I") ?? null;
+  const rv = text.match(/revives?\s*remaining\W*(\d{1,2})\b/i);
+  return { wave, waves, phase, torment, revives: rv ? Number(rv[1]) : null };
+}
+
+/** One Hordes run as the tracker shows it. */
+export interface HordesRun {
+  /** the wave on the tracker (0 = the first offer screen, before wave 1) */
+  wave: number;
+  /** a run is timed for it (not when the app came in mid-run, or another run was going) */
+  running: boolean;
+  startAt: number | null;
+  council: boolean;
+  done: boolean;
+  lastSeen: number;
+  /** when the first offer screen ("WAVE: 0/10") was last read: wave 1 began right after it */
+  wave0At: number | null;
+  /** a jump of more than one wave waits for a second read to agree */
+  pending: number | null;
+  /** so does a drop back to the start (a new run) */
+  restart: number | null;
+  revives: number | null;
+  revivesPending: number | null;
+  /** picked up again after an app restart: the first read sets the wave quietly */
+  resumed?: boolean;
+}
+
+export interface HordesTracker {
+  run: HordesRun | null;
+  /** when a run was last seen won ("Dungeon cleared"): its end screen never starts another */
+  endSeen: number;
+}
+
+export type HordesAction =
+  | { kind: "start"; at: number; torment: string | null }
+  | { kind: "split"; label: string }
+  | { kind: "finish"; success: boolean; at: number; why: string; wave: number }
+  /** a run too short to be one (a misread): drop it instead of saving it */
+  | { kind: "discard"; why: string; wave: number }
+  | { kind: "death"; n: number };
+
+/** the tracker hides behind the map, the bag and loading screens: only this long without it means you left */
+export const HORDES_GONE_MS = 90_000;
+
+/**
+ * Feed one tracker read (null = no Hordes block on it). Returns what to do with the run timer: start it on
+ * wave 1, split per wave and for the Fell Council, finish on "Dungeon cleared" (or when the tracker is gone for
+ * good, ending when it was last seen).
+ */
+export function stepHordes(t: HordesTracker, read: HordesRead | null, now: number, canStart = true): HordesAction[] {
+  const out: HordesAction[] = [];
+  let s = t.run;
+  if (!read) {
+    if (s && !s.done && now - s.lastSeen > HORDES_GONE_MS) {
+      if (s.running) out.push(endRun(s, false, s.lastSeen, "tracker gone for 90 s"));
+      t.run = null;
+    } else if (s?.done && now - s.lastSeen > 15_000) t.run = null;
+    return out;
+  }
+  if (read.phase === "cleared") t.endSeen = now;
+  if (s?.done) {
+    s.lastSeen = now;
+    // the end screen stays up while you open the Spoils ("WAVE: 10/10"): only a new first offer screen starts over
+    if (read.phase === "cleared" || read.wave > 1) return out;
+    t.run = s = null;
+  }
+  if (s && !s.resumed && read.wave < s.wave - 1 && read.wave <= 1 && read.phase !== "cleared") {
+    // back to the start: a new run began before the old one's tracker was gone long enough to end it
+    if (s.restart !== read.wave) {
+      s.restart = read.wave;
+      return out;
+    }
+    if (s.running) out.push(endRun(s, s.council, s.lastSeen, "a new run began"));
+    t.run = s = null;
+  }
+  if (!s) {
+    s = t.run = { wave: read.wave, running: false, startAt: null, council: read.phase === "council", done: false, lastSeen: now, wave0At: read.wave === 0 ? now : null, pending: null, restart: null, revives: read.revives, revivesPending: null };
+    // a run starts on wave 1 itself: not on its offer screen (that's after the wave), and not right after a
+    // clear (a misread of the end screen)
+    if (read.wave === 1 && read.phase !== "offer" && read.phase !== "cleared" && now - t.endSeen > 20_000 && canStart) out.push(startRun(s, now, read));
+    return out;
+  }
+  s.lastSeen = now;
+  s.restart = null;
+  if (s.resumed) {
+    s.resumed = false;
+    s.wave = read.wave;
+    s.council = read.phase === "council";
+    s.revives = read.revives;
+    return out;
+  }
+  if (read.wave === 0 && s.wave === 0) s.wave0At = now;
+  if (read.wave > s.wave) {
+    // one wave on is the normal step; a bigger jump (reads missed, or a digit slip) needs a second read, unless
+    // it's the Fell Council or the clear: they come after the last wave
+    const last = (read.phase === "council" || read.phase === "cleared") && read.wave === read.waves;
+    if (read.wave === s.wave + 1 || s.pending === read.wave || last) {
+      s.pending = null;
+      if (s.wave === 0) {
+        // wave 1 began. Read in the wave: it began now. Read on the offer screen after it (the tracker was hidden
+        // all wave long): it began when the first offer screen was last seen
+        if (!s.running && read.wave === 1 && now - t.endSeen > 20_000 && canStart) {
+          const at = read.phase === "offer" && s.wave0At && now - s.wave0At < 180_000 ? s.wave0At : read.phase === "offer" ? null : now;
+          if (at != null) out.push(startRun(s, at, read));
+        }
+      } else if (s.running) out.push({ kind: "split", label: read.wave === s.wave + 1 ? `Wave ${s.wave}` : `Waves ${s.wave}-${read.wave - 1}` });
+      s.wave = read.wave;
+    } else s.pending = read.wave;
+  } else if (read.wave === s.wave) s.pending = null;
+  if (read.phase === "council" && !s.council && s.wave >= 1) {
+    s.council = true;
+    if (s.running) out.push({ kind: "split", label: `Wave ${s.wave}` });
+  }
+  if (read.phase === "cleared" && s.wave >= 1) {
+    if (s.running) {
+      out.push({ kind: "split", label: s.council ? "Fell Council" : `Wave ${s.wave}` });
+      out.push(endRun(s, true, now, "dungeon cleared"));
+    }
+    s.done = true;
+    return out;
+  }
+  // a revive used: two reads agree on fewer left (they never come back in a run, so more is a misread)
+  if (read.revives != null) {
+    if (s.revives == null) s.revives = read.revives;
+    else if (read.revives < s.revives) {
+      if (s.revivesPending === read.revives) {
+        if (s.running) out.push({ kind: "death", n: s.revives - read.revives });
+        s.revives = read.revives;
+        s.revivesPending = null;
+      } else s.revivesPending = read.revives;
+    } else s.revivesPending = null;
+  }
+  return out;
+}
+
+function startRun(s: HordesRun, at: number, read: HordesRead): HordesAction {
+  s.running = true;
+  s.startAt = at;
+  return { kind: "start", at, torment: read.torment };
+}
+
+function endRun(s: HordesRun, success: boolean, at: number, why: string): HordesAction {
+  s.running = false;
+  // a run that ends within seconds of its start was never one (2 s runs from one misread)
+  if (!success && s.startAt != null && at - s.startAt < 20_000) return { kind: "discard", why, wave: s.wave };
+  return { kind: "finish", success, at, why, wave: s.wave };
+}
 
 // background loops hold references to this module: reload the page instead of hot-swapping
 if (import.meta.hot) import.meta.hot.accept(() => window.location.reload());
