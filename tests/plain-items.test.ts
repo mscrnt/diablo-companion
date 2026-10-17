@@ -53,3 +53,20 @@ describe("the bottom of a seasonal socketable", () => {
     expect(decide(item, undefined).verdict).toBe("STASH");
   });
 });
+
+describe("non-gear seen without its title (2026-10-16 test)", () => {
+  it("the bottom of an Escalating Nightmare sigil is a key, not boots", () => {
+    const lines = ["Brave a series of dungeons, each one", "deadlier than the last, in search of", "Astaroth's Lair.", "Ancient Reservoir in Hawezar", "AFFIXES", "Equipment Delve", "Blood Blisters", "Account Bound", "Sell Value: 1 •"];
+    const item = fastParse(lines.map((t) => L(t)), false, undefined)!;
+    expect(item.category).toBe("consumable");
+    const r = decide(item, undefined);
+    expect(r.verdict).toBe("STASH");
+    expect(r.action).toMatch(/Escalating Nightmare/);
+  });
+
+  it("anything with an item's footer but no item power or rarity isn't gear", () => {
+    const item = fastParse(["Some Strange Trinket", "Used by the Alchemist", "Account Bound", "Sell Value: 5"].map((t) => L(t)), false, undefined)!;
+    expect(item.category).not.toBe("gear");
+    expect(decide(item, undefined).verdict).not.toMatch(/SCRAP|SELL|WEAR/);
+  });
+});

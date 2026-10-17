@@ -148,6 +148,10 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     // read guessed a unique helm and scrapped it (2026-10-13 test)
     if (/^\W*amalgamable\W*$|can be inserted into/im.test(all) && !/item power/i.test(all))
       return { name: "Socketable", rarity: "common", itemType: "Socketable", slot: "other", itemPower: null, affixes: [], aspect: null, rawText: all, category: "socketable" };
+    // the bottom of an Escalating Nightmare sigil ("Brave a series of dungeons … Ancient Reservoir in Hawezar /
+    // AFFIXES"): the AI read made boots of it and scrapped it (2026-10-16 test)
+    if (/brave a series of dungeons|series of dungeons, each/i.test(all) && !/item power/i.test(all))
+      return { name: "Nightmare Escalation Sigil", rarity: "rare", itemType: "Escalation Sigil", slot: "other", itemPower: null, affixes: [], aspect: null, rawText: all, category: "consumable" };
   }
   // a garbled rarity word ("ii/ölakic Scythe" = Magic Scythe): a short Title-case line ending in the item
   // kind, under an ALL-CAPS title
@@ -165,7 +169,18 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
     // a white item's title is its kind too ("AMULET" / "Amulet"): the type line is the one under it
     if (ti >= 0 && bareKind(L[ti + 1])) ti++;
   }
-  if (ti < 0) return null; // top of tooltip not visible → let the LLM try
+  if (ti < 0) {
+    // no item power, no rarity, but an item's footer ("Account Bound", "Sell Value"): a key, material or other
+    // non-gear item seen without its title. The AI read used to make gear of these and scrap them.
+    const all = L.map((l) => l.text).join("\n");
+    // (gear whose top is cut off still shows stat lines "+120 Intelligence" or "Requires Level": that's left to the AI)
+    const gearish = /^\W*[+x]?\s*\d[\d.,]*%?\s+[A-Za-z]/im.test(all) || /requires level|durability/i.test(all);
+    if (!/item power/i.test(all) && !RARITY.test(all) && !gearish && /account bound|sell value|cannot be sold/i.test(all)) {
+      const title = L.find((l) => /[A-Za-z]{3}/.test(l.text) && !/account bound|sell value|affixes/i.test(l.text))?.text ?? "Item";
+      return { name: titleCase(title.replace(/[^A-Za-z' -]+/g, " ").trim()).slice(0, 40) || "Item", rarity: "common", itemType: "", slot: "other", itemPower: null, affixes: [], aspect: null, rawText: all, category: "consumable", untitled: true };
+    }
+    return null; // top of tooltip not visible → let the LLM try
+  }
   let typeLine = L[ti].text;
   let after = ti + 1;
   // the type wraps: "Ancestral Magic Two-" / "Handed Mace (Bludgeoning)"
