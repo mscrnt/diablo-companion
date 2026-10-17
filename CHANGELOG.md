@@ -5,6 +5,9 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+### Changed
+- **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
+
 ## [0.2.4] - 2026-10-16
 
 ### Added

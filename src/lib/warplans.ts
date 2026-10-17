@@ -21,8 +21,14 @@ export interface WpNode {
   icon?: string;
 }
 
+/** The game's tab order on the War Plans screen (the data comes alphabetical; player feedback, 2026-10-16). */
+const GAME_ORDER = ["tree-of-whispers", "nightmare-dungeons", "helltide", "the-undercity", "lair-bosses", "infernal-hordes", "the-pit"];
+const gameOrder = (slug: string) => (GAME_ORDER.indexOf(slug) + 1 || 99);
+
 export function trees(): { slug: string; name: string; max: number }[] {
-  return Object.entries(table("wpTrees")).map(([slug, t]: [string, any]) => ({ slug, name: t.n, max: t.max ?? 7 }));
+  return Object.entries(table("wpTrees"))
+    .map(([slug, t]: [string, any]) => ({ slug, name: t.n, max: t.max ?? 7 }))
+    .sort((a, b) => gameOrder(a.slug) - gameOrder(b.slug));
 }
 
 export function nodes(tree?: string): WpNode[] {

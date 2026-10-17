@@ -169,6 +169,8 @@ describe("farm planner", () => {
 describe("War Plans", () => {
   it("has seven trees of seven points", () => {
     expect(trees()).toHaveLength(7);
+    // in the game's tab order
+    expect(trees().map((t) => t.name)).toEqual(["Tree of Whispers", "Nightmare Dungeons", "Helltide", "The Undercity", "Lair Bosses", "Infernal Hordes", "The Pit"]);
     expect(trees().every((t) => t.max === 7)).toBe(true);
   });
 
