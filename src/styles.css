@@ -268,6 +268,17 @@ input[type="checkbox"] { accent-color: var(--blood2); width: 16px; height: 16px;
 .ov-col { position: absolute; top: 0; bottom: 0; padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; pointer-events: none; font-size: 14px; }
 .ov-col .ov-panel { min-width: 0; width: 100%; background: #0d0a08cc; }
 .ov-col .ov-title { font-size: 12px; }
+/* the gap between a bar's top and bottom panels; edit mode: its label, the move arrows and the Discord room */
+.ov-gap { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.ov-root.edit .ov-col { pointer-events: auto; }
+.ov-root.edit .ov-gap { min-height: 26px; border-top: 1px dashed var(--gold2); border-bottom: 1px dashed var(--gold2); color: var(--gold2); font-size: 11px; text-align: center; }
+.ov-slot { outline: 2px dashed var(--gold2); outline-offset: 2px; border-radius: 10px; }
+.ov-slot-ctl { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.ov-slot-ctl .ov-slot-name { flex: 1; min-width: 0; font-size: 11px; color: var(--gold2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-slot-ctl .btn { padding: 2px 6px; }
+.ov-discord { position: absolute; left: 0; top: 0; box-sizing: border-box; padding: 10px 12px; border: 2px dashed #8c9eff; background: #5865f222; color: #c9d0ff; pointer-events: auto; }
+.ov-discord-edge { position: absolute; left: 0; right: 0; bottom: -7px; height: 14px; cursor: ns-resize; background: #8c9effaa; border-radius: 7px; font-size: 10px; line-height: 14px; text-align: center; color: #0d0a08; font-weight: 700; }
+.ov-discord-add { align-self: flex-start; }
 
 /* guided overlay */
 .ov-guide { position: absolute; top: 9%; left: 50%; transform: translateX(-50%); min-width: 520px; max-width: 760px; background: #0d0a08f2; border: 2px solid var(--gold); border-radius: 14px; padding: 16px 20px; box-shadow: 0 10px 40px #000c, 0 0 30px -10px var(--gold); animation: pop .2s ease-out; }

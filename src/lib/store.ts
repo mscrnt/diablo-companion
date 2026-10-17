@@ -76,6 +76,8 @@ export interface Settings {
     toast: boolean;
     discordWebhook: string;
     discordKinds: Record<EventKind, boolean>;
+    /** stay quiet (sound, toasts, Discord) while Diablo IV isn't running */
+    onlyWhileGameRuns: boolean;
   };
   obs: { enabled: boolean; url: string; password: string; clipOnBis: boolean };
   overlay: {
@@ -90,6 +92,11 @@ export interface Settings {
     /** detected game image bounds inside the overlay (fractions), for docking in black bars */
     gameBounds: { left: number; right: number; top: number; bottom: number } | null;
     widgets: Record<"timers" | "verdict" | "run" | "build" | "watchers" | "toasts" | "farm", WidgetPos>;
+    /**
+     * "bars" layout: the panels of each bar in order, top to bottom ("gap": the ones after it sit at the
+     * bottom), and room kept clear at the top of the left bar for Discord's voice overlay (fraction of the height)
+     */
+    bars: { left: string[]; right: string[]; discord: boolean; discordRoom: number };
   };
   timers: { source: "auto" | "helltides" | "d4planner" | "local"; pollSeconds: number };
   autoJudge: {
@@ -181,6 +188,7 @@ export const defaultSettings: Settings = {
     toast: true,
     discordWebhook: "",
     discordKinds: { worldBoss: true, helltide: false, legion: false, other: false },
+    onlyWhileGameRuns: false,
   },
   obs: { enabled: false, url: "ws://127.0.0.1:4455", password: "", clipOnBis: true },
   overlay: {
@@ -199,6 +207,12 @@ export const defaultSettings: Settings = {
       watchers: { on: true, x: 0.80, y: 0.62, scale: 1 },
       toasts: { on: true, x: 0.40, y: 0.80, scale: 1 },
       farm: { on: false, x: 0.012, y: 0.66, scale: 1 },
+    },
+    bars: {
+      left: ["activity", "timers", "run", "farm", "build", "gap"],
+      right: ["verdict", "watchers", "toasts", "gap"],
+      discord: false,
+      discordRoom: 0.22,
     },
   },
   timers: { source: "auto", pollSeconds: 60 },

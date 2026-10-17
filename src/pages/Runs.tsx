@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Play, ScrollText, Skull, Square, Timer } from "lucide-react";
 import { Card, Empty, PageHead, Sparkline, fmtDur, timeAgo, useNow } from "../components/ui";
+import { ExportStatsButton } from "../components/ExportStats";
 import { runAction } from "../lib/engine";
 import { useRuns, useSettings, useWatchers } from "../lib/store";
 
@@ -25,6 +26,9 @@ export default function Runs() {
         <label className="row small" style={{ gap: 6 }}>
           <input type="checkbox" checked={settings.autoRuns} onChange={(e) => useSettings.getState().update((s) => void (s.autoRuns = e.target.checked))} /> Auto-track Pit runs
         </label>
+        <div className="row">
+          <ExportStatsButton />
+        </div>
       </PageHead>
       <div className="grid g2">
         <Card title="Current run">

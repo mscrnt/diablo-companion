@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, Check, PageHead } from "../components/ui";
-import { runAction, setOverlayEdit, useRuntime } from "../lib/engine";
+import { BAR_LABELS, normalizeBars, type Side } from "../lib/barlayout";
+import { editBars, runAction, setOverlayEdit, useRuntime } from "../lib/engine";
 import { captureMonitor, gameStatus, setOverlayCapturable } from "../lib/native";
 import { mapPinsPresetChanged, useMapPins } from "../lib/mapPinsRunner";
 import { MAP_PIN_PRESETS, defaultSettings, useSettings, type MapPinGroup, type MapPinPreset } from "../lib/store";
@@ -261,6 +263,7 @@ export default function OverlayPage() {
                 onClick={() =>
                   update((s) => {
                     s.overlay.widgets = structuredClone(defaultSettings.overlay.widgets);
+                    s.overlay.bars = structuredClone(defaultSettings.overlay.bars);
                     s.overlay.gameBounds = null;
                   })
                 }
@@ -314,7 +317,76 @@ export default function OverlayPage() {
           </button>
         </div>
       </Card>
+      <BarLayoutCard />
       <MapPinsCard />
     </>
+  );
+}
+
+/** The black bar layout: room for Discord's voice overlay, and each bar's panels in order. */
+function BarLayoutCard() {
+  const { settings } = useSettings();
+  const o = settings.overlay;
+  const bars = normalizeBars(o.bars);
+  const key = settings.hotkeys.overlayEdit.replace("CommandOrControl", "Ctrl");
+  const list = (side: Side) => (
+    <div className="table-wrap">
+      <table className="table">
+        <tbody>
+          {bars[side].map((id, i) =>
+            id === "gap" ? (
+              <tr key="gap">
+                <td colSpan={2} className="small dim">
+                  Below this line: stacks from the bottom
+                </td>
+              </tr>
+            ) : (
+              <tr key={id}>
+                <td style={{ opacity: id === "activity" || o.widgets[id].on ? 1 : 0.5 }}>{BAR_LABELS[id]}</td>
+                <td style={{ width: 130 }}>
+                  <div className="row" style={{ gap: 4, justifyContent: "flex-end" }}>
+                    <button className="btn ghost sm" title="Move up" disabled={i === 0} onClick={() => editBars({ id, move: "up" })}>
+                      <ChevronUp size={14} strokeWidth={2} aria-hidden />
+                    </button>
+                    <button className="btn ghost sm" title="Move down" disabled={i === bars[side].length - 1} onClick={() => editBars({ id, move: "down" })}>
+                      <ChevronDown size={14} strokeWidth={2} aria-hidden />
+                    </button>
+                    <button className="btn ghost sm" title={side === "left" ? "Move to the right bar" : "Move to the left bar"} onClick={() => editBars({ id, move: "swap" })}>
+                      <ArrowLeftRight size={14} strokeWidth={2} aria-hidden />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ),
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+  return (
+    <Card title="Black bar layout" style={{ marginTop: 14 }}>
+      <div className="col">
+        <div className="small muted">
+          Used when the panels sit in the black bars beside the game. In game, press <span className="kbd">{key}</span> to move them on the overlay itself.
+        </div>
+        <Check checked={o.bars.discord} onChange={(v) => editBars({ discord: v })} label="Leave room for Discord at the top left (its voice overlay sits there)" />
+        {o.bars.discord && (
+          <label className="field">
+            Room for Discord: {Math.round(o.bars.discordRoom * 100)}% of the height
+            <input type="range" min={0.05} max={0.6} step={0.01} value={o.bars.discordRoom} onChange={(e) => editBars({ discordRoom: Number(e.target.value) })} />
+          </label>
+        )}
+        <div className="grid g2">
+          <div>
+            <h3>Left bar</h3>
+            {list("left")}
+          </div>
+          <div>
+            <h3>Right bar</h3>
+            {list("right")}
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
