@@ -2,13 +2,12 @@
 //   node scripts/dev/run.mjs fixture-parse doom-armor-of-dominance serrated-reaper
 import { readFileSync } from "node:fs";
 import { loadStaticData } from "../../src/lib/names";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { fastParse } from "../../src/lib/fastparse";
 import { decide } from "../../src/lib/judge";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 await loadStaticData();
-const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
+const v = EXAMPLE_BUILD.variants.find((x) => x.id === "1")!;
 for (const n of process.argv.slice(2)) {
   const f = JSON.parse(readFileSync(`tests/fixtures/tooltips/${n}.json`, "utf8"));
   for (const snap of [false, true]) {

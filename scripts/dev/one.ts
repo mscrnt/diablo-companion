@@ -1,10 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { loadStaticData } from "../../src/lib/names";
 import { fastParse } from "../../src/lib/fastparse";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 await loadStaticData();
-const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
+const v = EXAMPLE_BUILD.variants.find((x) => x.id === "1")!;
 const dir = process.env.LOCALAPPDATA + "/com.kenneth.d4companion/logs/judge-log";
 const f = readdirSync(dir).find((f) => f.includes(process.argv[2]) && !f.includes("_equipped") && f.endsWith(".json"))!;
 const j = JSON.parse(readFileSync(dir + "/" + f, "utf8"));

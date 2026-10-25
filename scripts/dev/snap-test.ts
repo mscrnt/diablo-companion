@@ -4,15 +4,14 @@
 //   node scripts/dev/run.mjs snap-test [--lines]
 import { readdirSync, readFileSync } from "node:fs";
 import { loadStaticData, table } from "../../src/lib/names";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { fastParse } from "../../src/lib/fastparse";
 import { knownStat, knownWord, snapLine } from "../../src/lib/ocrfix";
 import { decide } from "../../src/lib/judge";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 
 await loadStaticData();
-const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === (process.env.VARIANT ?? "1")) ?? normaliseMobalytics(raw as any).variants[0];
+const v = EXAMPLE_BUILD.variants.find((x) => x.id === (process.env.VARIANT ?? "1")) ?? EXAMPLE_BUILD.variants[0];
 console.log(`build variant: ${v.name}`);
 const uniques = new Set(Object.values(table("uniques")).map((u) => u.n.toLowerCase()));
 const dir = process.env.LOCALAPPDATA + "/com.kenneth.d4companion/logs/judge-log";

@@ -7,19 +7,20 @@ import { decodeFirestore, normaliseD4Builds, parseD4BuildsUrl } from "../src/lib
 import { extractUid, normaliseIcyVeins, parseIcyVeinsUrl } from "../src/lib/icyveins";
 import { importBuild, siteOf } from "../src/lib/importers";
 import { extractPlanner, itemNameOf, normaliseMaxroll, parseMaxrollUrl } from "../src/lib/maxroll";
-import { loadStaticData } from "../src/lib/names";
+import { tablesForTests } from "./fixtures/tables";
 
-beforeAll(() => loadStaticData());
+// names only, and few: with the game data read off this PC the real tables are used instead
+beforeAll(() => tablesForTests());
 
 describe("which site a pasted link is from", () => {
   it("knows the four build sites", () => {
-    expect(siteOf("https://mobalytics.gg/diablo-4/builds/necromancer-mages-necro-guide")).toBe("mobalytics");
+    expect(siteOf("https://mobalytics.gg/diablo-4/builds/minion-necromancer-guide")).toBe("mobalytics");
     expect(siteOf("https://maxroll.gg/d4/build-guides/blood-wave-necromancer-guide")).toBe("maxroll");
     expect(siteOf("https://planners.maxroll.gg/profiles/d4/xf9um40q")).toBe("maxroll");
     expect(siteOf("https://www.icy-veins.com/d4/planner/?uid=61e715e1fa72")).toBe("icy-veins");
     expect(siteOf("https://d4builds.gg/builds/23ae9cbb-933e-4a88-999c-2241654cc8e2/")).toBe("d4builds");
     // a bare slug is a Mobalytics build, as the paste box has always taken
-    expect(siteOf("necromancer-mages-necro-guide")).toBe("mobalytics");
+    expect(siteOf("minion-necromancer-guide")).toBe("mobalytics");
   });
 
   it("says so plainly for anything else", async () => {
@@ -31,7 +32,10 @@ describe("which site a pasted link is from", () => {
 
 // ---- Maxroll ---------------------------------------------------------------
 
-/** One planner profile, as planners.maxroll.gg/profiles/d4/<id> returns it. */
+/**
+ * One planner profile, as planners.maxroll.gg/profiles/d4/<id> returns it: items by the game's item id,
+ * affixes ("explicits"), tempers and aspects by the game's affix sno, a board's squares as one number each.
+ */
 const maxroll = {
   id: "ab12cd34",
   name: "Test Blood Wave",
@@ -41,20 +45,31 @@ const maxroll = {
   user: { username: "someone" },
   data: {
     items: {
-      "1": { id: "Runeword_Enigma", sockets: ["Gem_Ruby_09", "Rune_Condition_Bomb"] },
+      "1": {
+        id: "Runeword_Enigma",
+        power: 850,
+        sockets: ["Gem_Ruby_09", "Rune_Condition_Bomb"],
+        explicits: [{ nid: 2602157, values: [120], greater: true }, { nid: 1829592, values: [1500], upgrade: 1 }],
+        tempered: [{ nid: 1862295, values: [1500] }],
+      },
       "2": { id: "Helm_Unique_Generic_005", sockets: [] },
       "3": { id: "S15_Charm_Unique_HellfireTorch", sockets: [] },
+      // a plain legendary base: the aspect on it is what the build is after
+      "4": { id: "Boots_Legendary_Generic_053", sockets: ["Rune_Condition_OnSpendResource"], aspects: [{ nid: 1222592 }], tempered: [{ nid: 1862314, values: [25] }] },
     },
     profiles: [
       {
         name: "Endgame",
         level: 70,
-        items: { "4": 2, "5": 1, "21": 3 },
+        items: { "4": 2, "5": 1, "15": 4, "21": 3 },
         skillBar: ["Necromancer_BloodWave", "Necromancer_Decrepify", null],
         mercenary: { id: "MercenaryClass_ShieldBearer", support: "MercenaryClass_BountyHunter", supportSkills: ["NPC_Mercenary_ShieldBearer_Bastion"] },
         minionUpgrades: [],
         widgetNotes: {},
-        paragon: { steps: [{ data: [{ id: "Paragon_Necro_00", glyph: "Rare_038_Intelligence_Main", glyphLevel: 1 }] }] },
+        paragon: {
+          position: 0,
+          steps: [{ name: "Step 1", data: [{ id: "Paragon_Necro_00", nodes: { "220": 1, "241": 1 }, rotation: 90, position: { x: 0, y: 0 }, glyph: "Rare_038_Intelligence_Main", glyphLevel: 46 }] }],
+        },
       },
       { name: "Push", items: {}, skillBar: [], mercenary: {} },
     ],
@@ -100,9 +115,10 @@ describe("Maxroll", () => {
     const gear = Object.fromEntries(v.gear.map((g) => [g.slotLabel, g]));
     expect(gear["Chest"].itemName).toBe("Enigma");
     expect(gear["Chest"].kind).toBe("unique");
-    // a rune is stored by the effect it grants, so only the gem is named
-    expect(gear["Chest"].sockets.map((s) => s.name)).toEqual(["Ruby"]);
-    expect(gear["Helm"].itemName).toBe("Unique Helm");
+    // a rune is stored by the effect it grants ("Rune_Condition_Bomb" is Igni): the game data names it
+    expect(gear["Chest"].sockets.map((s) => s.name)).toEqual(["Ruby", "Igni"]);
+    // the game's own item id names the helm; the id's own words are only the fallback
+    expect(gear["Helm"].itemName).toBe("Leoric's Crown");
     expect(gear["Charm 1"].itemName).toBe("Hellfire Torch");
     expect(gear["Charm 1"].kind).toBe("charm");
     expect(v.skillBar.map((s) => [s.position, s.name])).toEqual([
@@ -116,11 +132,31 @@ describe("Maxroll", () => {
     expect(b.sections[0].text).toContain("Very fast");
   });
 
-  it("leaves out what the planner only stores as numbers", () => {
+  it("names the affixes, tempers and the masterwork from the game's affix ids", () => {
+    const gear = Object.fromEntries(normaliseMaxroll(maxroll).variants[0].gear.map((g) => [g.slotLabel, g]));
+    expect(gear["Chest"].affixes.map((a) => [a.name, a.greater, a.masterwork])).toEqual([
+      ["Intelligence", true, false],
+      ["Maximum Life", false, true],
+    ]);
+    expect(gear["Chest"].tempers.map((t) => t.name)).toEqual(["Maximum Life (Worldly Endurance)"]);
+  });
+
+  it("names a plain legendary by its aspect, and the rune socketed in it", () => {
+    const gear = Object.fromEntries(normaliseMaxroll(maxroll).variants[0].gear.map((g) => [g.slotLabel, g]));
+    expect([gear["Boots"].itemName, gear["Boots"].kind]).toEqual(["Aspect of Hardened Bones", "aspect"]);
+    expect(gear["Boots"].sockets).toEqual([{ slug: "poc", name: "Poc", kind: "rune" }]);
+    expect(gear["Boots"].tempers[0].name).toBe("Movement Speed (Natural Motion)");
+  });
+
+  it("maps the paragon: the board, its glyph and the squares it counts across the board", () => {
     const v = normaliseMaxroll(maxroll).variants[0];
-    expect(v.gear.every((g) => g.affixes.length === 0)).toBe(true);
-    expect(v.paragon).toEqual([]);
-    expect(v.skillOrder).toEqual([]);
+    expect(v.paragon.map((p) => [p.name, p.glyphName, p.glyphLevel, p.rotation, p.nodes])).toEqual([
+      ["Start", "Corporeal", 46, 90, ["necromancer-start-x11-y11", "necromancer-start-x11-y12"]],
+    ]);
+  });
+
+  it("leaves out the skill tree: it is the planner's own node numbering", () => {
+    expect(normaliseMaxroll(maxroll).variants[0].skillOrder).toEqual([]);
   });
 });
 
@@ -153,7 +189,10 @@ const icyveins = {
         itemQualities: { helmet: "unique", boots: "legendary", talisman_seal: "unique", talisman_charm_1: "mythic" },
         itemSockets: { helmet: ["Abyssal Splinter of Pain"], boots: ["Horadric Ruby", "Igni"] },
         itemMythicToggle: { helmet: true },
-        itemUserAffixes: { helmet: [{ value: 25, affixId: "1834105" }] },
+        itemUserAffixes: { helmet: [{ value: 1500, affixId: "1829592" }, { value: 120, affixId: "2602157", greaterAffix: true }], boots: [{ value: 25, affixId: "1834105" }] },
+        itemTemperingAffix: { helmet: { value: 1500, affixId: "1862295" }, boots: { value: 25, affixId: "1862314" } },
+        // the masterwork landed on the helm's first affix and on the boots' temper
+        itemMasterworkAffix: { helmet: { index: 0, source: "user" }, boots: { index: 0, source: "tempered" } },
         itemAmuletTransfigurationAspect: {},
       },
     ],
@@ -225,9 +264,16 @@ describe("Icy Veins", () => {
     expect(v.paragon[0].glyphSlug).toBe("necromancer-sacrificial");
   });
 
-  it("leaves affixes out: the planner stores them as the game's numeric ids", () => {
-    const v = normaliseIcyVeins(icyveins).variants[0];
-    expect(v.gear.every((g) => g.affixes.length === 0 && g.tempers.length === 0)).toBe(true);
+  it("names the affixes, the temper and the masterwork from the game's affix ids", () => {
+    const gear = Object.fromEntries(normaliseIcyVeins(icyveins).variants[0].gear.map((g) => [g.slotLabel, g]));
+    expect(gear["Helm"].affixes.map((a) => [a.name, a.greater, a.masterwork])).toEqual([
+      ["Maximum Life", false, true],
+      ["Intelligence", true, false],
+    ]);
+    expect(gear["Helm"].tempers.map((t) => [t.name, t.masterwork])).toEqual([["Maximum Life (Worldly Endurance)", false]]);
+    // the masterwork on this one landed on the tempered line
+    expect(gear["Boots"].tempers.map((t) => [t.name, t.masterwork])).toEqual([["Movement Speed (Natural Motion)", true]]);
+    expect(gear["Boots"].affixes.map((a) => a.name)).toEqual(["Maximum Resource"]);
   });
 
   it("names the mercenaries from the short names the planner keeps", () => {

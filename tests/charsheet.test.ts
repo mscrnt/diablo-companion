@@ -4,7 +4,9 @@
 import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import { parseGlyphHover, parseSkillHover, parseStatSheet, statsFromRows, tidyStats } from "../src/lib/charsheet";
-import { loadStaticData, table } from "../src/lib/names";
+import { table } from "../src/lib/names";
+import { hasGameData } from "./setup";
+import { tablesForTests } from "./fixtures/tables";
 import { line } from "./helpers";
 
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/character/${name}.json`, import.meta.url), "utf8"));
@@ -12,7 +14,7 @@ const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/ch
 let skills: { slug: string; name: string }[] = [];
 let glyphs: { slug: string; name: string }[] = [];
 beforeAll(async () => {
-  await loadStaticData();
+  await tablesForTests();
   skills = Object.entries(table("skills")).filter(([, s]) => s.c === "necromancer" && s.t === "basic").map(([slug, s]) => ({ slug, name: s.n }));
   glyphs = Object.entries(table("glyphs")).filter(([, g]) => !g.c || g.c === "necromancer").map(([slug, g]) => ({ slug, name: g.n }));
 });
@@ -55,7 +57,8 @@ describe("glyph levels", () => {
   });
 });
 
-describe("stats sheet", () => {
+// the sheet is read against the OCR vocabulary built from the game's own label list, not a few names
+describe.skipIf(!hasGameData)("stats sheet", () => {
   it("reads both columns, headers with the value below, and nothing else", () => {
     const s = statsFromRows(fixture("stats-panel").lines);
     expect(s).toEqual({

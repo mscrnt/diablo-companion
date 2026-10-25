@@ -1,12 +1,15 @@
 // Maxroll build importer: paste a build link, fetch that one planner profile, nothing else.
-// The planner stores the game's own ids, so what it names is what the game names: the skill
-// bar, runewords and the named uniques. Its affixes, glyphs and boards are numbers, and
-// nothing of Maxroll's own is fetched to turn them into words, so those parts stay empty.
-import { camelWords as camel, itemKindOf, looseRef, refOf, skillNameOf, slotGroup, slotLabel, socketRef, sortGear } from "./buildmap";
+// The planner stores the game's own ids throughout: items, skills and runes by id, affixes,
+// aspects and glyphs by sno number ("nid": 1829592). Everything is read against the tables built
+// from the game on this PC (buildmap.ts: affixById, itemById, boardById, glyphById), so nothing of
+// Maxroll's own is fetched or kept. Only the skill tree stays empty: it is the planner's own
+// node numbering, which the game data has nothing to match.
+import { affixById, aspectById, boardById, camelWords as camel, glyphById, itemById, itemKindOf, looseRef, refOf, skillNameOf, slotGroup, slotLabel, socketRef, sortGear } from "./buildmap";
+import { slugOf } from "./gamedata/convert";
 import { BROWSER_UA, http, httpJson } from "./http";
 import { lexicalToText } from "./mobalytics";
 import { humanize } from "./names";
-import type { Build, BuildVariant, GearSlot, GuideSection, SkillBarEntry } from "./types";
+import type { Build, BuildVariant, GearSlot, GuideSection, ParagonBoard, SkillBarEntry, StatRef } from "./types";
 
 const PROFILE = "https://planners.maxroll.gg/profiles/d4/";
 const PLANNER = /maxroll\.gg\/d4\/planner\/([a-z0-9]+)(?:#(\d+))?/i;
@@ -109,34 +112,70 @@ export function socketNameOf(id: string): string {
 const hintOf = (id: string) =>
   /Mythic/i.test(id) ? "mythic" : /_Unique_|^Runeword_|Runeword_/i.test(id) ? "unique" : /Legendary/i.test(id) ? "legendary" : "";
 
+/** One of the planner's affix entries: `nid` is the game's affix sno, `greater` its ★, `upgrade` a masterwork hit. */
+const affixes = (list: any[] | null | undefined): StatRef[] =>
+  (list ?? [])
+    .filter(Boolean)
+    .map((a: any) => affixById(a.nid, { greater: !!a.greater, masterwork: Number(a.upgrade ?? 0) > 0 }))
+    .filter(Boolean) as StatRef[];
+
 function gearOf(profile: any, items: Record<string, any>, className: string): GearSlot[] {
   const out: GearSlot[] = [];
   for (const [key, ref] of Object.entries(profile?.items ?? {})) {
     const slot = SLOTS[key];
     const item = items[String(ref)];
     if (!slot || !item?.id) continue;
+    // the game's own item id names a unique, charm or seal; on a plain legendary the aspect is what
+    // the build is really after, as on the other sites; failing both, the id's own words say what it is
+    const known = itemById(item.id, className);
+    const aspect = (item.aspects ?? []).map((a: any) => aspectById(a?.nid, className)).find(Boolean);
     const got = itemNameOf(item.id);
-    const named = got.named ? refOf(got.name, undefined, className) : { slug: "", name: got.name };
+    const named = known ?? aspect ?? (got.named ? refOf(got.name, undefined, className) : { slug: "", name: got.name });
     out.push({
       slot,
       slotLabel: slotLabel(slot),
       group: slotGroup(slot),
       itemSlug: named.slug,
       itemName: named.name,
-      kind: itemKindOf(named.slug, named.name, `${slotGroup(slot) === "talisman" ? slot.replace(/-\d+$/, "") : ""} ${hintOf(item.id)}`),
-      // the planner stores affixes as the game's numeric ids, which name nothing on their own
-      affixes: [],
-      tempers: [],
+      kind: itemKindOf(named.slug, named.name, `${slotGroup(slot) === "talisman" ? slot.replace(/-\d+$/, "") : ""} ${item.mythic ? "mythic" : hintOf(item.id)}`),
+      affixes: affixes(item.explicits),
+      tempers: affixes(item.tempered),
       sockets: (item.sockets ?? [])
         .filter(Boolean)
-        .map((s: string) => socketNameOf(s))
+        // gems are stored by tier ("Gem_Ruby_09"); runes and splinters are items of their own
+        .map((s: string) => socketNameOf(s) || itemById(s)?.name || "")
         .filter(Boolean)
         .map((n: string) => socketRef(n)),
-      implicits: [],
+      implicits: affixes(item.implicits),
       extras: [],
     });
   }
   return sortGear(out.filter((g) => g.itemName || g.sockets.length));
+}
+
+/**
+ * The paragon of the step this profile is on (the planner keeps a step per level band). A board's
+ * squares come as one number each, counted across the board's own width.
+ */
+function paragonOf(profile: any, className: string): ParagonBoard[] {
+  const steps = (profile?.paragon?.steps ?? []).filter(Boolean);
+  const step = steps[Number(profile?.paragon?.position ?? 0)] ?? steps[steps.length - 1];
+  return ((step?.data ?? []) as any[]).filter(Boolean).map((b: any) => {
+    const board = boardById(b.id);
+    const glyph = glyphById(b.glyph, className);
+    const w = board?.width ?? 21;
+    return {
+      slug: board?.slug ?? slugOf(String(b.id ?? "")),
+      name: board?.name ?? camel(String(b.id ?? "")),
+      glyphSlug: glyph?.slug ?? "",
+      glyphName: glyph?.name ?? "",
+      glyphLevel: Number(b.glyphLevel ?? 0),
+      x: Number(b.position?.x ?? 0),
+      y: Number(b.position?.y ?? 0),
+      rotation: Number(b.rotation ?? 0) % 360,
+      nodes: board ? Object.keys(b.nodes ?? {}).map((i) => `${board.slug}-x${(Number(i) % w) + 1}-y${Math.floor(Number(i) / w) + 1}`) : [],
+    };
+  });
 }
 
 function variantOf(profile: any, data: any, idx: number, className: string): BuildVariant {
@@ -153,14 +192,14 @@ function variantOf(profile: any, data: any, idx: number, className: string): Bui
     name: String(profile?.name || `Variant ${idx + 1}`),
     description: "",
     gear: gearOf(profile, data.items ?? {}, className),
-    // the skill tree and the paragon boards are the planner's own numbers: nothing to name them
+    // the skill tree is the planner's own node numbering: nothing in the game data names it
     skillOrder: [],
     skillRanks: {},
     skillBar: bar,
     summons: (profile?.minionUpgrades ?? [])
       .filter(Boolean)
       .map((id: string) => ({ type: "upgrade", slug: refOf(skillNameOf(id), "skills", className).slug, name: skillNameOf(id), description: "" })),
-    paragon: [],
+    paragon: paragonOf(profile, className),
     mercenary: {
       primary: merc.id ? looseRef(camel(String(merc.id).replace(/^MercenaryClass_/, "")), "mercs").name : undefined,
       reinforcement: merc.support ? looseRef(camel(String(merc.support).replace(/^MercenaryClass_/, "")), "mercs").name : undefined,

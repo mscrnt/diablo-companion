@@ -1,14 +1,13 @@
 // Run the instant parser on the OCR lines saved in the judge log.
 import { readdirSync, readFileSync } from "node:fs";
 import { loadStaticData } from "../../src/lib/names";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { fastParse, looksSane } from "../../src/lib/fastparse";
 import { decide } from "../../src/lib/judge";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 
 await loadStaticData();
-const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
+const v = EXAMPLE_BUILD.variants.find((x) => x.id === "1")!;
 const dir = process.env.LOCALAPPDATA + "/com.kenneth.d4companion/logs/judge-log";
 for (const f of readdirSync(dir).filter((f) => /^20\d\d-.*\.json$/.test(f) && !f.includes("_equipped") && f > "2026-10-10T05-15")) {
   const j = JSON.parse(readFileSync(dir + "/" + f, "utf8"));

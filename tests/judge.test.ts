@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { fastParse, looksSane } from "../src/lib/fastparse";
 import { decide } from "../src/lib/judge";
 import { exampleBuild } from "./helpers";
+import { hasGameData } from "./setup";
 
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`./fixtures/tooltips/${name}.json`, import.meta.url), "utf8"));
 
@@ -95,7 +96,8 @@ describe("greater affixes read as a star character", () => {
 });
 
 describe("unique names read through OCR slips", () => {
-  it("Tyrael's Might from \"TYRÄEL'S rn1Gi4T\"", async () => {
+  // the name is weighed against every unique the game has: a handful of our own would prove nothing
+  it.skipIf(!hasGameData)("Tyrael's Might from \"TYRÄEL'S rn1Gi4T\"", async () => {
     const { canonicalUnique, loadStaticData } = await import("../src/lib/names");
     await loadStaticData();
     expect(canonicalUnique("TYRÄEL'S rn1Gi4T")).toBe("Tyrael's Might");

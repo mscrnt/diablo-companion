@@ -1,15 +1,14 @@
 // Re-run the decision logic on real items from the app's loot history.
 import { readFileSync } from "node:fs";
 import { loadStaticData } from "../../src/lib/names";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { decide } from "../../src/lib/judge";
 import { cubeHint } from "../../src/lib/farm";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 import type { ParsedItem } from "../../src/lib/types";
 
 await loadStaticData();
-const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
+const v = EXAMPLE_BUILD.variants.find((x) => x.id === "1")!;
 const state = JSON.parse(readFileSync(process.env.APPDATA + "/com.kenneth.d4companion/d4c-state.json", "utf8"));
 const hist = JSON.parse(state.loot).state.history as { item: any }[];
 const show = (label: string, item: ParsedItem, worn?: Record<string, ParsedItem>) => {

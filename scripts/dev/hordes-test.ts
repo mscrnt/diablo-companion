@@ -1,8 +1,7 @@
 import { loadStaticData } from "../../src/lib/names";
 import { findOffers, findChests, chestAdvice, looksLikeHordes, parseAether } from "../../src/lib/hordes";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 await loadStaticData();
 const L = (text: string, x: number, y: number) => ({ text, x, y, w: 300, h: 24 });
 // OCR-ish text with typos, three offers side by side
@@ -17,6 +16,6 @@ for (const style of ["safe", "balanced", "greedy"] as const) {
 }
 console.log("why #1:", findOffers(lines, { x: 0, y: 0 }, "balanced")[0].why);
 console.log("chests:", findChests([L("Spoils of Greater Equipment", 0, 0), L("Spoils of Talismans", 500, 0), L("Spoils of Gold", 900, 0)], { x: 0, y: 0 }).map((c) => c.name));
-const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
+const v = EXAMPLE_BUILD.variants.find((x) => x.id === "1")!;
 console.log("advice:", chestAdvice(v, () => emptyProgress, 1250));
 console.log("tracker:", looksLikeHordes("Infernal Hordes Wave 3/10 Burning Aether 245"), parseAether("Burning Aether 245"), parseAether("245 Aether"));

@@ -1,12 +1,12 @@
 import { loadStaticData } from "../src/lib/names";
-import { normaliseMobalytics } from "../src/lib/mobalytics";
 import { emptyProgress } from "../src/lib/store";
-import raw from "./fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "./fixtures/example-build";
 
-/** The bundled example build (Skeletal Warrior Minions, "End Game Warriors" variant) with nothing owned yet. */
+/** Our own example build (Skeleton Warrior Army, "Endgame Warriors" variant) with nothing owned yet. */
 export async function exampleBuild() {
   await loadStaticData();
-  const build = normaliseMobalytics(raw as any);
+  // a copy per test file, so one test changing a slot can't reach another
+  const build = structuredClone(EXAMPLE_BUILD);
   const variant = build.variants.find((v) => v.id === "1")!;
   return { build, variant, prog: () => emptyProgress };
 }

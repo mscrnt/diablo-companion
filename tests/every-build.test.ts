@@ -6,10 +6,14 @@ import { judgeEveryBuild, type OtherBuild } from "../src/lib/everyBuild";
 import { decide, itemClasses } from "../src/lib/judge";
 import { emptyProgress } from "../src/lib/store";
 import type { BuildVariant, ParsedItem } from "../src/lib/types";
+import { tablesForTests } from "./fixtures/tables";
 import { exampleBuild } from "./helpers";
 
 let ex: Awaited<ReturnType<typeof exampleBuild>>;
-beforeAll(async () => void (ex = await exampleBuild()));
+beforeAll(async () => {
+  await tablesForTests();
+  ex = await exampleBuild();
+});
 
 const A = (text: string, match: string | null = null) => ({ text, match, greater: false, tempered: false, masterwork: false, enchanted: false });
 /** The example build's unique scythe (a Necromancer unique), not owned yet */
@@ -35,8 +39,8 @@ describe("another build has a use for it", () => {
     expect(scored.verdict).toBe("SCRAP");
     const r = judgeEveryBuild(scream(), scored, [other({ sameCharacter: true })]);
     expect(r.verdict).toBe("KEEP");
-    expect(r.action).toBe("Keep it: an upgrade for your Skeletal Warrior Minions build.");
-    expect(r.reasons[0]).toMatch(/^Skeletal Warrior Minions, Weapon: Wear this!/);
+    expect(r.action).toBe("Keep it: an upgrade for your Skeleton Warrior Army build.");
+    expect(r.reasons[0]).toMatch(/^Skeleton Warrior Army, Weapon: Wear this!/);
   });
 
   it("another character: stash it, with their class and name", () => {
