@@ -250,10 +250,10 @@ function GearGrid({ slots, compact }: { slots: GearSlot[]; compact?: boolean }) 
                 </div>
               )}
               {desc && compact && <div className="small muted">{desc}</div>}
-              {g.affixes.map((a) => {
+              {g.affixes.map((a, i) => {
                 const isGa = p.greater.some((x) => normName(x) === normName(a.name));
                 return (
-                  <div key={a.slug} className="affix">
+                  <div key={`${i}-${a.slug}`} className="affix">
                     {a.greater ? (
                       <label title="Tick when your item has this as a Greater Affix" style={{ cursor: "pointer" }}>
                         <input
