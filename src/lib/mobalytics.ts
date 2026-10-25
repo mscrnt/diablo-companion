@@ -1,6 +1,7 @@
 // Mobalytics build importer.
 // 1. Direct GraphQL (not behind Cloudflare) — fast path.
 // 2. FlareSolverr page fetch + window.__PRELOADED_STATE__ — full-fidelity fallback.
+import { slotGroup, slotLabel, sortGear } from "./buildmap";
 import { BROWSER_UA, http, httpJson } from "./http";
 import { humanize, lookup, nameOf, statName, temperName } from "./names";
 import type {
@@ -165,25 +166,6 @@ export async function fetchMobalyticsRaw(urlOrSlug: string, opts: ImportOptions 
 
 // ---- normalisation --------------------------------------------------------
 
-const SLOT_LABELS: Record<string, string> = {
-  helm: "Helm",
-  "chest-armor": "Chest",
-  gloves: "Gloves",
-  pants: "Pants",
-  boots: "Boots",
-  amulet: "Amulet",
-  "ring-1": "Ring 1",
-  "ring-2": "Ring 2",
-  weapon: "Weapon",
-  offhand: "Offhand",
-  "bludgeoning-weapon": "Bludgeoning Weapon",
-  "slashing-weapon": "Slashing Weapon",
-  "dual-wield-weapon-1": "Dual Wield 1",
-  "dual-wield-weapon-2": "Dual Wield 2",
-  "ranged-weapon": "Ranged Weapon",
-};
-const GEAR_ORDER = Object.keys(SLOT_LABELS);
-
 function stats(list: any[] | null | undefined, temper = false): StatRef[] {
   return (list ?? [])
     .filter(Boolean)
@@ -201,24 +183,6 @@ function sockets(list: any[] | null | undefined): SocketRef[] {
     name: nameOf(s.slug, undefined, s.type === "runes" ? "runes" : s.type === "gems" ? "gems" : undefined),
     kind: s.type === "gems" ? "gem" : s.type === "runes" ? "rune" : "other",
   }));
-}
-
-function slotGroup(slot: string): GearSlot["group"] {
-  if (/charm|seal/.test(slot)) return "talisman";
-  if (/chaos-perk/.test(slot)) return "chaos";
-  if (SLOT_LABELS[slot]) return "gear";
-  return "other";
-}
-
-function slotLabel(slot: string): string {
-  if (SLOT_LABELS[slot]) return SLOT_LABELS[slot];
-  const m = slot.match(/charm-(\d+)/);
-  if (m) return `Charm ${m[1]}`;
-  if (/seal/.test(slot)) return "Seal";
-  if (/unique-chaos-perk/.test(slot)) return "Unique Chaos Perk";
-  const p = slot.match(/chaos-perk-(\d+)/);
-  if (p) return `Chaos Perk ${p[1]}`;
-  return humanize(slot.replace(/^season-\d+-/, ""));
 }
 
 function itemKind(ent: any): ItemKind {
@@ -265,16 +229,7 @@ function normaliseSlots(slots: any[]): GearSlot[] {
       extras,
     });
   }
-  out.sort((a, b) => {
-    const ga = ["gear", "talisman", "chaos", "other"].indexOf(a.group);
-    const gb = ["gear", "talisman", "chaos", "other"].indexOf(b.group);
-    if (ga !== gb) return ga - gb;
-    const ia = GEAR_ORDER.indexOf(a.slot);
-    const ib = GEAR_ORDER.indexOf(b.slot);
-    if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-    return a.slot.localeCompare(b.slot, undefined, { numeric: true });
-  });
-  return out;
+  return sortGear(out);
 }
 
 /** Lexical rich-text JSON → plain text (with item/skill widget labels inlined). */

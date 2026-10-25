@@ -1,5 +1,5 @@
-// Normalised domain model. Importers (Mobalytics today) convert into this so the
-// rest of the app never touches a site's raw shape.
+// Normalised domain model. The importers (Mobalytics, Maxroll, Icy Veins, d4builds)
+// convert into this so the rest of the app never touches a site's raw shape.
 
 export type ItemKind =
   | "unique"
@@ -106,9 +106,12 @@ export interface BuildVariant {
   sections: GuideSection[];
 }
 
+/** The site a build was pasted from. */
+export type BuildSource = "mobalytics" | "maxroll" | "icy-veins" | "d4builds";
+
 export interface Build {
   id: string;
-  source: "mobalytics";
+  source: BuildSource;
   url: string;
   slug: string;
   name: string;

@@ -14,7 +14,9 @@ export default defineConfig(async () => ({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // static-slim.json (game data tables) is a deliberate ~1.7 MB lazy chunk
   build: { chunkSizeWarningLimit: 2000 },
-  test: { include: ["tests/**/*.test.ts"], environment: "node" },
+  // the map-tracker tests correlate whole frames: a few seconds each, and longer when the
+  // rest of the suite is running beside them, so they get more than vitest's 5 s default
+  test: { include: ["tests/**/*.test.ts"], environment: "node", testTimeout: 20000 },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
