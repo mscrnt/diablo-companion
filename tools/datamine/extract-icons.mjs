@@ -21,7 +21,8 @@ import { decodeBlocks } from './lib/bcn.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
-const D4DATA = path.join(ROOT, 'tools', 'vendor', 'd4data');
+// the pinned d4data copy the app ships (src-tauri/resources/d4data/README.md)
+const D4DATA = path.join(ROOT, 'src-tauri', 'resources', 'd4data');
 const CASCX = path.join(HERE, 'bin', 'cascx.exe');
 const OUT = path.join(ROOT, 'data', 'gamedata');
 const RAW = path.join(OUT, 'raw');
