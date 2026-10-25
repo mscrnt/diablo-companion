@@ -49,6 +49,19 @@ export function predictWorldBoss(t: number): { boss: string; maybe?: string; exp
 }
 
 /**
+ * The world boss of the spawn you could be at right now: the one that is up, or the last one if it ended
+ * less than `withinMs` ago (its loot and reward panel are still around). null when the slot isn't settled,
+ * so nothing is ever pinned on a boss we only half know (see WB_MAYBE).
+ */
+export function currentWorldBoss(nowMs = Date.now(), withinMs = 45 * 60_000): string | null {
+  const now = Math.floor(nowMs / 1000);
+  const spawn = now - mod(now - WB_OFFSET, WB_PERIOD);
+  if (nowMs - spawn * 1000 > 900_000 + withinMs) return null;
+  const p = predictWorldBoss(spawn);
+  return p.maybe ? null : p.boss;
+}
+
+/**
  * The world boss's likely main zone: a 15-slot cycle that turns one step a week, at a phase offset Blizzard's side
  * has moved a few times (late June to mid September 2026). About 2 in 3 right; shown as "probably". Slots that
  * didn't settle in our data (6, 13, 14) give no guess. WB_ZONE_PHASE is the offset since 2026-09-19: when our own

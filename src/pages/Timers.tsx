@@ -15,7 +15,7 @@ export default function Timers() {
     <>
       <PageHead
         title="World Events"
-        sub="Times are computed by the app, so they work offline. Boss names and zones show once the game has shown them to you (the map or the quest tracker)."
+        sub="Times are computed by the app, so they work offline. Boss names and zones show once the game has shown them to you (the map or the quest tracker). Each world boss pays one bonus cache a week, per character: the row says whether the app has seen you claim it."
       />
       <div className="grid g2">
         <Card title="Up next">

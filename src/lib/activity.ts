@@ -19,6 +19,7 @@ import { getActiveVariant, useRuns, useSettings } from "./store";
 import { noteCharacterFrame } from "./profiles";
 import { debugEvent } from "./debug";
 import { parseUndercity } from "./undercity";
+import { noteWeeklyBonusFrame, weeklyBonusDebug } from "./weeklybonus";
 import {
   closeEvent,
   eventLabel,
@@ -84,6 +85,8 @@ let syncedRun = "";
 export function onFrame(lines: OcrLine[], region?: { x: number; y: number }) {
   // the Character panel names the character you play: its profile becomes the active one
   noteCharacterFrame(lines);
+  // a world boss's weekly cache in your bag, or the event's "Weekly bonus claimed" tooltip
+  noteWeeklyBonusFrame(lines);
   if (region) {
     const { variant, prog } = getActiveVariant();
     const caches = findWhisperCaches(lines, region, variant, prog);
@@ -651,6 +654,8 @@ async function tick(rect: Rect) {
     await readObelisk(rect).catch(() => {});
   }
   const t = await trackerText(rect);
+  // the tracker is read anyway: a world boss reward line on it costs nothing to notice
+  noteWeeklyBonusFrame(trackerLines);
   await helltideTick();
   const wpp = parseWarPlan(trackerLines);
   if (wpp) {
@@ -766,6 +771,7 @@ export function activityDebug() {
     helltide: ht.active ? { ...ht, lastSeenAgoS: Math.round((now - htLastSeen) / 1000) } : { active: false },
     tree: advisorLast && { title: advisorLast.title, ranked: advisorLast.items.slice(0, 4).map((i) => `${i.rank}. ${i.name}`), shownAgoS: Math.round((now - advisorShownAt) / 1000) },
     warPlan: useWarPlans.getState().progress,
+    weeklyBonus: weeklyBonusDebug(now),
     tracker: trackerLines.slice(0, 16).map((l) => l.text.slice(0, 80)),
   };
 }

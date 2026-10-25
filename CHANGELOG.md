@@ -7,6 +7,7 @@ The release workflow publishes each version's section as its GitHub release note
 
 ### Added
 - **World events predicted by the app itself:** the world boss of every spawn (one slot in the rotation can be either of two bosses, and it says so), its likely zone ("probably Scosglen", right about 2 times in 3), which world bosses also spawn in Nahantu or Skovos, and the zone of every Helltide. Nothing is fetched from other sites any more. A Legion's zone can't be predicted yet.
+- **World boss weekly bonus:** every world boss pays one bonus cache a week, and the app tells you whether yours is still waiting. Each world boss row says "Weekly bonus: claimed" or "not claimed yet" for the character you play, and the boss alert adds "You still have this week's bonus". It goes by what it has seen on your screen, the cache the game hands you ("Ashava's Spoils") or the event's own "Weekly bonus claimed", so it never calls a bonus claimed that isn't.
 - **Character profiles:** each character has its own builds (several per character, one active), gear, progress, stats and glyphs. The app switches by itself when the Character panel shows a character's name, and runs and loot are labelled by character.
 - **The loot judge checks every build of every character:** "Keep it: an upgrade for your Minion build" for this character, "Stash it: great for your Necromancer" for another. It only says scrap when no build of yours can use the item, and an item for another class says so.
 - **Infernal Hordes runs are timed,** with a split for every wave and the Fell Council.
