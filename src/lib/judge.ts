@@ -3,7 +3,7 @@
 import { Archive, Backpack, Box, CircleHelp, Coins, Gem, Hammer, ShieldCheck, Shirt, Sparkles, type LucideIcon } from "lucide-react";
 import { normName, similarity, table, trigramSim, type Category } from "./names";
 import { knownWord, ocrVocabReady } from "./ocrfix";
-import { buildProfile, compareValue, rowsFromItems, standaloneValue, statKey, statWeight, type BuildProfile } from "./statvalue";
+import { buildProfile, compareValue, MAIN_STATS, rowsFromItems, standaloneValue, statKey, statWeight, type BuildProfile } from "./statvalue";
 import type { BuildVariant, CompareRow, GearSlot, JudgeResult, ParsedItem, SlotProgress, Talisman, Verdict } from "./types";
 
 // ---- decision -------------------------------------------------------------------
@@ -22,8 +22,18 @@ const SLOT_MAP: Record<string, string[]> = {
   offhand: ["offhand"],
 };
 
-function targetsMatch(affixText: string, llmMatch: string | null | undefined, target: string): boolean {
-  if (llmMatch && normName(llmMatch) === normName(target)) return true;
+/**
+ * Does this stat line give the stat a guide asks for? Names meet through statKey (a site's "Critical Strike Damage"
+ * is the game's "Critical Strike Damage Multiplier"). "Primary Core Stat" is the class's main stat: the one the build
+ * names elsewhere (`main`), or any of the four when it names none.
+ */
+function targetsMatch(affixText: string, llmMatch: string | null | undefined, target: string, main?: string | null): boolean {
+  const want = statKey(target);
+  if (want === "primary core stat") {
+    const k = statKey(llmMatch ?? affixText);
+    return MAIN_STATS.includes(k) ? !main || k === main : k === "all stats";
+  }
+  if (llmMatch && statKey(llmMatch) === want) return true;
   return similarity(affixText, target) >= 0.8;
 }
 
@@ -57,18 +67,18 @@ interface Quality {
   q: number;
 }
 
-function quality(item: ParsedItem, slot: GearSlot): Quality {
+function quality(item: ParsedItem, slot: GearSlot, main?: string | null): Quality {
   // a guide can list a stat twice for a slot (an implicit and an affix): one Intelligence line on the item
   // counted as two wanted stats, and the verdict card listed it twice (3,200 React key errors, 2026-10-16)
   const seen = new Set<string>();
   const targets = [...slot.implicits, ...slot.affixes].filter((t) => {
-    const k = normName(t.name);
+    const k = statKey(t.name);
     return !seen.has(k) && !!seen.add(k);
   });
   const matched: string[] = [];
   let greater = 0;
   for (const t of targets) {
-    const hit = item.affixes.find((a) => targetsMatch(a.text, a.match, t.name));
+    const hit = item.affixes.find((a) => targetsMatch(a.text, a.match, t.name, main));
     if (hit) {
       matched.push(t.name);
       if (hit.greater) greater++;
@@ -338,7 +348,7 @@ export function decide(item: ParsedItem, variant: BuildVariant | undefined, ctx:
   if (item.truncated) res.reasons = [...res.reasons, "Part of this tooltip is hidden: scroll it down to let me see everything."];
   if (res.verdict === "WEAR" && variant && res.slot) {
     const slot = variant.gear.find((g) => g.slot === res.slot);
-    if (slot) res.steps = ["Equip it.", ...upkeep(item, slot, quality(item, slot), { ...ctx.prog(slot.slot), masterwork: 0, tempered: false }, false, buildProfile(variant))];
+    if (slot) res.steps = ["Equip it.", ...upkeep(item, slot, quality(item, slot, buildProfile(variant).mainStat), { ...ctx.prog(slot.slot), masterwork: 0, tempered: false }, false, buildProfile(variant))];
   }
   return res;
 }
@@ -504,7 +514,7 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, comp
 
 /** An item you wear in a build slot: how it measures up and its to-do list (never a scrap verdict). */
 function wearing(item: ParsedItem, slot: GearSlot, ctx: Ctx, lead?: string): Out {
-  const q = quality(item, slot);
+  const q = quality(item, slot, ctx.prof?.mainStat);
   const tips: string[] = lead ? [lead] : [];
   if (!q.isTarget) tips.push(`Your build wants ${slot.itemName} here: this is a stand-in.`);
   tips.push(`${q.matched.length} of ${q.total} stats your build wants${q.greater ? `, ${q.greater} are ★ greater` : ""}.`);
@@ -620,13 +630,13 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   const prof = ctx.prof ?? buildProfile(variant);
   let best: { slot: GearSlot; q: Quality; gain: number; w: ParsedItem | null; wornQ: Quality | null; cmp: Swap | null } | null = null;
   for (const c of candidates) {
-    const q = quality(item, c);
+    const q = quality(item, c, prof.mainStat);
     const w = (compareTo && compareTo.slot === item.slot && gameCompares(c) ? compareTo : null) ?? ctx.worn?.(c.slot) ?? null;
-    const wornQ = w ? quality(w, c) : null;
+    const wornQ = w ? quality(w, c, prof.mainStat) : null;
     // the game's comparison doesn't name your piece: what you were last seen wearing does
     const remembered = ctx.worn?.(c.slot);
     // (or names it so garbled it matches nothing: "Blood Mo N Che G" is the Blood Moon Breeches you wear)
-    if (wornQ && remembered && !wornQ.isTarget && (w!.rarity === "unknown" || trigramSim(w!.name, remembered.name) >= 0.35)) wornQ.isTarget = quality(remembered, c).isTarget;
+    if (wornQ && remembered && !wornQ.isTarget && (w!.rarity === "unknown" || trigramSim(w!.name, remembered.name) >= 0.35)) wornQ.isTarget = quality(remembered, c, prof.mainStat).isTarget;
     const cmp = swapValue(item, c, q, w, wornQ, prof, gameCompares(c) ? item.compareRows : undefined, workOn(c, w, ctx), remembered);
     const gain = cmp ? cmp.score : standaloneValue(item, c, prof) - 99;
     if (!best || gain > best.gain) best = { slot: c, q, gain, w, wornQ, cmp };

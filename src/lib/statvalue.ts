@@ -13,7 +13,7 @@ export interface BuildProfile {
   mainStat: string | null;
 }
 
-const MAIN_STATS = ["intelligence", "strength", "dexterity", "willpower"];
+export const MAIN_STATS = ["intelligence", "strength", "dexterity", "willpower"];
 const GENERIC_OFFENCE = /critical strike|crit |attack speed|vulnerable|overpower|all damage|^damage$|damage multiplier$|weapon damage/;
 const GENERIC_DEFENCE = /maximum life|^armor$|all elements|damage reduction|life regeneration|life on hit|life per second|dodge|barrier|fortify|toughness|healing/;
 const UTILITY = /resource cost|cooldown reduction|lucky hit|resource generation|essence|fury|spirit|energy|mana|movement speed|maximum resolve/;
@@ -87,10 +87,13 @@ export function buildProfile(variant: BuildVariant | undefined): BuildProfile {
 /** 0…1.2: what one stat line is worth on this slot for this build. */
 export function statWeight(key: string, slot: GearSlot, prof: BuildProfile): number {
   if (!key) return 0;
-  const here = [...slot.implicits, ...slot.affixes].find((s) => base(s.name) === key || key.startsWith(base(s.name)));
+  // "Primary Core Stat" in a guide is the class's main stat: the one the build names elsewhere, or any of the four
+  const isMain = MAIN_STATS.includes(key) && (!prof.mainStat || key === prof.mainStat);
+  const here = [...slot.implicits, ...slot.affixes].find((s) => base(s.name) === key || key.startsWith(base(s.name)) || (isMain && base(s.name) === "primary core stat"));
   if (here) return here.masterwork ? 1.2 : 1;
   // your main stat adds damage on every piece: a little more than a stat wanted on another slot
   if (prof.mainStat && key === prof.mainStat) return 0.7;
+  if (isMain && prof.wanted.has("primary core stat")) return 0.7;
   if (prof.wanted.has(key)) return 0.6;
   if (key === "all stats") return 0.5;
   if (MAIN_STATS.includes(key)) return 0.05; // another class's main stat

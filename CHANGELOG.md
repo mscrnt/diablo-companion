@@ -33,6 +33,7 @@ The release workflow publishes each version's section as its GitHub release note
 - World event timers no longer fetch anything from other sites, and imported builds are never checked for updates in the background: builds come only from a link you paste.
 
 ### Fixed
+- **Loot judge:** a guide's "Primary Core Stat" is your class's main stat, so the Intelligence on a Necromancer's helm counts (it was always "missing": The Undercrown read 0 of 2 wanted stats). Stat names a build site words its own way meet the game's here too.
 - Opening the game's War Plans screen no longer shows the Helltide cinders panel (its "Helltide" tab and point counter looked like a Helltide) or starts the Infernal Hordes helper.
 - **Tree of Whispers:** cache names that wrap onto two lines ("Greater Collection of / Chestplates", "Ancestral Collection of / Rings") are read whole. Each one was read as a Boots cache, so the advice ranked caches you weren't offered.
 - **Loot judge:** a stat your guide lists twice for a slot counts once, so "N of M stats" and the verdict aren't inflated.
