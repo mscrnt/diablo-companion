@@ -54,7 +54,8 @@ const mr = new MetaReader({
 const meta: GameMeta = {
   nameOf: (sno) => (toc.byId.get(sno) || [])[1],
   group: (g) => toc.byGroup[g].entries(),
-  parseMeta: (buf) => mr.parseMeta(Buffer.from(buf)),
+  // group/asType matter for the Actor records, whose format hash the pinned definitions don't know
+  parseMeta: (buf, opts) => mr.parseMeta(Buffer.from(buf), { standalone: true, group: opts?.group ?? null, asType: opts?.asType ?? null }),
   *parseCombined(buf, group, asType) {
     for (const [sno, b] of iterCombinedMeta(Buffer.from(buf), group)) yield [sno, mr.parseMeta(b, { standalone: false, group, asType })];
   },

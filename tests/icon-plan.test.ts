@@ -77,6 +77,7 @@ describe("where the game keeps a unique's picture", () => {
     { sno: 2, id: "1HSword_Unique_Generic_001", name: "Doombringer", itemType: "Sword" },
     { sno: 3, id: "Ring_Unique_Generic_001", name: "Earthbreaker", itemType: "Ring" },
     { sno: 4, id: "Chest_Unique_Generic_001", name: "Tuskhelm", itemType: "Chest" },
+    { sno: 5, id: "Gloves_Unique_Necro_002", name: "Wilted Potential", itemType: "Gloves" },
   ];
   const FILES: Record<string, Uint8Array> = {
     "base/Misc/2D_table.dat": TABLE,
@@ -87,12 +88,16 @@ describe("where the game keeps a unique's picture", () => {
     "base/meta/2": item({ actor: 901 }),
     // a ring whose own icon handle overrides what its actor says
     "base/meta/3": item({ own: 0xc2, actor: 902 }),
-    // composed armour whose actor handle isn't a sheet the inventory draws from
-    "base/meta/4": item({ composed: true, actor: 903 }),
+    // armour whose actor handle isn't a sheet the inventory draws from
+    "base/meta/4": item({ actor: 903 }),
+    // gloves with no picture of their own: Gloves are composed per class (Deathgrip is), so their
+    // shared actor's handle is one of those per-class frames and says nothing about this one
+    "base/meta/5": item({ actor: 904 }),
     "base/meta/900": json({ ptItemData: [{ hDefaultImage: 0xd1 }] }),
     "base/meta/901": json({ ptItemData: [{ hDefaultImage: 0xb1 }] }),
     "base/meta/902": json({ ptItemData: [{ hDefaultImage: 0xc1 }] }),
     "base/meta/903": json({ ptItemData: [{ hDefaultImage: 0xd1 }] }),
+    "base/meta/904": json({ ptItemData: [{ hDefaultImage: 0xa2 }] }),
   };
 
   const art = (p: Awaited<ReturnType<typeof plan>>, name: string) => p.items.filter((i) => i.entry.n === name);
@@ -127,8 +132,18 @@ describe("where the game keeps a unique's picture", () => {
     const r = reader(FILES);
     const p = await plan(r.files, r.meta, uniques);
     expect(art(p, "Tuskhelm")).toEqual([]);
-    expect(p.noArt).toEqual([4]);
+    expect(p.noArt).toContain(4);
     expect(p.sheets.map((s) => s.sno).sort()).toEqual([10, 11, 12]);
+  });
+
+  it("won't take an actor's picture for an item type the game composes per class", async () => {
+    const r = reader(FILES);
+    const p = await plan(r.files, r.meta, uniques);
+    // its actor's handle is a real inventory frame, but it is one of Deathgrip's
+    expect(art(p, "Wilted Potential")).toEqual([]);
+    expect(p.noArt).toContain(5);
+    // so that actor's record is never even asked for
+    expect(r.ensured.some((k) => k.endsWith("904"))).toBe(false);
   });
 
   it("asks the reader to copy the records it needs out of the game, the actors included", async () => {
@@ -145,6 +160,6 @@ describe("where the game keeps a unique's picture", () => {
     const r = reader({ ...FILES, "base/meta/2": item({}) });
     const p = await plan(r.files, r.meta, uniques);
     expect(art(p, "Doombringer")).toEqual([]);
-    expect(p.noArt.sort()).toEqual([2, 4]);
+    expect(p.noArt.sort()).toEqual([2, 4, 5]);
   });
 });

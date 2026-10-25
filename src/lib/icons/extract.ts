@@ -87,8 +87,8 @@ function itemHandles(m: Record<string, unknown>): { own: number[]; perClass: num
  *   2. the item record's `tInvImages`: one handle per class, for armour composed per class
  *   3. the item's actor (`snoActor` -> `ptItemData[0].hDefaultImage`): weapons and jewellery, whose
  *      records carry neither of the above
- * An item says which of the last two applies: `eComponentStyleType` is 1 when the picture is
- * composed per class and 0 when there is one authored icon on the actor.
+ * The third one is guarded twice, because an actor's handle isn't always a picture of the item: see
+ * `INVENTORY_SHEET` and `perClassTypes`.
  */
 export async function plan(files: GameFiles, meta: GameMeta, uniques: UniqueRow[], onStep?: (done: number, total: number) => Promise<void>): Promise<IconPlanWire> {
   // the raw copy is deleted once a read is parsed, so the reader may have to fetch all of this again
@@ -104,8 +104,14 @@ export async function plan(files: GameFiles, meta: GameMeta, uniques: UniqueRow[
   // the uniques' icons first, so only the sheets in use get parsed
   const wanted: { u: UniqueRow; refs: [number, number][] }[] = [];
   const via: IconPlanVia = { perClass: 0, item: 0, actor: 0 };
-  /** the ones whose picture is on their actor, looked up in a second pass */
-  const actors: { u: UniqueRow; actor: number }[] = [];
+  /** the ones that name an actor and carry no picture of their own, looked up in a second pass */
+  const named: { u: UniqueRow; actor: number }[] = [];
+  /**
+   * Item types whose picture this build composes per class ("Gloves", "Helm", ...), noticed rather
+   * than listed. Several of those uniques share one actor, whose handle is then an arbitrary one of
+   * their class sheet frames, so for a record of such a type the actor is not a picture of it.
+   */
+  const perClassTypes = new Set<string>();
   const noArt: number[] = [];
   // the actor pass adds to the total once pass one knows how many there are
   let total = uniques.length;
@@ -117,14 +123,20 @@ export async function plan(files: GameFiles, meta: GameMeta, uniques: UniqueRow[
     if (ownRefs.length || classRefs.length) {
       wanted.push({ u, refs: [...ownRefs, ...classRefs] });
       if (ownRefs.length) via.item++;
-      else via.perClass++;
+      else {
+        via.perClass++;
+        perClassTypes.add(u.itemType ?? "");
+      }
       continue;
     }
     // one authored picture, kept on the item's own actor
     const actor = (m?.snoActor as { sno?: number } | null)?.sno;
-    if (actor && m?.eComponentStyleType === 0) actors.push({ u, actor });
+    if (actor) named.push({ u, actor });
     else noArt.push(u.sno);
   }
+
+  const actors = named.filter((a) => !perClassTypes.has(a.u.itemType ?? ""));
+  for (const a of named) if (perClassTypes.has(a.u.itemType ?? "")) noArt.push(a.u.sno);
 
   total = uniques.length + actors.length;
   await files.ensure?.(actors.map((a) => `base:meta\\${a.actor}`));

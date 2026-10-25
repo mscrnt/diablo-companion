@@ -88,12 +88,19 @@ Two things are worth knowing about that reader:
    is where every weapon, ring and amulet keeps its. The Actor group's format hash isn't in the
    pinned definitions, so it is read as `ActorDefinition` by name.
 
-`eComponentStyleType` says which of the last two applies: 1 when the picture is composed per class,
-0 when there is one authored icon on the actor. A handle is only taken from an actor when it is in
-the 2D table *and* lands on a sheet named `2DInventory*`: the armour actors carry a handle too, but
-theirs points into the component system, and that check is also what would catch the field moving in
-a later game build instead of silently scoring the wrong art.
+Two guards on the actor route, because an actor's handle is not always a picture of the item:
 
-Measured on build 3.2.3.73883: 944 of 954 uniques get art (543 through `tInvImages` alone, which is
-all there was before), 100% of weapons, jewellery and offhands. The ten that get none are placeholder
-and test records.
+- **It has to be in the 2D table and land on a sheet named `2DInventory*`.** Plenty of actors carry
+  a handle that points into the component system instead. This is also the check that would catch
+  the field moving in a later game build, rather than silently scoring the wrong art.
+- **Not for an item type this build composes per class.** Several composed armour uniques share one
+  actor, whose handle is then an arbitrary one of their class sheet frames, so for the one among
+  them with no picture of its own it is somebody else's art. Which types those are is noticed, not
+  listed: any type that resolved through `tInvImages` is one. `eComponentStyleType` looks like it
+  should say this and doesn't (two amulets have it set to 1).
+
+Measured on build 3.2.3.73883: 946 of 954 uniques get art (543 through `tInvImages` alone, which is
+all there was before), and every weapon, ring, amulet and offhand. Of the eight that get none, seven
+are placeholder and test records ("(DNS)", "[ph_...]", `TEST_*`); the eighth is `Wilted Potential`,
+whose only candidate is another glove's art through a shared actor. Where the earlier labelling spike
+had an opinion (172 names), all 172 land on exactly the same frame.
