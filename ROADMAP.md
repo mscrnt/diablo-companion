@@ -126,6 +126,7 @@ What sets the app apart: it knows the game's actual data, your build, your chara
 | Overlay pins | Show nearby points of interest in the black bars | 📦🖥 | M |
 | Helltide route | Chest and event route for the current Helltide zone | 📦🌐 | M |
 | Collection progress | Altars, waypoints, cellars and dungeons found per region | 🖥📦 | M |
+| Player-confirmed event zones | Opt-in under Help improve: the world boss icon the map shows an hour early (and the Legion and Nahantu/Skovos zones) sent to our Worker as event, spawn slot, boss, zone only; counted once per install, shown as "confirmed by players" when about 3 agree, beside our own prediction. Also our own history to re-fit the predictor | 🖥 | M |
 
 ### Progression and seasons
 | Feature | How | Source | Effort |
