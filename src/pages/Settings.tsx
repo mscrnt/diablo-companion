@@ -74,7 +74,10 @@ export default function SettingsPage() {
               FlareSolverr URL (for full guide text behind Cloudflare)
               <input type="url" value={settings.flaresolverr} onChange={(e) => update((s) => void (s.flaresolverr = e.target.value))} />
             </label>
-            <div className="small muted">Without it, imports fall back to Mobalytics' GraphQL API (all gear/skills/paragon, but no author notes).</div>
+            <div className="small muted">
+              Only Mobalytics needs it: without it, those imports fall back to its API (all gear/skills/paragon, but no author notes). Maxroll, Icy Veins and d4builds builds come
+              straight from the link you paste.
+            </div>
             {meta && (
               <div className="small dim">
                 Static data {String(meta.staticDataVersion ?? "")} · fetched {String(meta.fetchedAt ?? "").slice(0, 10)}: refresh with <span className="mono">node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs</span>
@@ -265,7 +268,8 @@ function About() {
         </div>
       )}
       <div className="small dim" style={{ marginTop: 10 }}>
-        Free for noncommercial use (PolyForm Noncommercial 1.0.0). Not affiliated with Blizzard Entertainment or Mobalytics.
+        Free for noncommercial use (PolyForm Noncommercial 1.0.0). Not affiliated with Blizzard Entertainment, Mobalytics, Maxroll, Icy Veins or d4builds. Builds stay credited to
+        the site and author you imported them from.
       </div>
     </Card>
   );

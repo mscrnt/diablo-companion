@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Anvil, Diamond, ScanEye, ScrollText, Sparkles, Star } from "lucide-react";
 import { Badge, Card, Empty, PageHead, timeAgo } from "../components/ui";
 import { judgingFor } from "../lib/buildlabel";
-import { importMobalytics } from "../lib/mobalytics";
+import { SITE_LABEL, importBuild } from "../lib/importers";
 import { scanSkillBar, useSkillBar } from "../lib/skillbar";
 import { useRuntime } from "../lib/engine";
 import { describe, normName } from "../lib/names";
@@ -28,7 +28,7 @@ export default function BuildPage() {
     setBusy(true);
     setMsg(null);
     try {
-      const { build: b, via, defaultVariant } = await importMobalytics(u, { flaresolverr });
+      const { build: b, via, defaultVariant } = await importBuild(u, { flaresolverr });
       addBuild(b, defaultVariant);
       setUpdate(b.id, null);
       setMsg({ ok: true, text: `Imported "${b.name}" via ${via} (${b.variants.length} variants, updated ${b.updatedAt.slice(0, 10)}).` });
@@ -45,7 +45,7 @@ export default function BuildPage() {
       <PageHead title="Build" sub={build ? `${build.name} by ${build.author} · ${build.className} · ${build.season} · updated ${build.updatedAt.slice(0, 10)}` : undefined}>
         {build && (
           <button className="btn sm" disabled={busy} onClick={() => doImport(build.url || build.slug)} title="Re-fetch the latest version of this guide">
-            {busy ? <span className="loader" /> : "⟳"} Refresh from Mobalytics
+            {busy ? <span className="loader" /> : "⟳"} Refresh from {SITE_LABEL[build.source]}
           </button>
         )}
       </PageHead>
@@ -55,7 +55,7 @@ export default function BuildPage() {
           <input
             type="url"
             className="grow"
-            placeholder="Paste a Mobalytics build URL (mobalytics.gg/diablo-4/builds/...)"
+            placeholder="Paste a build link from Mobalytics, Maxroll, Icy Veins or d4builds"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && url && doImport(url)}
@@ -76,7 +76,16 @@ export default function BuildPage() {
                 {v.name}
               </button>
             ))}
-            <span className="dim small right">fetched {timeAgo(Date.parse(build.fetchedAt))}</span>
+            <span className="dim small right">
+              {build.url ? (
+                <a href={build.url} target="_blank" rel="noreferrer" title="Open this build on the site it came from">
+                  From {SITE_LABEL[build.source]}
+                </a>
+              ) : (
+                `From ${SITE_LABEL[build.source]}`
+              )}
+              , fetched {timeAgo(Date.parse(build.fetchedAt))}
+            </span>
           </div>
         )}
         {build && (
@@ -104,10 +113,10 @@ export default function BuildPage() {
                 <div className="row" style={{ gap: 6 }}>
                   <b className={active ? "rar-unique" : ""}>{b.name}</b>
                   {active && <span className="badge" style={{ color: "var(--gold)" }}>active</span>}
-                  {upd && <span className="badge" style={{ color: "var(--green)" }} title={`Updated on Mobalytics ${upd.slice(0, 10)}`}>update</span>}
+                  {upd && <span className="badge" style={{ color: "var(--green)" }} title={`Updated on ${SITE_LABEL[b.source]} ${upd.slice(0, 10)}`}>update</span>}
                 </div>
                 <div className="small muted">
-                  {b.className} · {b.season} · by {b.author || "?"} · updated {b.updatedAt.slice(0, 10)}
+                  {[b.className, b.season, `from ${SITE_LABEL[b.source]}${b.author ? ` by ${b.author}` : ""}`, b.updatedAt && `updated ${b.updatedAt.slice(0, 10)}`].filter(Boolean).join(" · ")}
                 </div>
                 <div className="row" style={{ marginTop: 6 }}>
                   {!active && (
@@ -120,7 +129,7 @@ export default function BuildPage() {
                   </button>
                   {b.url && (
                     <a className="btn ghost sm" href={b.url} target="_blank" rel="noreferrer">
-                      Open
+                      Open on {SITE_LABEL[b.source]}
                     </a>
                   )}
                   {others.length > 0 && (
@@ -436,7 +445,11 @@ function Guide() {
   return (
     <div className="col">
       {sections.length === 0 && (
-        <div className="note">This import has no guide text (GraphQL fast path). Use "Refresh from Mobalytics" with FlareSolverr configured to pull the author's notes.</div>
+        <div className="note">
+          {build.source === "mobalytics"
+            ? 'This import has no guide text (GraphQL fast path). Use "Refresh from Mobalytics" with FlareSolverr configured to pull the author\'s notes.'
+            : `This build has no notes on ${SITE_LABEL[build.source]}. Open it there for the author's write-up.`}
+        </div>
       )}
       {sections.map((s) => (
         <Card key={s.id} title={s.title}>
