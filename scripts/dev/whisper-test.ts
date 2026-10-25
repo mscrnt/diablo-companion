@@ -1,10 +1,9 @@
 import { loadStaticData } from "../../src/lib/names";
 import { findWhisperCaches } from "../../src/lib/whispers";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { readFileSync } from "node:fs";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 await loadStaticData();
-const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
+const v = EXAMPLE_BUILD.variants.find((x) => x.id === "1")!;
 // use the user's real tracked progress
 const st = JSON.parse(readFileSync(process.env.APPDATA + "/com.kenneth.d4companion/d4c-state.json", "utf8"));
 const b = JSON.parse(st.builds).state;

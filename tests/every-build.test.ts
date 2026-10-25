@@ -35,8 +35,8 @@ describe("another build has a use for it", () => {
     expect(scored.verdict).toBe("SCRAP");
     const r = judgeEveryBuild(scream(), scored, [other({ sameCharacter: true })]);
     expect(r.verdict).toBe("KEEP");
-    expect(r.action).toBe("Keep it: an upgrade for your Skeletal Warrior Minions build.");
-    expect(r.reasons[0]).toMatch(/^Skeletal Warrior Minions, Weapon: Wear this!/);
+    expect(r.action).toBe("Keep it: an upgrade for your Skeleton Warrior Army build.");
+    expect(r.reasons[0]).toMatch(/^Skeleton Warrior Army, Weapon: Wear this!/);
   });
 
   it("another character: stash it, with their class and name", () => {

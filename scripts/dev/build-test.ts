@@ -1,8 +1,7 @@
 import { loadStaticData } from "../../src/lib/names";
-import { normaliseMobalytics } from "../../src/lib/mobalytics";
-import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
+import { EXAMPLE_BUILD } from "../../tests/fixtures/example-build";
 await loadStaticData();
-const b = normaliseMobalytics(raw as any);
+const b = EXAMPLE_BUILD;
 console.log(b.name, "|", b.author, "|", b.className, b.season, "| variants:", b.variants.map((v) => `${v.id}=${v.name}`).join(", "));
 console.log("general sections:", b.sections.map((s) => s.title).join(" / "));
 const v = b.variants.find((v) => v.id === "1")!;
