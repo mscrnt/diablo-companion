@@ -9,6 +9,9 @@
 // for reading the screen. Without WebGPU the wasm backend is used single-threaded, which is only
 // fast enough for the odd tooltip (see recognise.ts: it won't build a library that way).
 import * as ort from "onnxruntime-web/webgpu";
+// the wasm the WebGPU build runs on, as a URL Vite serves in dev and emits with the app in a build (left to
+// itself, ORT looks for it next to its pre-bundled copy in dev, where it isn't)
+import ortWasm from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url";
 import { artInCrop } from "./crop";
 import { cutArt } from "./extract";
 import { matchIcon, packLibrary, loadLibrary, quantise, type LoadedLibrary } from "./library";
@@ -39,6 +42,7 @@ async function init(model: ArrayBuffer, backend: Backend) {
   // app has to work offline and must not call out to anyone. One thread: the GPU does the work,
   // and the CPU fallback has to stay light.
   ort.env.wasm.numThreads = 1;
+  ort.env.wasm.wasmPaths = { wasm: ortWasm };
   ort.env.logLevel = "error";
   const t0 = performance.now();
   session = await ort.InferenceSession.create(model, {
