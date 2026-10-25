@@ -26,6 +26,7 @@ import { debugEvent, debugWanted, installMainDebugHooks, markMoment, startDebug 
 import { flagLastVerdict, sharingOn, startSharing } from "./share";
 import { MAP_PIN_PRESETS, getActiveVariant, nextPreset, useBuilds, useCoach, useLoot, useRuns, useSettings, useWatchers, type ActionId, type Watcher } from "./store";
 import { EVENT_META, eventLabel, fmtCountdown, isActive, localSchedule, mergeLive, type LiveInfo } from "./timers";
+import { bonusAlertLine } from "./weeklybonus";
 import type { GameEvent, JudgeResult } from "./types";
 
 interface Runtime {
@@ -208,12 +209,16 @@ function checkAlerts(events: GameEvent[]) {
         fired.add(key);
         const meta = EVENT_META[e.kind];
         const title = lead === 0 ? `${meta.emoji} ${eventLabel(e)}: NOW` : `${meta.emoji} ${eventLabel(e)} in ${lead} min`;
-        // a world boss's main zone is only a likely guess: the game's map shows it about an hour before
+        // a world boss's main zone is only a likely guess: the game's map shows it about an hour before.
+        // The weekly bonus line counts only what the app has seen you claim (weeklybonus.ts)
         const body =
           e.kind === "worldBoss"
-            ? e.zone
-              ? `${e.zone.charAt(0).toUpperCase()}${e.zone.slice(1)}. Your map shows it an hour before.`
-              : "Its zone is on your map an hour before."
+            ? [
+                e.zone ? `${e.zone.charAt(0).toUpperCase()}${e.zone.slice(1)}. Your map shows it an hour before.` : "Its zone is on your map an hour before.",
+                bonusAlertLine([e.name, typeof e.extra?.maybe === "string" ? e.extra.maybe : ""]),
+              ]
+                .filter(Boolean)
+                .join(" ")
             : (e.zone ?? meta.label);
         if (!alertsAllowed(alerts.onlyWhileGameRuns, useRuntime.getState().game)) {
           debugEvent("alerts", "skipped", { title, why: "Diablo IV isn't running" });

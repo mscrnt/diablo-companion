@@ -244,7 +244,7 @@ export const defaultSettings: Settings = {
     v: 2,
   },
   calibration: null,
-  activities: ["The Pit", "Infernal Hordes", "The Tower", "Nightmare Dungeon", "Escalating Nightmare", "Minor Nightmare", "Helltide", "World Boss", "Lair Boss", "Undercity", "Leveling"],
+  activities: ["The Pit", "Infernal Hordes", "The Tower", "Nightmare Dungeon", "Escalating Nightmare", "Minor Nightmare", "Horadric Strongroom", "Helltide", "World Boss", "Lair Boss", "Undercity", "Leveling"],
 };
 
 function deepMerge<T>(base: T, over: any): T {

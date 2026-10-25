@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtCountdown, localSchedule, predictHelltideZone, predictWorldBoss, predictWorldBossZone } from "../src/lib/timers";
+import { currentWorldBoss, fmtCountdown, localSchedule, predictHelltideZone, predictWorldBoss, predictWorldBossZone } from "../src/lib/timers";
 
 describe("local event schedule", () => {
   const t0 = Date.UTC(2026, 9, 10, 4, 0, 0);
@@ -84,6 +84,14 @@ describe("world bosses", () => {
     const wb = localSchedule(Date.parse("2026-10-17T06:00:00Z"), 6).filter((e) => e.kind === "worldBoss");
     expect(wb[0].zone).toBe("probably Scosglen");
     expect(wb[1].zone).toBe("probably Kehjistan, also Nahantu or Skovos");
+  });
+
+  it("the boss of the spawn you could be at now (for the weekly bonus)", () => {
+    const ms = (iso: string) => Date.parse(iso);
+    expect(currentWorldBoss(ms("2026-10-17T07:35:00Z"))).toBe("Wandering Death"); // the fight is on
+    expect(currentWorldBoss(ms("2026-10-17T08:00:00Z"))).toBe("Wandering Death"); // just over, loot still around
+    expect(currentWorldBoss(ms("2026-10-17T09:30:00Z"))).toBeNull(); // long gone
+    expect(currentWorldBoss(ms("2026-10-16T03:35:00Z"))).toBeNull(); // the slot could be either boss
   });
 });
 
