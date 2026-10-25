@@ -13,7 +13,7 @@ const host = process.env.TAURI_DEV_HOST;
 // @ts-expect-error process is a nodejs global
 const gameData = process.env.GAMEDATA_DIR ?? "data/gamedata";
 const NEEDS_GAME_DATA = [
-  "activities", "build", "charsheet", "every-build", "glyph-levels", "hordes-offers", "identify", "importers", "judge",
+  "activities", "build", "charsheet", "every-build", "glyph-levels", "hordes-offers", "icons", "identify", "importers", "judge",
   "mappins", "no-ai-1080p", "ocrfix", "plain-items", "untitled", "worn-item",
 ].map((f) => `tests/${f}.test.ts`);
 const hasGameData = existsSync(`${gameData}/affixes.json`) && existsSync(`${gameData}/generated/ocr-vocab.json`);
