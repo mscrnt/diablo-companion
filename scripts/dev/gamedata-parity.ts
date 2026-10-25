@@ -102,7 +102,7 @@ const leftover = (table: string, slug: string, e: any) => LEFTOVERS[table]?.find
 const argv = process.argv.slice(2);
 const dump = argv.indexOf("--dump");
 if (dump >= 0) writeFileSync(argv[dump + 1], JSON.stringify(out, null, 1));
-const asked = argv.filter((a, i) => !a.startsWith("--") && i !== dump + 1);
+const asked = argv.filter((a, i) => !a.startsWith("--") && (dump < 0 || i !== dump + 1));
 const TABLES = asked.length
   ? asked
   : ["uniques", "aspects", "stats", "skills", "gems", "runes", "charms", "seals", "chaosPerks", "boards", "glyphs", "nodes", "mercs", "mercSkills", "mercOpp", "wpTrees", "wpNodes", "bloodied"];
