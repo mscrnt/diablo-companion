@@ -30,7 +30,9 @@ await build({
   platform: "node",
   format: "esm",
   outfile: out,
-  external: ["@tauri-apps/*"],
+  // onnxruntime-web ships its own prebuilt bundle and finds its wasm next to itself; sharp is a
+  // native module (both only used by icon-eval)
+  external: ["@tauri-apps/*", "onnxruntime-web", "onnxruntime-web/webgpu", "sharp"],
   logLevel: "error",
   plugins: [viteGlobShim],
   // the tables come from the game data extracted on this PC (data/gamedata or GAMEDATA_DIR), as in the tests

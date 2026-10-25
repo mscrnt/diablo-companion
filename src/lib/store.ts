@@ -114,6 +114,12 @@ export interface Settings {
     worldBadgeSeconds: number;
     snoozeSeconds: number;
   };
+  /**
+   * Recognise items by their icon: one more signal for naming a unique, from the item's picture in
+   * the tooltip. Needs a GPU the app can use and a one-off model download; the picture library is
+   * built on this PC from the game install, and no art ever leaves it.
+   */
+  icons: { enabled: boolean };
   /** record every auto-judge scan with its frame and display context (test-mode log folder, capped) */
   testMode: { enabled: boolean; maxMB: number };
   /**
@@ -226,6 +232,7 @@ export const defaultSettings: Settings = {
   hordes: { enabled: true, style: "balanced" },
   autoRuns: true,
   autoJudge: { enabled: true, intervalMs: 400, sounds: false, showBadge: true, alwaysUseAi: false, worldDwellMs: 1000, worldBadgeSeconds: 3, snoozeSeconds: 30 },
+  icons: { enabled: false },
   testMode: { enabled: false, maxMB: 500 },
   share: { enabled: false, asked: false, installId: null, since: null },
   mapPins: {

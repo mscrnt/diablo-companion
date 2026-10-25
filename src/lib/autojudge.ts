@@ -17,6 +17,7 @@ import type { JudgeResult } from "./types";
 import { onFrame } from "./activity";
 import { debugEvent, debugEventEvery } from "./debug";
 import { isPersonalLine, overlaps } from "./privacy";
+import { artSquare } from "./icons/crop";
 
 // Words that only appear inside item tooltips.
 const MARKERS = [
@@ -448,19 +449,20 @@ async function tick(isFocused: () => boolean) {
         },
         cap.image,
       );
-      // the item's art in the tooltip's top-right corner, labelled with what it was judged as: a clean test
-      // set for recognising items by their icon (roadmap). A generous square in screen px, right after the
-      // judgement while the tooltip is still up; legendaries too (their art names the base type).
+      // the item's art, labelled with what it was judged as: the test set for recognising items by their
+      // icon (scripts/dev/icon-eval.ts). The same square icon recognition reads (src/lib/icons/crop.ts),
+      // taken right after the judgement while the tooltip is still up; legendaries too (their art names
+      // the base type).
       const it = result?.item;
       if (it && /unique|mythic|legendary/i.test(it.rarity ?? "")) {
-        // the art sits in the top-right corner, inside the frame just right of the text column (+5% of its width).
-        // Stop at that frame: with the comparison open, the equipped item's tooltip (and its art) starts right
-        // after it, and an earlier, wider square caught both items' art (2026-10-12 spike)
-        const b = det.hovered.box;
-        const side = Math.round(b.w * 0.5);
-        const right = b.x + b.w + Math.round(b.w * 0.05);
-        captureRegion({ x: right - side, y: Math.round(b.y - b.w * 0.12), w: side, h: side }, { maxEdge: 512, quality: 92 })
-          .then((icon) => testLog("icon", { name: it.name, rarity: it.rarity, itemType: it.itemType, untitled: it.untitled ?? false, box: b, region: icon.region }, icon.image))
+        captureRegion(artSquare(det.hovered.box), { maxEdge: 512, quality: 92 })
+          .then((icon) =>
+            testLog(
+              "icon",
+              { name: it.name, rarity: it.rarity, itemType: it.itemType, untitled: it.untitled ?? false, box: det.hovered.box, region: icon.region },
+              icon.image,
+            ),
+          )
           .catch(() => {});
       }
     }
