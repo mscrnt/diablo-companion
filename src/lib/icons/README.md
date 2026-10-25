@@ -17,8 +17,9 @@ injected or sent to the game.
                   (model.ts)                      │
                                                   ├─► build: decode the sheets, cut the art,
    library for this game build in the cache?      │          embed every piece, 16 at a time
-                  else plan() the art to cut  ────┘          (progress back to the main thread)
-                  (extract.ts) ──► the worker                      │
+                  else ask the game data reader    │          (progress back to the main thread)
+                  for a plan() of the art to cut ──┘                │
+                  (extract.ts, in its worker)                       │
                                                                     ▼
    library saved to the cache, keyed by build  ◄────────────  the int8 library
                                                          (library.ts)
@@ -49,46 +50,50 @@ library that way would take a quarter of an hour of CPU, so it isn't offered.
   and no vectors made from it, are shipped or downloaded. A vector cannot be turned back into the
   picture.
 
-## Wiring it to the game data reader
+## Where the game data comes from
 
-Everything this feature needs from the game install is in `GameFiles` and `GameMeta` (`types.ts`).
-When the in-app extractor (`src/lib/gamedata/`, with its Rust/cascx file reader) is merged, one
-call registers it and this feature starts working:
+Everything this feature needs from the install is in `GameFiles` and `GameMeta` (`types.ts`), and
+the reader in `src/lib/gamedata/` provides them: `registerIcons()` (its `index.ts`) hands them over
+with one `registerGameData(...)` call, and `src/lib/gamedata/icons.ts` is the adapter.
 
-```ts
-import { registerGameData } from "../icons/registry";
+It is called when the icon setting is turned on, not at start-up, and again when the game build
+changes. Nothing reads a game file until a library actually has to be built. `recognise.ts` waits
+for the registration (`onGameData`), so the order doesn't matter; until something registers, the
+Settings card says it is waiting for the game data.
 
-registerGameData({
-  files: {
-    // "base/Misc/2D_table.dat", "base/meta/186283", "base/payload/123456"
-    read: (rel) => reader.readRaw(rel),
-    // optional: copy these out of CASC if they aren't cached yet
-    ensure: (keys) => reader.extract(keys),
-    build: () => reader.gameBuild(),          // "3.2.2.73764"
-    uniques: () => reader.uniques(),          // { sno, id, name, itemType }[]
-  },
-  meta: {
-    nameOf: (sno) => reader.toc.byId.get(sno)?.[1],
-    group: (g) => reader.toc.byGroup[g].entries(),
-    parseMeta: (buf) => reader.metaReader.parseMeta(buf),
-    parseCombined: (buf, group, asType) =>
-      iterCombinedMeta(buf, group).map(([sno, b]) =>
-        [sno, reader.metaReader.parseMeta(b, { standalone: false, group, asType })]),
-  },
-});
-```
+Two things are worth knowing about that reader:
 
-`recognise.ts` waits for that registration (`onGameData`), so the order of startup doesn't matter.
-Until something registers, the Settings card says it is waiting for the game data.
+- **A finished read deletes its ~110 MB raw copy**, so none of the files the art needs are on disk
+  by the time a library is built. `ensure(keys)` copies back just those (the two tables, ~1,100 item
+  and actor records, the ~60 sheet payloads: about 140 MB) through the same read-only cascx sidecar,
+  and `release()` deletes them again. They go in the build's own `icons/raw` folder so a re-read of
+  the same build can't clear them mid-way.
+- **The plan is worked out in the reader's worker** (`planIconsInWorker` in its `host.ts`), because
+  it parses a couple of thousand records. A reader that gives `meta` instead of `plan` has it worked
+  out on the calling thread.
 
-`devio.ts` does the same against a `tools/datamine/extract.mjs` output folder on disk, for dev
-builds only; delete it once the real reader is wired in.
+`scripts/dev/icon-plan.ts` runs that same code against a real install with a Node IO
+(`node scripts/dev/run.mjs icon-plan`), from an empty raw folder, and reports coverage and timings.
 
-## Not done yet
+## Where a unique's picture lives
 
-Weapons and jewellery. Their item records carry no image link (`tInvImages` is empty), so
-`plan()` finds no art for them and they are counted in `plan().unlinked`. The offline library in
-`tools/icons/build-library.mjs` covers them from `data/gamedata/icons/frames/labels.json`, which a
-labelling spike produced and which isn't reproducible from the install alone yet. Until that is
-solved, the in-app library covers the art the game itself links to a unique (armour, and anything
-else with an image link), and weapons are named from their text as before.
+`plan()` tries three links, in this order, because the game uses all three:
+
+1. **the item record's own icon handle** (field hash `0x075d565b`, which the definitions we pin have
+   no name for): one picture authored for this exact item. This is what tells a seasonal reskin
+   apart from the item whose actor it shares, so it has to come first.
+2. **the item record's `tInvImages`**: one handle per class, for armour whose picture is composed
+   per class.
+3. **the item's actor** (`snoActor` -> `ptItemData[0].hDefaultImage`): one authored picture, which
+   is where every weapon, ring and amulet keeps its. The Actor group's format hash isn't in the
+   pinned definitions, so it is read as `ActorDefinition` by name.
+
+`eComponentStyleType` says which of the last two applies: 1 when the picture is composed per class,
+0 when there is one authored icon on the actor. A handle is only taken from an actor when it is in
+the 2D table *and* lands on a sheet named `2DInventory*`: the armour actors carry a handle too, but
+theirs points into the component system, and that check is also what would catch the field moving in
+a later game build instead of silently scoring the wrong art.
+
+Measured on build 3.2.3.73883: 944 of 954 uniques get art (543 through `tInvImages` alone, which is
+all there was before), 100% of weapons, jewellery and offhands. The ten that get none are placeholder
+and test records.

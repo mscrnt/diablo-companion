@@ -8,6 +8,7 @@ import { emitOverlay, onGlobal, onMain } from "./bus";
 import { planFarm } from "./farm";
 import { isTauri } from "./http";
 import { judgeNow } from "./judgeRunner";
+import { registerIcons, useGameData } from "./gamedata";
 import { startIcons, stopIcons } from "./icons/recognise";
 import { snoozeJudge, startAutoJudge } from "./autojudge";
 import { guideNext, useGuide } from "./guide";
@@ -525,6 +526,14 @@ export async function startEngine() {
   setOverlayCapturable(useSettings.getState().settings.overlay.capturable).catch(() => {});
   let lastHotkeys = JSON.stringify(useSettings.getState().settings.hotkeys);
   let lastIcons = useSettings.getState().settings.icons.enabled;
+  // recognising items by their icon: the model (and the worker that runs it) only load when it's on,
+  // and the library is built from the game data, so the reader is handed over at the same moment
+  const iconsOn = () => {
+    if (!useSettings.getState().settings.icons.enabled) return;
+    void registerIcons()
+      .then(startIcons)
+      .catch((e) => debugEvent("icons", "start-failed", { error: String(e) }));
+  };
   useSettings.subscribe((st) => {
     const h = JSON.stringify(st.settings.hotkeys);
     if (h !== lastHotkeys) {
@@ -533,12 +542,15 @@ export async function startEngine() {
     }
     if (st.settings.icons.enabled !== lastIcons) {
       lastIcons = st.settings.icons.enabled;
-      if (lastIcons) void startIcons();
+      if (lastIcons) iconsOn();
       else stopIcons();
     }
   });
-  // recognising items by their icon: the model (and the worker that runs it) only load when it's on
-  if (lastIcons) void startIcons();
+  iconsOn();
+  // a patch means new art: the library is keyed by game build, so this rebuilds it
+  useGameData.subscribe((s, prev) => {
+    if (s.build && s.build !== prev.build) iconsOn();
+  });
 
   gameStatus().then((game) => useRuntime.setState({ game })).catch(() => {});
   onGlobal<GameStatus>("game-status", (game) => {

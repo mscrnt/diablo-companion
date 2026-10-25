@@ -1,20 +1,27 @@
 // Where the game data reader is plugged in.
 //
-// Reading the player's Diablo IV install (CASC) is the game data extractor's job, not this
-// feature's: it owns the Rust/cascx side and the raw file cache. Icon recognition asks for files by
-// their path in that cache and for the build and the unique list, nothing more (GameFiles and
-// GameMeta in types.ts), so whoever owns the reader registers it here once and this feature works:
+// Reading the player's Diablo IV install (CASC) is the game data reader's job, not this feature's:
+// it owns the Rust/cascx side and the raw file cache. Icon recognition asks for files by their path
+// in that cache and for the build and the unique list, nothing more (GameFiles and GameMeta in
+// types.ts), so whoever owns the reader registers it here once and this feature works:
 //
 //   import { registerGameData } from "../icons/registry";
-//   registerGameData({ files: myReader, meta: myMetaReader });
+//   registerGameData({ files: myReader, plan: myPlanner });
 //
-// Until something does, icon recognition says it needs the game data and stays off. The dev path
-// in devio.ts registers a reader that points at an extractor cache on disk.
-import type { GameFiles, GameMeta } from "./types";
+// In the app that is `registerIcons()` in src/lib/gamedata/index.ts, called when the setting is
+// turned on. Until something registers, icon recognition says it needs the game data and stays off.
+import type { GameFiles, GameMeta, IconPlanWire } from "./types";
 
 export interface GameData {
   files: GameFiles;
-  meta: GameMeta;
+  /** The SNO reader, when the plan is worked out on the calling thread. */
+  meta?: GameMeta;
+  /**
+   * Work the plan out somewhere else. A reader that owns a worker does it there, which keeps a
+   * couple of thousand record parses off the window's thread; without this the plan is worked out
+   * where it is asked for, from `files` and `meta`.
+   */
+  plan?(onStep: (done: number, total: number) => void): Promise<IconPlanWire>;
 }
 
 let registered: GameData | null = null;
