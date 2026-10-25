@@ -57,6 +57,7 @@ export function plainText(src: string | null | undefined): string {
   // innermost {if:…}A{else}B{/if} / {if:…}A{/if} first, until none are left (non-mythic, simple tooltip)
   for (let i = 0; i < 8 && /\{if:/.test(s); i++)
     s = s.replace(/\{if:[^{}]*\}((?:(?!\{if:)[\s\S])*?)(?:\{else\}((?:(?!\{if:)[\s\S])*?))?\{\/if\}/g, (_m, _a, b) => b ?? "");
+  s = s.replace(/\{(?:if:[^{}]*|else|\/if)\}/gi, ""); // a template the game leaves unbalanced (a stray {/if})
   // the game's markers for multiplicative and additive bonuses ("45%[x]") go back in after the other brackets
   s = s.replace(/\[[^\]|]*\|([^\]|]*)\|?\]/g, (_m, fmt: string) => "#" + (/x%|%x/.test(fmt) ? "%" + MULT : /\+%|%\+/.test(fmt) ? "%" + ADD : fmt.includes("%") ? "%" : ""));
   s = s.replace(/\[[^\]]*\]/g, "#");
@@ -319,9 +320,10 @@ export function convert(x: Extracted): Tables {
       .filter((f: any) => f.id !== u.uniquePower?.id)
       .flatMap((f: any) => (affixById.get(f.id)?.attributes ?? []).map((a: any) => statOf(a, param)))
       .filter(Boolean);
+    const d = plainText(u.uniquePower?.desc);
     put(T("uniques"), uniqueSlug.get(u)!, {
       n: uniqueName.get(u)!,
-      d: plainText(u.uniquePower?.desc),
+      ...(d ? { d } : {}),
       c: classOf(u.classes),
       t: itemTypeName(u.itemTypeName, u.itemType),
       ...(u.mythic ? { m: 1 as const } : {}),
