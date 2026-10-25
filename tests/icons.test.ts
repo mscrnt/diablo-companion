@@ -11,7 +11,7 @@ import { loadLibrary, matchIcon, packLibrary, quantise } from "../src/lib/icons/
 import { l2, letterbox, pixelValues } from "../src/lib/icons/square";
 import { BG, DIMS, SIZE, type LibraryEntry } from "../src/lib/icons/types";
 import { confident, identifyUnique, WEIGHTS } from "../src/lib/identify";
-import { loadStaticData } from "../src/lib/names";
+import { hasGameData } from "./setup";
 
 /** A w x h picture of one solid colour, fully opaque. */
 function solid(w: number, h: number, r: number, g: number, b: number, a = 255): Uint8Array {
@@ -149,23 +149,24 @@ describe("block-compressed textures", () => {
 });
 
 describe("the picture as one signal among several", () => {
-  beforeAll(() => loadStaticData());
+  // naming a real unique weighs title, power and stats against the whole game data: those tests need it
+  const named = it.skipIf(!hasGameData);
   const deathgripPower =
     "Your maximum number of Skeleton Warriors is increased by 2. Skeleton Warriors cleave with their attacks and deal 120% increased damage.";
   const name = (r: ReturnType<typeof identifyUnique>) => confident(r)?.name ?? null;
 
-  it("names the item when the title is lost and only the picture is sure", () => {
+  named("names the item when the title is lost and only the picture is sure", () => {
     const icon = { "Deathless Visage": 0.98 };
     expect(name(identifyUnique({ title: "", itemType: "Ancestral Unique Helm", power: "", stats: [], icon }))).toBe("Deathless Visage");
   });
 
-  it("a wrong picture never beats a clear title", () => {
+  named("a wrong picture never beats a clear title", () => {
     const icon = { "Endurant Faith": 1 };
     const r = identifyUnique({ title: "DEATHGRIP", itemType: "Ancestral Unique Gloves", power: deathgripPower, stats: [], icon });
     expect(name(r)).toBe("Deathgrip");
   });
 
-  it("a wrong picture never beats a clear power on its own either", () => {
+  named("a wrong picture never beats a clear power on its own either", () => {
     // a bad crop's false high: measured, the worst another unique's art scores is about 0.83
     const icon = { "Endurant Faith": 0.85 };
     const r = identifyUnique({ title: "", itemType: "Ancestral Unique Gloves", power: deathgripPower, stats: [], icon });
@@ -178,7 +179,7 @@ describe("the picture as one signal among several", () => {
     expect(WEIGHTS.icon).toBeLessThan(WEIGHTS.power);
   });
 
-  it("the picture breaks a tie the text can't", () => {
+  named("the picture breaks a tie the text can't", () => {
     const base = { title: "", itemType: "Ancestral Unique Gloves", power: "", stats: [] };
     expect(name(identifyUnique(base))).toBeNull();
     expect(name(identifyUnique({ ...base, icon: { Deathgrip: 0.98 } }))).toBe("Deathgrip");
@@ -189,7 +190,7 @@ describe("the picture as one signal among several", () => {
     expect(name(identifyUnique({ title: "", itemType: "Ancestral Unique Gloves", power: "", stats: [], icon }))).toBeNull();
   });
 
-  it("an unrelated picture (cosine around 0.72) counts for nothing", () => {
+  named("an unrelated picture (cosine around 0.72) counts for nothing", () => {
     const r = identifyUnique({ title: "", itemType: "Ancestral Unique Gloves", power: "", stats: [], icon: { Deathgrip: 0.72, "Endurant Faith": 0.68 } });
     expect(r[0].parts.icon).toBe(0);
     expect(name(r)).toBeNull();

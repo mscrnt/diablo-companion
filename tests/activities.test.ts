@@ -5,10 +5,19 @@ import { helltideAdvice, parseHelltideHud } from "../src/lib/helltide";
 import { bossInfo, findBoss } from "../src/lib/boss";
 import { needs, nodes, parseWarPlan, planTree, trees } from "../src/lib/warplans";
 import { planFarm, bossRoute } from "../src/lib/farm";
+import { tablesForTests } from "./fixtures/tables";
 import { exampleBuild, line } from "./helpers";
+import { hasGameData } from "./setup";
+
+// The Infernal Offers, the Whisper caches and the War Plans trees are whole tables of the game's own
+// text, not a handful of names: those tests read the data extracted on this PC. The rest run anywhere.
+const fromGame = it.skipIf(!hasGameData);
 
 let ctx: Awaited<ReturnType<typeof exampleBuild>>;
-beforeAll(async () => void (ctx = await exampleBuild()));
+beforeAll(async () => {
+  await tablesForTests();
+  ctx = await exampleBuild();
+});
 
 describe("Infernal Hordes", () => {
   // OCR-ish text with typos, three offers side by side
@@ -18,19 +27,19 @@ describe("Infernal Hordes", () => {
     line("The Aether Goblins", 2000, 300), line("Monsters now have greatly increased health", 2000, 330),
   ];
 
-  it("recognises offers despite OCR typos and ranks them", () => {
+  fromGame("recognises offers despite OCR typos and ranks them", () => {
     const r = findOffers(offers, { x: 0, y: 0 }, "balanced");
     expect(r.map((o) => o.title)).toEqual(["The Wrath of Hell", "The Stalking Devil", "The Aether Goblins"]);
     expect(r[0].rank).toBe(1);
   });
 
-  it("safe playstyle ranks the dangerous offer lower", () => {
+  fromGame("safe playstyle ranks the dangerous offer lower", () => {
     const balanced = findOffers(offers, { x: 0, y: 0 }, "balanced").findIndex((o) => o.title === "The Stalking Devil");
     const safe = findOffers(offers, { x: 0, y: 0 }, "safe").findIndex((o) => o.title === "The Stalking Devil");
     expect(safe).toBeGreaterThan(balanced);
   });
 
-  it("reads spoils chests and spends aether on what the build needs", () => {
+  fromGame("reads spoils chests and spends aether on what the build needs", () => {
     expect(findChests([line("Spoils of Greater Equipment"), line("Spoils of Talismans", 500), line("Spoils of Gold", 900)], { x: 0, y: 0 }).map((c) => c.name)).toEqual([
       "Spoils of Greater Equipment",
       "Spoils of Talismans",
@@ -41,7 +50,7 @@ describe("Infernal Hordes", () => {
     expect(a.order.at(-1)).toBe("Spoils of Gold");
   });
 
-  it("takes offers only from title lines, not description fragments or boss names", () => {
+  fromGame("takes offers only from title lines, not description fragments or boss names", () => {
     // modelled on a real wave 6 offer screen (OCR slips kept)
     const r = findOffers(
       [line("Aether Goblins", 400, 300), line("The Enduring Lords", 1200, 300), line("The Exalted Fiends", 2000, 300), line("The Wrath 0fHell", 2800, 300), line("THE FELL COUNCIL", 100, 100)],
@@ -88,7 +97,7 @@ describe("Infernal Hordes", () => {
 });
 
 describe("Tree of Whispers", () => {
-  it("ranks caches for missing slots above chaos", () => {
+  fromGame("ranks caches for missing slots above chaos", () => {
     const W = (t: string, y: number) => line(t, 100, y, 400);
     const r = findWhisperCaches([W("COLLECTION OF HELMS", 0), W("COLLECTION OF CHAOS", 60), W("COLLECTION OF RINGS", 120), W("COLLECTION OF CHESTPLATES", 180)], { x: 0, y: 0 }, ctx.variant, ctx.prog);
     expect(r).toHaveLength(4);
@@ -96,7 +105,7 @@ describe("Tree of Whispers", () => {
     expect(r.at(-1)!.name).toBe("Collection of Chaos");
   });
 
-  it("knows a two-handed unique from its type, not its name", () => {
+  fromGame("knows a two-handed unique from its type, not its name", () => {
     // Bloodless Scream is a 2h Scythe: a one-handed weapon cache is no use to this build
     const W = (t: string, y: number) => line(t, 100, y, 400);
     const r = findWhisperCaches([W("COLLECTION OF ONE-HANDED WEAPONS", 0), W("COLLECTION OF RINGS", 60), W("COLLECTION OF CHAOS", 120)], { x: 0, y: 0 }, ctx.variant, ctx.prog);
@@ -104,7 +113,7 @@ describe("Tree of Whispers", () => {
     expect(r.find((c) => /one-handed/i.test(c.name))?.why).toMatch(/two-handed/);
   });
 
-  it("long cache names wrapping onto a second line (2026-10-16 test: every one read as Boots)", () => {
+  fromGame("long cache names wrapping onto a second line (2026-10-16 test: every one read as Boots)", () => {
     const W = (t: string, y: number) => line(t, 100, y, 400, 30);
     const names = (ls: ReturnType<typeof W>[]) => findWhisperCaches(ls, { x: 0, y: 0 }, ctx.variant, ctx.prog).map((c) => c.name).sort();
     expect(
@@ -191,14 +200,14 @@ describe("farm planner", () => {
 });
 
 describe("War Plans", () => {
-  it("has seven trees of seven points", () => {
+  fromGame("has seven trees of seven points", () => {
     expect(trees()).toHaveLength(7);
     // in the game's tab order
     expect(trees().map((t) => t.name)).toEqual(["Tree of Whispers", "Nightmare Dungeons", "Helltide", "The Undercity", "Lair Bosses", "Infernal Hordes", "The Pit"]);
     expect(trees().every((t) => t.max === 7)).toBe(true);
   });
 
-  it("plans a legal path in every tree", () => {
+  fromGame("plans a legal path in every tree", () => {
     const need = needs(ctx.variant, ctx.prog, 150);
     for (const t of trees()) {
       const plan = planTree(t.slug, need, new Set(), 7);

@@ -14,13 +14,13 @@ beforeAll(() => tablesForTests());
 
 describe("which site a pasted link is from", () => {
   it("knows the four build sites", () => {
-    expect(siteOf("https://mobalytics.gg/diablo-4/builds/necromancer-mages-necro-guide")).toBe("mobalytics");
+    expect(siteOf("https://mobalytics.gg/diablo-4/builds/minion-necromancer-guide")).toBe("mobalytics");
     expect(siteOf("https://maxroll.gg/d4/build-guides/blood-wave-necromancer-guide")).toBe("maxroll");
     expect(siteOf("https://planners.maxroll.gg/profiles/d4/xf9um40q")).toBe("maxroll");
     expect(siteOf("https://www.icy-veins.com/d4/planner/?uid=61e715e1fa72")).toBe("icy-veins");
     expect(siteOf("https://d4builds.gg/builds/23ae9cbb-933e-4a88-999c-2241654cc8e2/")).toBe("d4builds");
     // a bare slug is a Mobalytics build, as the paste box has always taken
-    expect(siteOf("necromancer-mages-necro-guide")).toBe("mobalytics");
+    expect(siteOf("minion-necromancer-guide")).toBe("mobalytics");
   });
 
   it("says so plainly for anything else", async () => {

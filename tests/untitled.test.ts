@@ -2,9 +2,10 @@
 // ("Unique Gloves"), and the base armor line was counted as a greater affix (a 4★ read as 5★).
 import { beforeAll, describe, expect, it } from "vitest";
 import { fastParse, type FastLine } from "../src/lib/fastparse";
-import { loadStaticData } from "../src/lib/names";
+import { tablesForTests } from "./fixtures/tables";
+import { hasGameData } from "./setup";
 
-beforeAll(() => loadStaticData());
+beforeAll(() => tablesForTests());
 
 const L = (text: string, bullet: FastLine["bullet"] = "none"): FastLine => ({ text, bullet });
 
@@ -21,7 +22,8 @@ describe("a unique without its title", () => {
     L("Requires Level 70"),
   ];
 
-  it("is named from its unique power", () => {
+  // the power text is matched against the game's own unique powers, which the fixtures never hold
+  it.skipIf(!hasGameData)("is named from its unique power", () => {
     expect(fastParse(gloves, false, undefined)?.name).toBe("Paingorger's Gauntlets");
   });
 

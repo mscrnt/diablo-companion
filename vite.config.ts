@@ -9,13 +9,14 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 const host = process.env.TAURI_DEV_HOST;
 
 // Tests that need real game names read the data extracted on this PC (tests/setup.ts). Nothing from the game is in
-// the repo, so without it (CI) these files are left out; the rest use our own hand-written fixtures.
+// the repo, so without it (CI) these files are left out; the rest use our own hand-written fixtures
+// (tests/fixtures/tables.ts for the few names they need, `it.skipIf(!hasGameData)` for the odd test that wants
+// the whole data). Only these files are game data from end to end: the OCR vocabulary and what it snaps
+// (ocrfix, worn-item), the Infernal Offers table (hordes-offers), naming a unique from its own power text
+// (identify) and the map's places (mappins).
 // @ts-expect-error process is a nodejs global
 const gameData = process.env.GAMEDATA_DIR ?? "data/gamedata";
-const NEEDS_GAME_DATA = [
-  "activities", "build", "charsheet", "every-build", "glyph-levels", "hordes-offers", "icons", "identify", "importers", "judge",
-  "mappins", "no-ai-1080p", "ocrfix", "plain-items", "untitled", "worn-item",
-].map((f) => `tests/${f}.test.ts`);
+const NEEDS_GAME_DATA = ["hordes-offers", "identify", "mappins", "ocrfix", "worn-item"].map((f) => `tests/${f}.test.ts`);
 const hasGameData = existsSync(`${gameData}/affixes.json`) && existsSync(`${gameData}/generated/ocr-vocab.json`);
 
 // https://vite.dev/config/

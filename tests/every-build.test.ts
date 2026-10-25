@@ -6,10 +6,14 @@ import { judgeEveryBuild, type OtherBuild } from "../src/lib/everyBuild";
 import { decide, itemClasses } from "../src/lib/judge";
 import { emptyProgress } from "../src/lib/store";
 import type { BuildVariant, ParsedItem } from "../src/lib/types";
+import { tablesForTests } from "./fixtures/tables";
 import { exampleBuild } from "./helpers";
 
 let ex: Awaited<ReturnType<typeof exampleBuild>>;
-beforeAll(async () => void (ex = await exampleBuild()));
+beforeAll(async () => {
+  await tablesForTests();
+  ex = await exampleBuild();
+});
 
 const A = (text: string, match: string | null = null) => ({ text, match, greater: false, tempered: false, masterwork: false, enchanted: false });
 /** The example build's unique scythe (a Necromancer unique), not owned yet */

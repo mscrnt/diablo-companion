@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import { fastParse, type FastLine } from "../src/lib/fastparse";
 import { decide } from "../src/lib/judge";
-import { loadStaticData } from "../src/lib/names";
+import { tablesForTests } from "./fixtures/tables";
 import { exampleBuild } from "./helpers";
 
 const fx: Record<string, FastLine[]> = JSON.parse(readFileSync(new URL("./fixtures/tooltips/1080p-no-ai.json", import.meta.url), "utf8"));
@@ -13,7 +13,7 @@ const read = (k: string) => fastParse(fx[k], false, undefined);
 
 let ctx: Awaited<ReturnType<typeof exampleBuild>>;
 beforeAll(async () => {
-  await loadStaticData();
+  await tablesForTests();
   ctx = await exampleBuild();
 });
 
