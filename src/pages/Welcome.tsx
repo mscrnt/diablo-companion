@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { importMobalytics, normaliseMobalytics } from "../lib/mobalytics";
+import { importBuild } from "../lib/importers";
+import { normaliseMobalytics } from "../lib/mobalytics";
 import { listModels } from "../lib/llm";
 import { useBuilds, useSettings } from "../lib/store";
 import { HelpImproveChoices, applyChoices, type Choices } from "../components/HelpImprove";
 import { GameDataStep } from "../components/GameData";
 
-/** First run: pick a build (any Mobalytics URL), optionally connect an AI model, and choose how to help improve the app. */
+/** First run: pick a build (a link from any of the four build sites), optionally connect an AI model, and choose how to help improve the app. */
 export default function Welcome({ onDone }: { onDone: () => void }) {
   const { settings, update } = useSettings();
   const addBuild = useBuilds((s) => s.addBuild);
@@ -20,7 +21,7 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
     setBusy(true);
     setMsg(null);
     try {
-      const { build, defaultVariant } = await importMobalytics(url, { flaresolverr: settings.flaresolverr || undefined, prefer: settings.flaresolverr ? "full" : "fast" });
+      const { build, defaultVariant } = await importBuild(url, { flaresolverr: settings.flaresolverr || undefined, prefer: settings.flaresolverr ? "full" : "fast" });
       addBuild(build, defaultVariant);
       setMsg({ ok: true, text: `Imported "${build.name}" (${build.className}, ${build.season}).` });
     } catch (e) {
@@ -59,10 +60,10 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
       <div className="card" style={{ marginTop: 14 }}>
         <h2>2. Your build</h2>
         <div className="muted small" style={{ marginBottom: 8 }}>
-          Paste any Mobalytics Diablo 4 build link (mobalytics.gg/diablo-4/builds/… or a profile build). You can add more builds later and switch between them.
+          Paste a build link from Mobalytics, Maxroll, Icy Veins or d4builds. Nothing is fetched until you paste one, and only that build. You can add more builds later and switch between them.
         </div>
         <div className="row">
-          <input type="url" className="grow" placeholder="https://mobalytics.gg/diablo-4/builds/…" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && url && doImport()} />
+          <input type="url" className="grow" placeholder="Paste a build link from Mobalytics, Maxroll, Icy Veins or d4builds" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && url && doImport()} />
           <button className="btn primary" disabled={!url || busy} onClick={doImport}>
             {busy ? <span className="loader" /> : "Import"}
           </button>

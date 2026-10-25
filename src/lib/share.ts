@@ -4,6 +4,7 @@
 // and wearing an item the judge saw is a quiet signal too. Batches go to our Worker every couple of
 // minutes; a random install id, never a BattleTag, character name or IP; deleted after 30 days.
 import { invoke } from "@tauri-apps/api/core";
+import { load, type Store } from "@tauri-apps/plugin-store";
 import { create } from "zustand";
 import { isTauri } from "./http";
 import { getActiveVariant, useBuilds, useLoot, useSettings } from "./store";
@@ -38,11 +39,15 @@ interface ShareState {
 
 export const useShare = create<ShareState>(() => ({ queue: [], sent: 0, lastSentAt: null, error: "", recent: [] }));
 
-// every minute: what's still queued when the app closes is lost (about a dozen judgements a session at 2 min)
+// every minute; what's still queued when the app closes is kept in its own file and sent next time
 const FLUSH_MS = 60_000;
 const FLUSH_AT = 20;
 const MAX_QUEUE = 200;
 const MAX_BATCH_CHARS = 6 * 1024 * 1024;
+/** the kept queue: the newest items up to ~20 MB (pictures included), none older than a week */
+const KEEP_CHARS = 20 * 1024 * 1024;
+const KEEP_MS = 7 * 86_400_000;
+const QUEUE_FILE = "share-queue.json";
 
 const cfg = () => useSettings.getState().settings.share;
 export const sharingOn = () => isTauri && cfg().enabled && !!cfg().installId;
@@ -271,10 +276,63 @@ export async function flush(): Promise<void> {
   }
 }
 
+/** The newest items that fit in the kept file, oldest first, none older than a week. */
+export function keepable<T extends { at: number }>(queue: T[], now = Date.now(), budget = KEEP_CHARS): T[] {
+  const out: T[] = [];
+  let chars = 0;
+  for (let i = queue.length - 1; i >= 0; i--) {
+    const it = queue[i];
+    if (now - it.at > KEEP_MS) continue;
+    chars += JSON.stringify(it).length;
+    if (chars > budget) break;
+    out.unshift(it);
+  }
+  return out;
+}
+
+// its own file, not the settings store: pictures make it big, and it's only written a couple of seconds after a change
+let queueStore: Promise<Store> | null = null;
+const getQueueStore = () => (queueStore ??= load(QUEUE_FILE, { autoSave: false, defaults: {} }));
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+function saveQueueSoon() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    saveTimer = null;
+    try {
+      const store = await getQueueStore();
+      await store.set("queue", sharingOn() ? keepable(useShare.getState().queue) : []);
+      await store.save();
+    } catch (e) {
+      debugEvent("share", "keep-failed", { error: String((e as Error)?.message ?? e) });
+    }
+  }, 2000);
+}
+
+/** What was still queued last time, back in the queue (only while sharing is on). */
+async function restoreQueue() {
+  try {
+    const kept = (await (await getQueueStore()).get<Item[]>("queue")) ?? [];
+    if (!sharingOn()) return void (kept.length && saveQueueSoon());
+    const fresh = keepable(kept);
+    if (!fresh.length) return;
+    useShare.setState((s) => {
+      const have = new Set(s.queue.map((q) => `${q.kind}:${q.id}:${q.at}`));
+      return { queue: [...fresh.filter((q) => !have.has(`${q.kind}:${q.id}:${q.at}`)), ...s.queue].slice(-MAX_QUEUE) };
+    });
+    debugEvent("share", "restored", { items: fresh.length });
+  } catch (e) {
+    debugEvent("share", "restore-failed", { error: String((e as Error)?.message ?? e) });
+  }
+}
+
 let timer: ReturnType<typeof setInterval> | null = null;
-/** Started with the engine: sends every minute, and on the way out. */
+/** Started with the engine: sends every minute, and on the way out; keeps what's unsent for next time. */
 export function startSharing() {
   if (timer || !isTauri) return;
   timer = setInterval(() => void flush(), FLUSH_MS);
   window.addEventListener("beforeunload", () => void flush());
+  void restoreQueue().then(() => {
+    useShare.subscribe((s, prev) => s.queue !== prev.queue && saveQueueSoon());
+    void flush();
+  });
 }

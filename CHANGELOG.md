@@ -7,6 +7,7 @@ The release workflow publishes each version's section as its GitHub release note
 
 ### Added
 - **The game data now comes from your own Diablo IV install.** On first run, and after every game patch, the app reads item names, affixes, aspects, runes, paragon glyphs, charms and the world map straight out of the game files on your PC, in the background. Nothing is downloaded, the game folder is only read, and the game does not need to be running. Settings shows the folder, the build and when it was last read, with a Re-read button, and a Choose folder button if the game is somewhere unusual.
+- **Import a build from Maxroll, Icy Veins or d4builds too,** not just Mobalytics: one paste box takes a link from any of the four. Only the build you paste is fetched, nothing is searched or listed, and the build keeps a link back to the page it came from. d4builds imports gear, affixes, tempers, greater and masterwork marks, gems and runes, the skill bar, paragon boards and glyphs, the talisman and the mercenaries. Icy Veins imports all of that except the affixes, which its planner only stores as numbers. Maxroll imports the header, its profiles, the skill bar and the gear it names (runewords, named charms), and says "Unique Ring" where its planner keeps no name.
 - **World events predicted by the app itself:** the world boss of every spawn (one slot in the rotation can be either of two bosses, and it says so), its likely zone ("probably Scosglen", right about 2 times in 3), which world bosses also spawn in Nahantu or Skovos, and the zone of every Helltide. Nothing is fetched from other sites any more. A Legion's zone can't be predicted yet.
 - **Character profiles:** each character has its own builds (several per character, one active), gear, progress, stats and glyphs. The app switches by itself when the Character panel shows a character's name, and runs and loot are labelled by character.
 - **The loot judge checks every build of every character:** "Keep it: an upgrade for your Minion build" for this character, "Stash it: great for your Necromancer" for another. It only says scrap when no build of yours can use the item, and an item for another class says so.
@@ -19,9 +20,10 @@ The release workflow publishes each version's section as its GitHub release note
 - **Black bar layout:** panels can be moved and reordered in each bar, also in game in edit mode (Ctrl+Shift+O), and "Leave room for Discord" keeps the top left clear.
 
 ### Changed
+- **The lookup tables are built from your own game files.** Uniques (Season 15 runewords included), aspects, stats, skills with every skill tree upgrade, gems, runes, charms, seals, Chaos perks, paragon boards, nodes and glyphs, mercenaries and the War Plans trees all come from the install on this PC instead of the copy of another site's data the app used to ship.
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
 - Up to 100 marked moments are kept (was 30, which a busy session filled in half an hour).
-- Shared judgements go out every minute, so fewer are lost when the app closes; in test mode a copy of each shared picture, blacked out as sent, is saved with the test log.
+- Shared judgements go out every minute, and any still waiting when the app closes are kept (up to a week) and sent next time; in test mode a copy of each shared picture, blacked out as sent, is saved with the test log.
 - Keys, sigils, tributes, caches and other things you carry say "Keep it" instead of "Stash it".
 - The seal and charms you wear are remembered, so spare ones are judged even without the game's comparison.
 - World event timers no longer fetch anything from other sites, and imported builds are never checked for updates in the background: builds come only from a link you paste.
