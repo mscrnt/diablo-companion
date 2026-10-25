@@ -140,6 +140,8 @@ export interface Settings {
   /** start/split/finish runs automatically from the quest tracker */
   autoRuns: boolean;
   activities: string[];
+  /** activities an update added to `activities` already (each is added once, so removing it sticks) */
+  activitiesAdded?: string[];
   calibration: Calibration | null;
 }
 
@@ -278,7 +280,25 @@ export function migrateMapPins(m: Settings, persisted: any): Settings {
     const mine = key(m.padChords.mapPinsPreset);
     if (Object.entries(m.padChords).some(([a, c]) => a !== "mapPinsPreset" && c.length && key(c) === mine)) m.padChords = { ...m.padChords, mapPinsPreset: [] };
   }
-  return freeNewBinding(freeNewBinding(m, persisted, "markMoment"), persisted, "flagVerdict");
+  return addNewActivities(freeNewBinding(freeNewBinding(m, persisted, "markMoment"), persisted, "flagVerdict"), persisted);
+}
+
+/** Activities a release added to the list: once, after the one before them in the defaults, for lists saved earlier. */
+const NEW_ACTIVITIES = ["Horadric Strongroom"];
+export function addNewActivities(m: Settings, persisted: any): Settings {
+  const done = new Set<string>(m.activitiesAdded ?? []);
+  const todo = NEW_ACTIVITIES.filter((a) => !done.has(a));
+  if (!todo.length) return m;
+  const list = [...m.activities];
+  // a fresh install already has them from the defaults
+  if (Array.isArray(persisted?.activities))
+    for (const a of todo) {
+      if (list.includes(a)) continue;
+      const before = defaultSettings.activities[defaultSettings.activities.indexOf(a) - 1];
+      const at = list.indexOf(before);
+      list.splice(at >= 0 ? at + 1 : list.length, 0, a);
+    }
+  return { ...m, activities: list, activitiesAdded: [...done, ...todo] };
 }
 
 /**
