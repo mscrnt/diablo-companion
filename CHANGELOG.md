@@ -21,7 +21,7 @@ The release workflow publishes each version's section as its GitHub release note
 ### Changed
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
 - Up to 100 marked moments are kept (was 30, which a busy session filled in half an hour).
-- Shared judgements go out every minute, so fewer are lost when the app closes; in test mode a copy of each shared picture, blacked out as sent, is saved with the test log.
+- Shared judgements go out every minute, and any still waiting when the app closes are kept (up to a week) and sent next time; in test mode a copy of each shared picture, blacked out as sent, is saved with the test log.
 - Keys, sigils, tributes, caches and other things you carry say "Keep it" instead of "Stash it".
 - The seal and charms you wear are remembered, so spare ones are judged even without the game's comparison.
 - World event timers no longer fetch anything from other sites, and imported builds are never checked for updates in the background: builds come only from a link you paste.
