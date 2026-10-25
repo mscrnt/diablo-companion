@@ -216,7 +216,7 @@ const started = Date.now();
 
 /** Everything the app currently believes, in one readable object (no images, short strings). */
 export async function collectState(): Promise<Record<string, unknown>> {
-  const [{ useRuntime }, aj, act, hr, mp, sb, tm, gd] = await Promise.all([
+  const [{ useRuntime }, aj, act, hr, mp, sb, tm, gd, gdata, names] = await Promise.all([
     import("./engine"),
     import("./autojudge"),
     import("./activity"),
@@ -225,6 +225,8 @@ export async function collectState(): Promise<Record<string, unknown>> {
     import("./skillbar"),
     import("./testmode"),
     import("./guide"),
+    import("./gamedata"),
+    import("./names"),
   ]);
   const s = useSettings.getState().settings;
   const rt = useRuntime.getState();
@@ -239,6 +241,12 @@ export async function collectState(): Promise<Record<string, unknown>> {
     app: { version: APP_VERSION, testMode: s.testMode.enabled, userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "" },
     settings: settingsSummary(s),
     game: { status: rt.game, display: display.value },
+    // the game data read off this PC, and the tables built from it (empty tables: the read hasn't finished)
+    gameData: (() => {
+      const { state, dir, source, build, gameBuild, error } = gdata.useGameData.getState() as any;
+      const tables = Object.fromEntries((["uniques", "aspects", "stats", "skills", "runes", "charms", "glyphs", "boards", "wpNodes"] as const).map((t) => [t, Object.keys(names.table(t)).length]));
+      return { state, dir, source, build, gameBuild, error, tablesBuild: names.staticMeta()?.build ?? null, tables };
+    })(),
     activity: act.activityDebug(),
     hordes: hr.hordesState(),
     autojudge: aj.autojudgeDebug(),
