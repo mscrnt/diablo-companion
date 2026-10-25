@@ -85,7 +85,15 @@ async function iconArt(t: TooltipText, className?: string): Promise<Record<strin
     const raw = atob(t.image.replace(/^data:[^,]+,/, ""));
     const jpeg = new Uint8Array(raw.length);
     for (let i = 0; i < raw.length; i++) jpeg[i] = raw.charCodeAt(i);
-    return (await iconScores(jpeg.buffer, t.share.box, t.share.region, className)) ?? undefined;
+    const t0 = performance.now();
+    const scores = await iconScores(jpeg.buffer, t.share.box, t.share.region, className);
+    // the best few picture matches, so a test session shows what the icon said next to the verdict
+    if (scores)
+      debugEvent("icons", "match", {
+        top: Object.entries(scores).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, v]) => `${n} ${v.toFixed(3)}`),
+        ms: Math.round(performance.now() - t0),
+      });
+    return scores ?? undefined;
   } catch {
     return undefined;
   }
