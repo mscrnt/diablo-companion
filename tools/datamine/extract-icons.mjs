@@ -83,9 +83,11 @@ for (const u of uniques) {
 const sheetIds = new Set(wanted.flatMap((w) => w.refs.map((r) => r[0])));
 log(`${wanted.length} of ${uniques.length} uniques have an icon, on ${sheetIds.size} sheets`);
 
-// --frames: also every frame of the weapon / jewellery / seasonal sheets, unlabelled. Their items' records
-// carry no image link (tInvImages is empty), so the frames get named later by matching them, locally,
-// against named reference icons; the art itself always comes from the install.
+// --frames: also every frame of the weapon / jewellery / seasonal sheets, unlabelled, so they can be named
+// later by matching them, locally, against named reference icons; the art itself always comes from the
+// install. Only needed because this tool reads `tInvImages` alone, which weapons and jewellery leave empty:
+// the game does link them to their art, through the item's own icon handle or its actor, and the in-app
+// extractor follows those (see src/lib/icons/README.md, "Where a unique's picture lives").
 const FRAMES = argv.includes('--frames');
 const FRAME_SHEETS = /^2DInventory_(Rings|Amulets|Axes|Bows|Daggers|Flails|Glaive|Maces|Offhand|Polearm|Quarterstaff|Scythes?|Shields|Staff|Swords|Wands|crossbows|Items_AF_Uniques|Items_X2|X2_Items|Season\d+_Items|S1[24]_Items|Talisman|Items_Unique_)/i;
 const frameSheets = FRAMES ? [...toc.byGroup[44].entries()].filter(([, n]) => FRAME_SHEETS.test(n) && !/stor\d/i.test(n)).map(([id]) => id) : [];

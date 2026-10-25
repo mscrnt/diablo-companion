@@ -73,6 +73,16 @@ export interface SheetDef {
   frames: [number, number, number, number][];
 }
 
+/** How many uniques each of the three links the game keeps found art for. */
+export interface IconPlanVia {
+  /** the item record's per-class list (`tInvImages`): armour, whose picture is composed per class */
+  perClass: number;
+  /** the item record's own icon handle: seasonal reskins, and the weapons that override their actor */
+  item: number;
+  /** the item's actor: weapons and jewellery, whose one authored picture lives there */
+  actor: number;
+}
+
 /**
  * What to cut and where from, worked out before any pixels are read, so the build can show a total
  * and the worker can be handed the whole job in one message (plain arrays: it crosses postMessage).
@@ -80,8 +90,9 @@ export interface SheetDef {
 export interface IconPlanWire {
   items: { entry: LibraryEntry; sheet: number; frame: number }[];
   sheets: SheetDef[];
-  /** uniques whose record carries no image link at all (weapons and jewellery: see README.md) */
-  unlinked: number;
+  /** the uniques (by SNO) none of the three links found art for, for the debug log and the dev tools */
+  noArt: number[];
+  via: IconPlanVia;
 }
 
 /** One square of art cut out of a sheet, ready to be embedded. */
@@ -103,11 +114,22 @@ export interface GameFiles {
   /** The file's bytes, or null when it isn't there (encrypted, or not in this build). */
   read(rel: string): Promise<Uint8Array | null>;
   /**
+   * The same in one round trip, in the same order, null for the ones that aren't there. Optional,
+   * but worth having: the plan reads a couple of thousand small files.
+   */
+  readMany?(rels: string[]): Promise<(Uint8Array | null)[]>;
+  /**
    * Make sure these files are in the raw cache, copying them out of CASC if they aren't.
    * Keys are CASC names ("base:Misc\\2D_table.dat", "base:payload\\123456"). Optional: a reader
    * that already has everything on disk leaves it out.
    */
   ensure?(keys: string[]): Promise<void>;
+  /**
+   * The library is built: whatever `ensure` copied out can go again. Optional, and called once the
+   * art has been embedded (the app's reader deletes its raw copy after every read, so the copies
+   * this feature asks for are its own to clean up).
+   */
+  release?(): Promise<void>;
   /** The game build the files came from ("3.2.2.73764"), the library's cache key. */
   build(): Promise<string>;
   /** The uniques of this build, with their SNO ids. */
@@ -123,8 +145,11 @@ export interface GameMeta {
   nameOf(sno: number): string | undefined;
   /** Every (id, name) in a SNO group (44 = Texture). */
   group(group: number): Iterable<[number, string]>;
-  /** Parse a standalone meta file (base/meta/<id>). */
-  parseMeta(buf: Uint8Array): Record<string, unknown>;
+  /**
+   * Parse a standalone meta file (base/meta/<id>). `asType` names the type to read it as, for a
+   * group whose format hash the bundled definitions don't know (the Actor group needs it).
+   */
+  parseMeta(buf: Uint8Array, opts?: { group?: number; asType?: string }): Record<string, unknown>;
   /** Parse the entries of a combined meta container (Texture-Base-Global.dat) as `asType`. */
   parseCombined(buf: Uint8Array, group: number, asType: string): Iterable<[number, Record<string, unknown>]>;
 }

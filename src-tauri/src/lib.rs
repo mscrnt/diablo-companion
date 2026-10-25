@@ -541,16 +541,6 @@ fn icon_cache_stat(app: AppHandle, path: String) -> Result<Option<CacheStat>, St
     Ok(std::fs::metadata(p).ok().filter(|m| m.is_file()).map(|m| CacheStat { bytes: m.len() }))
 }
 
-/// Dev builds only: read a file from anywhere, so the icon library can be built from a datamine
-/// cache outside the app folder while the in-app game data reader is being written.
-#[tauri::command]
-fn icon_dev_read(path: String) -> Result<tauri::ipc::Response, String> {
-    if !cfg!(debug_assertions) {
-        return Err("icon_dev_read is for dev builds only".into());
-    }
-    Ok(tauri::ipc::Response::new(std::fs::read(path).map_err(err)?))
-}
-
 /// Download the model asset, check it against the SHA-256 the app was built with, and unpack it.
 /// Nothing is kept if the hash doesn't match. Progress goes out on "icons://model-progress".
 #[tauri::command]
@@ -701,7 +691,6 @@ pub fn run() {
             icon_cache_read,
             icon_cache_write,
             icon_cache_stat,
-            icon_dev_read,
             icon_model_install,
         ])
         .setup(|app| {

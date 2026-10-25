@@ -7,22 +7,28 @@
 // Being polite with a player's CPU: tick() yields after every batch and sleeps briefly every so
 // often, so reading the data next to a running game leaves the game plenty of room.
 
+import { planIcons } from "./icons";
 import { run, type RunResult } from "./pipeline";
 import { unframeBatch, type GameDataIO, type Progress } from "./io";
+import type { IconPlanWire, UniqueRow } from "../icons/types";
 
-export interface WorkerRequest {
-  t: "run";
-  build: any;
-  skipCasc?: boolean;
-  dropRaw?: boolean;
-  /** which documents to write; everything else is only used in this run */
-  keep?: string[];
-}
+export type WorkerRequest =
+  | {
+      t: "run";
+      build: any;
+      skipCasc?: boolean;
+      dropRaw?: boolean;
+      /** which documents to write; everything else is only used in this run */
+      keep?: string[];
+    }
+  /** which art the icon library should be built from: the tables, parsed off the window's thread */
+  | { t: "iconPlan"; build: string; uniques: UniqueRow[] };
 
 export type WorkerMessage =
   | { t: "progress"; p: Progress }
   | { t: "io"; id: number; fn: string; args: unknown[] }
   | { t: "done"; build: string; manifest: any; cache: any }
+  | { t: "iconPlan"; plan: IconPlanWire; ms: number }
   | { t: "error"; message: string };
 
 let nextId = 1;
@@ -75,6 +81,21 @@ self.onmessage = async (ev: MessageEvent) => {
     const p = pending.get(msg.id);
     pending.delete(msg.id);
     if (p) msg.ok ? p.resolve(msg.value) : p.reject(new Error(String(msg.value)));
+    return;
+  }
+  if (msg.t === "iconPlan") {
+    try {
+      const t0 = Date.now();
+      const p = await planIcons({
+        io: proxyIo(),
+        build: msg.build,
+        uniques: msg.uniques,
+        onStep: (done, total) => self.postMessage({ t: "progress", p: { stage: "Reading your item pictures", done, total } } satisfies WorkerMessage),
+      });
+      self.postMessage({ t: "iconPlan", plan: p, ms: Date.now() - t0 } satisfies WorkerMessage);
+    } catch (e) {
+      self.postMessage({ t: "error", message: String((e as Error)?.message ?? e) } satisfies WorkerMessage);
+    }
     return;
   }
   if (msg.t !== "run") return;

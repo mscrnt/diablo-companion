@@ -10,10 +10,10 @@ import { debugEvent } from "../debug";
 import { isTauri } from "../http";
 import { plan } from "./extract";
 import { installModel, modelBytes, modelInstalled, type Dtype } from "./model";
-import { gameData, onGameData } from "./registry";
+import { gameData, onGameData, type GameData } from "./registry";
 import { setIcons, useIcons } from "./status";
 import type { Backend, FromWorker, ToWorker } from "./protocol";
-import type { IconLibrary, Rect } from "./types";
+import type { IconLibrary, IconPlanWire, Rect } from "./types";
 
 /** How long a tooltip's icon may take before the judgement goes ahead without it. */
 const SCORE_TIMEOUT_MS = 2500;
@@ -159,18 +159,37 @@ async function run() {
   if (!gpu) return setIcons({ state: "unavailable", progress: null, note: "This PC has no GPU the app can use for this." });
 
   setIcons({ state: "building", progress: 0, gameBuild });
-  const uniques = await data.files.uniques();
-  const p = await plan(data.files, data.meta, uniques, async (done, total) => {
-    setIcons({ progress: (PLAN_SHARE * done) / Math.max(1, total) });
-    await new Promise((r) => setTimeout(r, 0));
-  });
-  debugEvent("icons", "library-plan", { art: p.items.length, sheets: p.sheets.length, noImageLink: p.unlinked, gameBuild });
-  // the sheets' pixel data has to be out of CASC before the worker asks for it
-  await data.files.ensure?.(p.sheets.map((s) => `base:payload\\${s.sno}`));
-  await new Promise<void>((resolve) => {
-    buildResolve = resolve;
-    send({ t: "build", plan: p, gameBuild });
-  });
+  try {
+    const p = await planFor(data, (done, total) => setIcons({ progress: (PLAN_SHARE * done) / Math.max(1, total) }));
+    debugEvent("icons", "library-plan", { art: p.items.length, sheets: p.sheets.length, via: p.via, noArt: p.noArt.length, gameBuild });
+    // the sheets' pixel data has to be out of CASC before the worker asks for it
+    await data.files.ensure?.(p.sheets.map((s) => `base:payload\\${s.sno}`));
+    await new Promise<void>((resolve) => {
+      buildResolve = resolve;
+      send({ t: "build", plan: p, gameBuild });
+    });
+  } catch (e) {
+    // a table this build keeps encrypted, or the game files couldn't be read at all
+    debugEvent("icons", "library-failed", { error: String(e), gameBuild });
+    setIcons({ state: "unavailable", progress: null, note: `Couldn't read your item pictures: ${String((e as Error).message ?? e).slice(0, 80)}` });
+  } finally {
+    // the copies the plan and the build needed aren't wanted again until the next patch
+    await data.files.release?.().catch(() => {});
+  }
+}
+
+/** The plan, worked out by the reader's own worker when it has one, else here. */
+function planFor(data: GameData, onStep: (done: number, total: number) => void): Promise<IconPlanWire> {
+  if (data.plan) return data.plan(onStep);
+  const meta = data.meta;
+  if (!meta) throw new Error("the game data reader can't say which art to read");
+  return data.files.uniques().then((uniques) =>
+    plan(data.files, meta, uniques, async (done, total) => {
+      onStep(done, total);
+      // the tables are being parsed on this thread: let the window breathe between batches
+      await new Promise((r) => setTimeout(r, 0));
+    }),
+  );
 }
 
 /** Turn it off and let go of the model (the session holds a few hundred MB). */

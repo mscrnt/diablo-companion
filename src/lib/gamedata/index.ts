@@ -6,17 +6,21 @@
 //   useGameData         zustand state: where the install is, which build the cache holds, progress
 //   checkGameData()     called once at start: cheap `.build.info` check, re-reads after a patch
 //   readGameData()      read now (first run, or the Re-read button in Settings)
+//   registerIcons()     hand the reader to icon recognition, when that setting is on
 //
 // Nothing is ever downloaded, the game folder is only read, and the reading happens in a worker.
 
 import { create } from "zustand";
 import { isTauri } from "../http";
+import { registerGameData } from "../icons/registry";
 import type { Extracted } from "./convert";
-import { readInWorker } from "./host";
+import { planIconsInWorker, readInWorker } from "./host";
+import { iconBase, iconFiles } from "./icons";
 import { parseBuildInfo, unframeBatch, type BuildInfo, type Progress } from "./io";
 import { cachedBuilds, detectInstall, pruneCache, readBatchRaw, readBuildInfoFile, readResource, pickGameFolder, type Candidate } from "./native";
 import { APP_FILES, APP_STRING_FILES, needsReread, type CacheManifest } from "./pipeline";
-import { outRel } from "./tauriIo";
+import { outRel, tauriIo } from "./tauriIo";
+import type { UniqueRow } from "../icons/types";
 
 const UTF8 = new TextDecoder("utf-8");
 
@@ -326,3 +330,38 @@ export function resetLoaded() {
 useGameData.subscribe((s, prev) => {
   if (s.build !== prev.build) resetLoaded();
 });
+
+// ------------------------------------------------------------------------------------------------
+// icon recognition
+
+let registeredFor: string | null = null;
+
+/**
+ * Hand this reader to icon recognition, so it can build its library of item pictures from the
+ * player's own install (see src/lib/icons/README.md).
+ *
+ * Called when that setting is on, not at start-up, and again after a patch: nothing here reads a
+ * game file until the library is actually built, the plan is worked out in a reader worker, and the
+ * library is keyed by game build so a new build rebuilds it. Does nothing until the app has read
+ * the game data at least once; call it again then.
+ */
+export async function registerIcons(): Promise<void> {
+  if (!isTauri) return;
+  await waitForCache();
+  const { build, dir } = useGameData.getState();
+  if (!build || !dir || registeredFor === build) return;
+  const uniques = await iconUniques(build);
+  if (!uniques.length) return;
+  registeredFor = build;
+  registerGameData({
+    files: iconFiles({ io: tauriIo({ game: dir, base: iconBase(build) }), build, uniques }),
+    plan: (onStep) => planIconsInWorker({ game: dir, build, uniques, onStep }),
+  });
+}
+
+/** Just the columns the icon extractor needs out of the cached uniques.json. */
+async function iconUniques(build: string): Promise<UniqueRow[]> {
+  const docs = await readDocs(build, ["uniques.json"]);
+  const entries = (docs["uniques.json"]?.entries ?? []) as UniqueRow[];
+  return entries.map((u) => ({ sno: u.sno, id: u.id, name: u.name, itemType: u.itemType }));
+}
