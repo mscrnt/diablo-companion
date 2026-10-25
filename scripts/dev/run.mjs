@@ -31,13 +31,14 @@ await build({
   format: "esm",
   outfile: out,
   // onnxruntime-web ships its own prebuilt bundle and finds its wasm next to itself; sharp is a
-  // native module (both only used by icon-eval)
-  // react comes in through zustand and is CommonJS, which esbuild can't inject a top-level-awaiting
-  // module (tests/setup.ts) into; node requires it instead
+  // native module (both only used by icon-eval). React comes in through zustand and is CommonJS,
+  // which esbuild refuses to inject anything into, so node requires it instead.
   external: ["@tauri-apps/*", "onnxruntime-web", "onnxruntime-web/webgpu", "sharp", "react", "react-dom"],
   logLevel: "error",
   plugins: [viteGlobShim],
-  // the tables come from the game data extracted on this PC (data/gamedata or GAMEDATA_DIR), as in the tests
+  // the tables come from the game data extracted on this PC (data/gamedata or GAMEDATA_DIR), as in the
+  // tests; each script then awaits loadStaticData() itself, because esbuild makes an injected module a
+  // dependency of its own imports and a top-level await in there would deadlock the graph
   inject: [join(here, "../../tests/tables.ts")],
   // same constant vite.config.ts defines for the app
   define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(here, "../../package.json"), "utf8")).version) },
