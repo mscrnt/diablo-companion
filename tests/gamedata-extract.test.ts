@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { extract, evalArithmetic, plain, resolveText, setPrerequisites } from "../src/lib/gamedata/extract";
 import { genHordes, genMapPois, genOcrVocab } from "../src/lib/gamedata/gen";
-import { parseBuildInfo, type GameDataIO } from "../src/lib/gamedata/io";
+import { parseBuildInfo, unframeBatch, type GameDataIO } from "../src/lib/gamedata/io";
 import { needsReread, type CacheManifest } from "../src/lib/gamedata/pipeline";
 import type { Definitions } from "../src/lib/gamedata/d4meta";
 
@@ -524,5 +524,47 @@ describe("skill tree prerequisites", () => {
       { index: 3, id: 4, kind: "perk", connections: [2, 1], dep: [] as number[] },
     ]);
     expect(n.map((x) => x.dep)).toEqual([[], [], [2], [3]]);
+  });
+});
+
+// ------------------------------------------------------------------------------------------------
+
+describe("the batched read frame", () => {
+  /** What src-tauri/src/gamedata.rs gamedata_read_batch writes. */
+  const frame = (files: (Uint8Array | null)[]) => {
+    const total = files.reduce((a, f) => a + (f?.length ?? 0), 0);
+    const buf = new ArrayBuffer(4 + files.length * 4 + total);
+    const dv = new DataView(buf);
+    const u8 = new Uint8Array(buf);
+    dv.setUint32(0, files.length, true);
+    files.forEach((f, i) => dv.setUint32(4 + i * 4, f ? f.length : 0xffffffff, true));
+    let at = 4 + files.length * 4;
+    for (const f of files)
+      if (f) {
+        u8.set(f, at);
+        at += f.length;
+      }
+    return buf;
+  };
+
+  it("hands back each file, and null for the ones that are not there", () => {
+    const a = new Uint8Array([1, 2, 3]);
+    const b = new Uint8Array([9]);
+    const got = unframeBatch(frame([a, null, b, new Uint8Array(0)]));
+    expect(got.length).toBe(4);
+    expect([...got[0]!]).toEqual([1, 2, 3]);
+    expect(got[1]).toBeNull();
+    expect([...got[2]!]).toEqual([9]);
+    expect(got[3]!.length).toBe(0);
+  });
+
+  it("does not copy: the pieces are views into the one buffer", () => {
+    const buf = frame([new Uint8Array([7, 7])]);
+    const [only] = unframeBatch(buf);
+    expect(only!.buffer).toBe(buf);
+  });
+
+  it("handles an empty batch", () => {
+    expect(unframeBatch(frame([]))).toEqual([]);
   });
 });
