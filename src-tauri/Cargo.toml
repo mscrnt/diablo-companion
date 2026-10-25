@@ -30,8 +30,10 @@ xcap = "0.9"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 base64 = "0.22"
 anyhow = "1"
-# debug report zip (deflate only; already in the lockfile via the updater)
+# debug report zip, and unpacking the icon model asset (deflate only; already in the lockfile via the updater)
 zip = { version = "=4.6.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# checking the icon model download against the SHA-256 the app was built with
+sha2 = "0.10"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

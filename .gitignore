@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# The model release asset (scripts/build-model-asset.mjs) and the icon eval's cached vectors:
+# model weights and anything built from the game's art are never committed.
+dist-model
+.icon-eval
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

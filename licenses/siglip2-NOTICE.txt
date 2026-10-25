@@ -1,0 +1,27 @@
+SigLIP 2 (siglip2-base-patch16-224)
+===================================
+
+Sanctuary Toolkit's "Recognise items by their icon" uses the vision half of SigLIP 2 to turn a
+picture into a vector. The model and its weights are not ours.
+
+Model:      google/siglip2-base-patch16-224
+            https://huggingface.co/google/siglip2-base-patch16-224
+Copyright:  Google LLC and the SigLIP 2 authors
+Licence:    Apache License 2.0 (see siglip2-LICENSE-Apache-2.0.txt)
+Paper:      "SigLIP 2: Multilingual Vision-Language Encoders with Improved Semantic
+            Understanding, Localization, and Dense Features", Tschannen et al., 2025
+            https://arxiv.org/abs/2502.14786
+
+ONNX export: onnx-community/siglip2-base-patch16-224-ONNX
+             https://huggingface.co/onnx-community/siglip2-base-patch16-224-ONNX
+             An unmodified ONNX export of the model above, by the onnx-community
+             organisation on Hugging Face. The export repository states no licence of its
+             own; the weights it contains stay under the Apache 2.0 licence above.
+
+What Sanctuary Toolkit ships: nothing of the model. The release asset holding the ONNX vision
+encoder is downloaded once, from this repository's own GitHub release, when you turn icon
+recognition on, and is kept in the app's cache folder. This NOTICE and the licence text travel
+with it.
+
+Runtime:    ONNX Runtime Web (onnxruntime-web), Copyright (c) Microsoft Corporation,
+            MIT licence. See node_modules/onnxruntime-web/LICENSE in the source tree.

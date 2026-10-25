@@ -489,6 +489,126 @@ fn safe_name_dot(s: &str) -> String {
     s.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.' { c } else { '_' }).collect()
 }
 
+// ---- icon recognition: <app cache dir>/icons ---------------------------------------------
+// Holds the SigLIP2 vision model (downloaded once from our own release) and the icon library the
+// app builds from the player's own game install. Both are caches: deleting the folder costs a
+// download and a rebuild, nothing else.
+
+/// Resolve a relative path such as "model/fp16/vision_model.onnx" under <app cache dir>/icons,
+/// segment by segment: plain names only (letters, digits, '-', '_', '.'), no "..", no drive letters.
+fn icon_cache_path(app: &AppHandle, rel: &str) -> Result<std::path::PathBuf, String> {
+    let mut p = app.path().app_cache_dir().map_err(err)?.join("icons");
+    for s in rel.split(['/', '\\']).filter(|s| !s.is_empty()) {
+        if s.starts_with('.') || !s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.') {
+            return Err(format!("path not allowed: {rel}"));
+        }
+        p.push(s);
+    }
+    Ok(p)
+}
+
+/// A cached file's bytes, as an ArrayBuffer (the model is ~186 MB: far too big to go as base64).
+#[tauri::command]
+fn icon_cache_read(app: AppHandle, path: String) -> Result<tauri::ipc::Response, String> {
+    let p = icon_cache_path(&app, &path)?;
+    Ok(tauri::ipc::Response::new(std::fs::read(p).map_err(err)?))
+}
+
+#[tauri::command]
+fn icon_cache_write(app: AppHandle, path: String, base64: String) -> Result<(), String> {
+    let p = icon_cache_path(&app, &path)?;
+    if let Some(dir) = p.parent() {
+        std::fs::create_dir_all(dir).map_err(err)?;
+    }
+    let bytes = STANDARD.decode(base64.trim()).map_err(err)?;
+    // written whole, then renamed, so a reader never sees half a library
+    let mut tmp = p.clone().into_os_string();
+    tmp.push(".part");
+    let tmp = std::path::PathBuf::from(tmp);
+    std::fs::write(&tmp, bytes).map_err(err)?;
+    std::fs::rename(&tmp, &p).map_err(err)
+}
+
+#[derive(serde::Serialize)]
+struct CacheStat {
+    bytes: u64,
+}
+
+#[tauri::command]
+fn icon_cache_stat(app: AppHandle, path: String) -> Result<Option<CacheStat>, String> {
+    let p = icon_cache_path(&app, &path)?;
+    Ok(std::fs::metadata(p).ok().filter(|m| m.is_file()).map(|m| CacheStat { bytes: m.len() }))
+}
+
+/// Dev builds only: read a file from anywhere, so the icon library can be built from a datamine
+/// cache outside the app folder while the in-app game data reader is being written.
+#[tauri::command]
+fn icon_dev_read(path: String) -> Result<tauri::ipc::Response, String> {
+    if !cfg!(debug_assertions) {
+        return Err("icon_dev_read is for dev builds only".into());
+    }
+    Ok(tauri::ipc::Response::new(std::fs::read(path).map_err(err)?))
+}
+
+/// Download the model asset, check it against the SHA-256 the app was built with, and unpack it.
+/// Nothing is kept if the hash doesn't match. Progress goes out on "icons://model-progress".
+#[tauri::command]
+async fn icon_model_install(app: AppHandle, url: String, sha256: String, bytes: Option<u64>, dest: String) -> Result<(), String> {
+    use sha2::{Digest, Sha256};
+    use std::io::Write;
+    let dir = icon_cache_path(&app, &dest)?;
+    std::fs::create_dir_all(&dir).map_err(err)?;
+    let zip_path = dir.join("download.part");
+
+    let mut res = tauri_plugin_http::reqwest::get(&url).await.map_err(err)?;
+    if !res.status().is_success() {
+        return Err(format!("{url}: {}", res.status()));
+    }
+    let total = res.content_length().or(bytes).unwrap_or(0);
+    {
+        let mut f = std::fs::File::create(&zip_path).map_err(err)?;
+        let mut hasher = Sha256::new();
+        let mut done: u64 = 0;
+        let mut announced: u64 = 0;
+        while let Some(chunk) = res.chunk().await.map_err(err)? {
+            f.write_all(&chunk).map_err(err)?;
+            hasher.update(&chunk);
+            done += chunk.len() as u64;
+            // an event every 2 MiB: enough for a progress bar, few enough to ignore
+            if done - announced > 2 * 1024 * 1024 {
+                announced = done;
+                let _ = app.emit("icons://model-progress", serde_json::json!({ "done": done, "total": total }));
+            }
+        }
+        f.flush().map_err(err)?;
+        let got = format!("{:x}", hasher.finalize());
+        if got != sha256.to_lowercase() {
+            let _ = std::fs::remove_file(&zip_path);
+            return Err(format!("the model download didn't match its checksum (expected {sha256}, got {got})"));
+        }
+    }
+    let _ = app.emit("icons://model-progress", serde_json::json!({ "done": total, "total": total }));
+
+    let dir2 = dir.clone();
+    let zip2 = zip_path.clone();
+    blocking(move || {
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(&zip2)?)?;
+        for i in 0..zip.len() {
+            let mut entry = zip.by_index(i)?;
+            let name = entry.name().to_string();
+            // the asset is a flat list of files (see scripts/build-model-asset.mjs)
+            if name.contains('/') || name.contains('\\') || name.starts_with('.') {
+                anyhow::bail!("unexpected entry in the model asset: {name}");
+            }
+            let mut out = std::fs::File::create(dir2.join(safe_name_dot(&name)))?;
+            std::io::copy(&mut entry, &mut out)?;
+        }
+        std::fs::remove_file(&zip2)?;
+        Ok(())
+    })
+    .await
+}
+
 #[derive(serde::Serialize)]
 struct MonitorInfo {
     name: String,
@@ -563,6 +683,11 @@ pub fn run() {
             share_send,
             share_delete,
             display_info,
+            icon_cache_read,
+            icon_cache_write,
+            icon_cache_stat,
+            icon_dev_read,
+            icon_model_install,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
