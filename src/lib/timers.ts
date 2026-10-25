@@ -26,19 +26,19 @@ export const ZONES: Record<string, string> = {
 };
 
 /** World boss spawn number: 0 at the first 3h30m spawn after patch 1.2.0 (2023-10-17 23:00 UTC). */
-const WB_EPOCH = 1697583600;
+export const WB_EPOCH = 1697583600;
 /**
  * The world boss by spawn number mod 15. It cycles the four bosses in runs of two (Ashava, Azmodan,
  * Wandering Death, Avarice), with one single per 15. Fits 337 of 353 spawns 2026-05-21 to 2026-10-17. Two slots
  * aren't settled: slot 3 is Wandering Death about 2 times in 3 and Azmodan otherwise, slot 1 Azmodan about 1 in 5.
  */
-const WB_ROTATION = ["Ashava", "Ashava", "Azmodan", "Wandering Death", "Wandering Death", "Avarice", "Avarice", "Ashava", "Ashava", "Azmodan", "Azmodan", "Wandering Death", "Wandering Death", "Avarice", "Avarice"];
-const WB_MAYBE: Record<number, string> = { 1: "Azmodan", 3: "Azmodan" };
+export const WB_ROTATION = ["Ashava", "Ashava", "Azmodan", "Wandering Death", "Wandering Death", "Avarice", "Avarice", "Ashava", "Ashava", "Azmodan", "Azmodan", "Wandering Death", "Wandering Death", "Avarice", "Avarice"];
+export const WB_MAYBE: Record<number, string> = { 1: "Azmodan", 3: "Azmodan" };
 /** Primary zones a world boss can spawn in; which one isn't predictable yet (it looks random server-side). */
 export const WB_ZONES = ["Fractured Peaks", "Scosglen", "Dry Steppes", "Kehjistan", "Hawezar"];
 /** Helltide zone by UTC hour mod 5, since 2026-04-29 19:00 UTC (2,035 of 2,035 hours since). */
-const HELLTIDE_ZONES = ["Scosglen", "Dry Steppes", "Kehjistan", "Hawezar", "Fractured Peaks"];
-const HELLTIDE_ZONES_SINCE = Date.parse("2026-04-29T19:00:00Z") / 1000;
+export const HELLTIDE_ZONES = ["Scosglen", "Dry Steppes", "Kehjistan", "Hawezar", "Fractured Peaks"];
+export const HELLTIDE_ZONES_SINCE = Date.parse("2026-04-29T19:00:00Z") / 1000;
 
 /** Which world boss spawns at `t` (unix seconds, a spawn time), and whether it also spawns in an expansion zone. */
 export function predictWorldBoss(t: number): { boss: string; maybe?: string; expansion: boolean } {
@@ -54,9 +54,9 @@ export function predictWorldBoss(t: number): { boss: string; maybe?: string; exp
  * didn't settle in our data (6, 13, 14) give no guess. WB_ZONE_PHASE is the offset since 2026-09-19: when our own
  * recordings show it moved, it changes here.
  */
-const WB_ZONE_CYCLE: (string | null)[] = ["Scosglen", "Kehjistan", "Dry Steppes", "Scosglen", "Fractured Peaks", "Dry Steppes", null, "Hawezar", "Fractured Peaks", "Kehjistan", "Hawezar", "Fractured Peaks", "Kehjistan", null, null];
-const WB_ZONE_WEEK0 = Date.parse("2026-01-06T00:00:00Z") / 1000;
-const WB_ZONE_PHASE = 9;
+export const WB_ZONE_CYCLE: (string | null)[] = ["Scosglen", "Kehjistan", "Dry Steppes", "Scosglen", "Fractured Peaks", "Dry Steppes", null, "Hawezar", "Fractured Peaks", "Kehjistan", "Hawezar", "Fractured Peaks", "Kehjistan", null, null];
+export const WB_ZONE_WEEK0 = Date.parse("2026-01-06T00:00:00Z") / 1000;
+export const WB_ZONE_PHASE = 9;
 
 export function predictWorldBossZone(t: number): string | undefined {
   const n = Math.round((t - WB_EPOCH) / WB_PERIOD);
