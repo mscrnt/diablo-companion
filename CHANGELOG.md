@@ -16,6 +16,7 @@ The release workflow publishes each version's section as its GitHub release note
 - **"Judging for"** on the overlay and the Build page shows which build and variant the loot judge follows.
 - Option to only alert while Diablo IV is running.
 - **Black bar layout:** panels can be moved and reordered in each bar, also in game in edit mode (Ctrl+Shift+O), and "Leave room for Discord" keeps the top left clear.
+- **Recognise items by their icon** (Settings, off by default): the item's picture in the tooltip is used alongside its text when naming a unique, so a mangled title or a cut-off power is less likely to leave the item unnamed. It needs a GPU the app can use and a one-off model download; the picture library is built on your PC from your own game files and no art ever leaves it.
 
 ### Changed
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
