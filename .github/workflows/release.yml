@@ -95,6 +95,15 @@ jobs:
       - run: npm ci
       - run: npm test
 
+      # cascx.exe: our read-only CascLib wrapper, built from source (MIT, pinned commit in
+      # tools/datamine/build-cascx.mjs). Release builds must include this sidecar.
+      - name: Build the cascx sidecar
+        run: node tools/datamine/build-cascx.mjs --sidecar
+
+      - name: The sidecar is there
+        shell: bash
+        run: test -s src-tauri/bin/cascx-x86_64-pc-windows-msvc.exe
+
       - run: rustup toolchain install
         working-directory: src-tauri
 

@@ -34,6 +34,8 @@ data/gamedata/strings
 tools/vendor
 tools/datamine/bin
 tools/datamine/cascx/obj
+# cascx.exe sidecar: built from source by tools/datamine/build-cascx.mjs (and by CI)
+src-tauri/bin
 release
 
 # Raw dumps — regenerate with the scripts in scripts/ and tools/datamine.

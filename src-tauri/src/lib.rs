@@ -1,5 +1,6 @@
 mod capture;
 mod game;
+mod gamedata;
 mod ocr;
 mod pad;
 
@@ -563,6 +564,20 @@ pub fn run() {
             share_send,
             share_delete,
             display_info,
+            gamedata::gamedata_detect,
+            gamedata::gamedata_build_info,
+            gamedata::gamedata_pick_folder,
+            gamedata::gamedata_cache_dir,
+            gamedata::gamedata_read_batch,
+            gamedata::gamedata_list,
+            gamedata::gamedata_builds,
+            gamedata::gamedata_write,
+            gamedata::gamedata_read_text,
+            gamedata::gamedata_clean,
+            gamedata::gamedata_prune,
+            gamedata::gamedata_dir_size,
+            gamedata::gamedata_resource,
+            gamedata::gamedata_casc,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
