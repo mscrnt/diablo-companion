@@ -48,6 +48,17 @@
   },
   "bundle": {
     "active": true,
+    "externalBin": [
+      "bin/cascx"
+    ],
+    "resources": [
+      "resources/d4data/definitions.json",
+      "resources/d4data/attributeList.json",
+      "resources/d4data/buildVersion.txt",
+      "resources/d4data/LICENSE",
+      "resources/d4data/json/snoFileInfo.json",
+      "resources/d4data/json/snoGroups.json"
+    ],
     "targets": [
       "nsis"
     ],

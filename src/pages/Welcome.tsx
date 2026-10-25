@@ -3,6 +3,7 @@ import { importMobalytics, normaliseMobalytics } from "../lib/mobalytics";
 import { listModels } from "../lib/llm";
 import { useBuilds, useSettings } from "../lib/store";
 import { HelpImproveChoices, applyChoices, type Choices } from "../components/HelpImprove";
+import { GameDataStep } from "../components/GameData";
 
 /** First run: pick a build (any Mobalytics URL), optionally connect an AI model, and choose how to help improve the app. */
 export default function Welcome({ onDone }: { onDone: () => void }) {
@@ -53,8 +54,10 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
       <h1 style={{ fontFamily: "var(--display)", color: "var(--gold)" }}>Welcome to Sanctuary Toolkit</h1>
       <p className="muted">It reads your screen (no game memory, no input) and helps with loot, events, the Pit, Hordes, Helltides and more: tuned to the build you play.</p>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <h2>1. Your build</h2>
+      <GameDataStep />
+
+      <div className="card" style={{ marginTop: 14 }}>
+        <h2>2. Your build</h2>
         <div className="muted small" style={{ marginBottom: 8 }}>
           Paste any Mobalytics Diablo 4 build link (mobalytics.gg/diablo-4/builds/… or a profile build). You can add more builds later and switch between them.
         </div>
@@ -71,7 +74,7 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
       </div>
 
       <div className="card" style={{ marginTop: 14 }}>
-        <h2>2. AI model (optional)</h2>
+        <h2>3. AI model (optional)</h2>
         <div className="muted small" style={{ marginBottom: 8 }}>
           The loot judge, timers, trackers and overlays work without AI. A local OpenAI-compatible server (vLLM, LM Studio, Ollama, llama.cpp) adds the AI Coach, session plans and a fallback for odd tooltips. A vision model (e.g. Qwen-VL) is best.
         </div>
@@ -94,7 +97,7 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
       </div>
 
       <div className="card" style={{ marginTop: 14 }}>
-        <h2>3. In game</h2>
+        <h2>4. In game</h2>
         <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
           <li>Set Display Mode to <b>Windowed Fullscreen</b> so the overlay can draw.</li>
           <li>Open your inventory and hover your equipped gear once: the app learns what you're wearing.</li>
@@ -104,7 +107,7 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
 
       <div className="card" style={{ marginTop: 14 }}>
         <div className="row">
-          <h2 style={{ margin: 0 }}>4. Help improve Sanctuary Toolkit</h2>
+          <h2 style={{ margin: 0 }}>5. Help improve Sanctuary Toolkit</h2>
           <button className="btn sm right" onClick={() => setHelp({ share: true, testMode: true })}>
             Turn both on
           </button>

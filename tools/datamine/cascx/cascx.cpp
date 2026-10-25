@@ -12,6 +12,9 @@
 // create, modify, move or write-lock anything inside the game installation. Output files are
 // written only by this program's own code, into <outDir>.
 
+// winsock2 first: CascLib's Sockets.cpp needs it, and windows.h would otherwise pull in the
+// winsock 1.1 header, which MSVC rejects as a redefinition.
+#include <winsock2.h>
 #include <windows.h>
 #include <cstdio>
 #include <cstdlib>
@@ -81,7 +84,9 @@ static BOOL WINAPI RO_MoveFileExW(LPCWSTR, LPCWSTR, DWORD) { SetLastError(ERROR_
 #undef MoveFileEx
 
 // ---------------------------------------------------------------------------------------------
-extern "C" int _dowildcard = 0;   // disable mingw argv globbing
+#ifdef __MINGW32__
+extern "C" int _dowildcard = 0;   // disable mingw argv globbing (MSVC never globs unless asked)
+#endif
 
 static std::wstring widen(const char* s)
 {

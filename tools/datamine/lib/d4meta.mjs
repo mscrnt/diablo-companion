@@ -1,5 +1,10 @@
 // d4meta.mjs - Diablo IV SNO meta-file reader driven by DiabloTools/d4data `definitions.json`.
 //
+// NOTE: the app and tools/datamine/extract.mjs both use the TypeScript port in
+// src/lib/gamedata/d4meta.ts, which is the one implementation to change. This copy is left only
+// for tools/datamine/extract-icons.mjs (the icon-recognition spike, which still works on Node
+// Buffers); drop it once that tool is ported too.
+//
 // The binary reading logic is a port of DiabloTools/d4data `parse.js` (MIT licence, see
 // tools/vendor/d4data/LICENSE) with a simplified output shape that is easier to consume:
 //   - complex types   -> plain objects { fieldName: value }  (polymorphic entries get `__type`)

@@ -66,6 +66,8 @@ export type ActionId = "judge" | "runToggle" | "runSplit" | "clip" | "overlayEdi
 export interface Settings {
   llm: { baseUrl: string; model: string; apiKey: string; thinkingForCoach: boolean };
   flaresolverr: string;
+  /** the Diablo IV folder the app reads the game data from (found automatically, or picked) */
+  gamePath: string;
   hotkeys: Record<ActionId, string>;
   padChords: Record<ActionId, string[]>;
   padEnabled: boolean;
@@ -151,6 +153,7 @@ export const defaultSettings: Settings = {
     thinkingForCoach: false,
   },
   flaresolverr: "",
+  gamePath: "",
   hotkeys: {
     judge: "F8",
     runToggle: "F9",

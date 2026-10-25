@@ -8,6 +8,8 @@ import { tidyCharacter } from "./lib/charmap";
 import { APP_VERSION, RELEASES_URL } from "./lib/version";
 import { useBuilds, useCoach, useLoot, useProfiles, useSettings } from "./lib/store";
 import { HelpImproveModal } from "./components/HelpImprove";
+import { GameDataStatus } from "./components/GameData";
+import { checkGameData } from "./lib/gamedata";
 import Dashboard from "./pages/Dashboard";
 import Timers from "./pages/Timers";
 import BuildPage from "./pages/Build";
@@ -73,6 +75,9 @@ export default function App() {
     (async () => {
       await loadStaticData();
       tidyCharacter();
+      // cheap: reads the install's .build.info and our cache manifest, then re-reads in the
+      // background when the game has been patched (0.2.x upgrades land here with no cache yet)
+      void checkGameData();
       // wait for persisted builds, then seed the user's build on first run
       if (!useBuilds.persist.hasHydrated()) await new Promise<void>((r) => useBuilds.persist.onFinishHydration(() => r()));
       if (!useSettings.persist.hasHydrated()) await new Promise<void>((r) => useSettings.persist.onFinishHydration(() => r()));
@@ -148,6 +153,7 @@ export default function App() {
             <span className={"dot " + (rt.llm?.ok ? "ok" : rt.llm ? "bad" : "")} />
             <span className="lbl">LLM {rt.llm?.ok ? "online" : rt.llm ? "offline" : "…"}</span>
           </div>
+          <GameDataStatus />
           <div title={rt.live?.error || `Live timers ${rt.live ? "synced" : "…"}`}>
             <span className={"dot " + (rt.live && !rt.live.error ? "ok" : rt.live ? "warn" : "")} />
             <span className="lbl">Live timers {rt.live && !rt.live.error ? "synced" : rt.live ? "partial" : "…"}</span>

@@ -9,6 +9,7 @@ import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate, installUpdate } fr
 import { DebugReportButton } from "../components/DebugReport";
 import { ExportStatsButton } from "../components/ExportStats";
 import { HelpImproveCard } from "../components/HelpImprove";
+import { GameDataCard } from "../components/GameData";
 
 const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "judge", label: "Judge item under cursor" },
@@ -41,6 +42,10 @@ export default function SettingsPage() {
         </button>
       </PageHead>
       <div className="grid g2">
+        <Card title="Game data">
+          <GameDataCard />
+        </Card>
+
         <Card title="Local LLM (vLLM / OpenAI-compatible)">
           <div className="col">
             <label className="field">
@@ -266,6 +271,17 @@ function About() {
       )}
       <div className="small dim" style={{ marginTop: 10 }}>
         Free for noncommercial use (PolyForm Noncommercial 1.0.0). Not affiliated with Blizzard Entertainment or Mobalytics.
+      </div>
+      <div className="small dim" style={{ marginTop: 6 }}>
+        Reading the game files on this PC uses{" "}
+        <a href="https://github.com/DiabloTools/d4data" target="_blank" rel="noreferrer">
+          DiabloTools/d4data
+        </a>{" "}
+        for the file layouts and{" "}
+        <a href="https://github.com/ladislav-zezula/CascLib" target="_blank" rel="noreferrer">
+          CascLib
+        </a>{" "}
+        to read them, both MIT licensed. Thank you.
       </div>
     </Card>
   );

@@ -27,6 +27,20 @@ jobs:
       # also produces dist/, which the Rust build embeds
       - run: npm run build
 
+      # cascx.exe: our read-only CascLib wrapper, built from source (MIT, pinned commit in
+      # tools/datamine/build-cascx.mjs). It ships as a Tauri sidecar, so it must exist before
+      # the Rust build reads tauri.conf.json.
+      - name: Cache the cascx sidecar
+        id: cascx
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/bin
+          key: cascx-${{ runner.os }}-${{ hashFiles('tools/datamine/cascx/cascx.cpp', 'tools/datamine/build-cascx.mjs') }}
+
+      - name: Build the cascx sidecar
+        if: steps.cascx.outputs.cache-hit != 'true'
+        run: node tools/datamine/build-cascx.mjs --sidecar
+
       # installs the toolchain pinned in rust-toolchain.toml
       - run: rustup toolchain install
         working-directory: src-tauri
@@ -36,6 +50,9 @@ jobs:
           workspaces: src-tauri
 
       - run: cargo check --locked --all-targets
+        working-directory: src-tauri
+
+      - run: cargo test --locked --lib
         working-directory: src-tauri
 
   worker:

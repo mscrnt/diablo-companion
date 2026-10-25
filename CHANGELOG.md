@@ -6,6 +6,7 @@ The release workflow publishes each version's section as its GitHub release note
 ## [Unreleased]
 
 ### Added
+- **The game data now comes from your own Diablo IV install.** On first run, and after every game patch, the app reads item names, affixes, aspects, runes, paragon glyphs, charms and the world map straight out of the game files on your PC, in the background. Nothing is downloaded, the game folder is only read, and the game does not need to be running. Settings shows the folder, the build and when it was last read, with a Re-read button, and a Choose folder button if the game is somewhere unusual.
 - **World events predicted by the app itself:** the world boss of every spawn (one slot in the rotation can be either of two bosses, and it says so), its likely zone ("probably Scosglen", right about 2 times in 3), which world bosses also spawn in Nahantu or Skovos, and the zone of every Helltide. Nothing is fetched from other sites any more. A Legion's zone can't be predicted yet.
 - **Character profiles:** each character has its own builds (several per character, one active), gear, progress, stats and glyphs. The app switches by itself when the Character panel shows a character's name, and runs and loot are labelled by character.
 - **The loot judge checks every build of every character:** "Keep it: an upgrade for your Minion build" for this character, "Stash it: great for your Necromancer" for another. It only says scrap when no build of yours can use the item, and an item for another class says so.
