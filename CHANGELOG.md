@@ -12,6 +12,7 @@ The release workflow publishes each version's section as its GitHub release note
 - **The loot judge checks every build of every character:** "Keep it: an upgrade for your Minion build" for this character, "Stash it: great for your Necromancer" for another. It only says scrap when no build of yours can use the item, and an item for another class says so.
 - **Infernal Hordes runs are timed,** with a split for every wave and the Fell Council.
 - **Events inside dungeons** (Cursed Shrine, Nest, Impromptu Investigation and others) get their own split in the dungeon's run, with how long they took and whether the mastery was met.
+- **Horadric Strongrooms are tracked:** the chamber behind the portal in a Nightmare Dungeon gets its own split in the dungeon's run, with how long it took, and a toast for each step (the statues, the Main Chamber, the Artifact Pillar Room, its boss) and each reward upgrade up to 6. If no dungeon run is going, the chamber is timed as a run of its own with a split per step.
 - **Glyph levels stay current:** any glyph you hover, and each upgrade at the Pit, updates its level.
 - **Export your stats:** runs with splits, bests, loot history and character stats as CSV and JSON files (Runs page or Settings).
 - **"Judging for"** on the overlay and the Build page shows which build and variant the loot judge follows.

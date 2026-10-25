@@ -19,6 +19,7 @@ import { getActiveVariant, useRuns, useSettings } from "./store";
 import { noteCharacterFrame } from "./profiles";
 import { debugEvent } from "./debug";
 import { parseUndercity } from "./undercity";
+import { parseStrongroom, stepStrongroom, type StrongroomAction, type StrongroomTracker } from "./strongroom";
 import { noteWeeklyBonusFrame, weeklyBonusDebug } from "./weeklybonus";
 import {
   closeEvent,
@@ -522,6 +523,55 @@ function undercityTick() {
   }
 }
 
+// ---- Horadric Strongroom: the sealed chamber behind a portal inside a Nightmare Dungeon ----
+// Its own clock when nothing else is being timed, otherwise one split inside the dungeon's run.
+const srt: StrongroomTracker = { run: null, endSeen: 0 };
+
+function strongroomTick() {
+  const read = parseStrongroom(trackerLines);
+  // the dungeon's run (or a manual one) keeps the clock; a leftover boss timer gives way
+  const active = useRuns.getState().active;
+  const canStart = !active || active.activity.startsWith("Boss:");
+  for (const a of stepStrongroom(srt, read, Date.now(), canStart)) applyStrongroom(a);
+}
+
+function applyStrongroom(a: StrongroomAction) {
+  const runs = useRuns.getState();
+  const mine = runs.active?.activity === "Horadric Strongroom" ? runs.active : null;
+  if (a.kind === "start") {
+    endBoss("left");
+    debugEvent("activity", "strongroom-start", { stage: a.stage, runStarted: a.own, inRun: runs.active?.activity ?? null });
+    if (a.own && !useRuns.getState().active) {
+      runs.setActivity("Horadric Strongroom", "");
+      runs.start();
+      // the clock starts at the first read of the block, not the second
+      const started = useRuns.getState().active!;
+      useRuns.setState({ active: { ...started, start: a.at } });
+    }
+    overlayToast("Horadric Strongroom", a.own ? "Timer running" : "Timing the chamber inside this run", "#c9a227", 3500);
+  } else if (a.kind === "step") {
+    debugEvent("activity", "strongroom-step", { from: a.label, to: a.next });
+    // the step that just finished gets the split; inside the dungeon's run only the chamber as a whole does
+    if (mine && a.label) runs.split(a.label);
+    if (a.moved) overlayToast("Horadric Strongroom", a.next, "#c9a227", 3000);
+  } else if (a.kind === "upgrade") {
+    debugEvent("activity", "strongroom-upgrade", { from: a.from, to: a.to });
+    const maxed = a.to === a.max;
+    overlayToast(maxed ? "Rewards maxed" : `Reward upgrade ${a.to}/${a.max}`, maxed ? "Every upgrade is yours: finish the chamber" : "Keep earning Attunement", "#5fd18a", 4000);
+  } else if (a.kind === "discard") {
+    debugEvent("activity", "strongroom-discard", { why: a.why, own: a.own });
+    if (mine) useRuns.setState({ active: null });
+  } else {
+    debugEvent("activity", "strongroom-end", { stage: a.stage, upgrades: a.upgrades, cleared: a.cleared, why: a.why, durS: Math.round((a.at - a.from) / 1000), own: a.own });
+    const dur = a.at - a.from;
+    if (mine) runs.stop(a.cleared, a.at);
+    // the dungeon's run owns the clock: the chamber is one split inside it, with its own start
+    else if (runs.active) runs.split(`Horadric Strongroom${a.cleared ? "" : " (left)"}`, { at: a.at, from: a.from });
+    else return;
+    overlayToast(a.cleared ? `Strongroom done in ${mmss(dur)}` : "Strongroom ended", `${a.upgrades}/${a.max} reward upgrades`, a.cleared ? "#5fd18a" : "#b8aa9a", 7000);
+  }
+}
+
 // ---- Infernal Hordes: start on wave 1, split per wave, finish when the Fell Council is down ----
 const hz: HordesTracker = { run: null, endSeen: 0 };
 
@@ -676,6 +726,7 @@ async function tick(rect: Rect) {
   if (phase === "none") {
     nmdTick();
     undercityTick();
+    strongroomTick();
     hordesTick();
     // in a dungeon the boss panel still shows what it drops; the dungeon's run keeps the time (a boss only starts one when nothing runs)
     await bossTick(rect).catch(() => {});
@@ -765,6 +816,7 @@ export function activityDebug() {
     pit: { phase, pendingTier: pendingTier || null, lastSeenAgoS: lastSeenPit ? Math.round((now - lastSeenPit) / 1000) : null, survivalFailed },
     nmd: nmd && { ...nmd, lastSeen: undefined, lastSeenAgoS: Math.round((now - nmd.lastSeen) / 1000) },
     undercity: uc && { ...uc, lastSeen: undefined, lastSeenAgoS: Math.round((now - uc.lastSeen) / 1000) },
+    strongroom: srt.run && { ...srt.run, lastSeen: undefined, lastSeenAgoS: Math.round((now - srt.run.lastSeen) / 1000), forS: Math.round((now - srt.run.start) / 1000) },
     hordes: hz.run && { ...hz.run, lastSeen: undefined, lastSeenAgoS: Math.round((now - hz.run.lastSeen) / 1000) },
     event: dEvent && { name: dEvent.name, activity: dEvent.activity, forS: Math.round((now - dEvent.start) / 1000), mastery: dEvent.mastery, failed: dEvent.failed },
     boss: boss && { name: boss, lastSeenAgoS: Math.round((now - bossSeen) / 1000) },
@@ -784,8 +836,12 @@ export function startActivityWatcher(isFocused: () => boolean, gameRect: () => R
   // usual 90 s (ending at the restart) instead of leaving it running forever
   if (useRuns.getState().active?.activity === "Undercity" && !uc)
     uc = { floor: 1, floors: 3, upgrades: 0, upgradesMax: 4, secondsLeft: null, attunement: null, timeBonus: null, torment: null, lastSeen: Date.now(), lowRun: 0, lowWarned: false, resumed: true };
-  // the same for a Hordes run: its waves carry on from the next tracker read
   const open = useRuns.getState().active;
+  // a Strongroom run left open by a restart: the next read of its block picks it up, or it closes after
+  // the usual 60 s (ending at the restart) instead of running forever
+  if (open?.activity === "Horadric Strongroom" && !srt.run)
+    srt.run = { start: open.start, lastSeen: Date.now(), reads: 1, stage: null, label: "", key: "", statues: null, upgrades: 0, upgradesMax: 6, deathPenalty: null, sawBoss: false, own: true, doneReads: 0, resumed: true };
+  // the same for a Hordes run: its waves carry on from the next tracker read
   if (open?.activity === "Infernal Hordes" && !hz.run)
     hz.run = { wave: 0, running: true, startAt: open.start, council: false, done: false, lastSeen: Date.now(), wave0At: null, pending: null, restart: null, revives: null, revivesPending: null, resumed: true };
   emitOverlay("boss", null);
