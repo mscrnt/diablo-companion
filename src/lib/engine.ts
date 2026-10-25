@@ -8,6 +8,7 @@ import { emitOverlay, onGlobal, onMain } from "./bus";
 import { planFarm } from "./farm";
 import { isTauri } from "./http";
 import { judgeNow } from "./judgeRunner";
+import { startIcons, stopIcons } from "./icons/recognise";
 import { snoozeJudge, startAutoJudge } from "./autojudge";
 import { guideNext, useGuide } from "./guide";
 import { listModels } from "./llm";
@@ -518,13 +519,21 @@ export async function startEngine() {
   startDebug();
   setOverlayCapturable(useSettings.getState().settings.overlay.capturable).catch(() => {});
   let lastHotkeys = JSON.stringify(useSettings.getState().settings.hotkeys);
+  let lastIcons = useSettings.getState().settings.icons.enabled;
   useSettings.subscribe((st) => {
     const h = JSON.stringify(st.settings.hotkeys);
     if (h !== lastHotkeys) {
       lastHotkeys = h;
       applyHotkeys();
     }
+    if (st.settings.icons.enabled !== lastIcons) {
+      lastIcons = st.settings.icons.enabled;
+      if (lastIcons) void startIcons();
+      else stopIcons();
+    }
   });
+  // recognising items by their icon: the model (and the worker that runs it) only load when it's on
+  if (lastIcons) void startIcons();
 
   gameStatus().then((game) => useRuntime.setState({ game })).catch(() => {});
   onGlobal<GameStatus>("game-status", (game) => {

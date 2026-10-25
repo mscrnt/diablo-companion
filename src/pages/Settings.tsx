@@ -9,6 +9,7 @@ import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate, installUpdate } fr
 import { DebugReportButton } from "../components/DebugReport";
 import { ExportStatsButton } from "../components/ExportStats";
 import { HelpImproveCard } from "../components/HelpImprove";
+import { iconStatusLine, useIcons } from "../lib/icons/status";
 
 const ACTIONS: { id: ActionId; label: string }[] = [
   { id: "judge", label: "Judge item under cursor" },
@@ -169,6 +170,8 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        <IconRecognition />
+
         <Card title="Activities (run tracker)">
           <textarea
             rows={6}
@@ -190,6 +193,42 @@ export default function SettingsPage() {
         <About />
       </div>
     </>
+  );
+}
+
+/**
+ * One switch, and a line saying what it's doing. The first time it's on the app fetches the model
+ * (once, from our own release) and reads the item pictures out of the game install; after that it's
+ * just ready. Without a GPU it says so and stays off.
+ */
+function IconRecognition() {
+  const { settings, update } = useSettings();
+  const icons = useIcons();
+  const busy = icons.state === "downloading" || icons.state === "building";
+  return (
+    <Card title="Recognise items by their icon">
+      <div className="col">
+        <Check
+          checked={settings.icons.enabled}
+          onChange={(v) => update((s) => void (s.icons.enabled = v))}
+          label="Use the item's picture as well as its text when naming a unique"
+        />
+        <div className="row">
+          <span className={"dot " + (icons.state === "ready" ? "ok" : icons.state === "unavailable" ? "bad" : "")} />
+          <span className="small muted">{iconStatusLine(icons)}</span>
+        </div>
+        {busy && (
+          <div className="progress">
+            <div style={{ width: `${Math.round((icons.progress ?? 0) * 100)}%` }} />
+          </div>
+        )}
+        <div className="small dim">
+          A mangled name or a cut-off power is common on a busy screen; the picture is another way to tell which unique it is. The model is about 180 MB and is
+          downloaded once. The pictures come from your own game files, stay on this PC, and are read again after a game patch.
+        </div>
+        {icons.gameBuild && <div className="small dim">Game build {icons.gameBuild}</div>}
+      </div>
+    </Card>
   );
 }
 
@@ -266,6 +305,14 @@ function About() {
       )}
       <div className="small dim" style={{ marginTop: 10 }}>
         Free for noncommercial use (PolyForm Noncommercial 1.0.0). Not affiliated with Blizzard Entertainment or Mobalytics.
+      </div>
+      <div className="small dim" style={{ marginTop: 6 }}>
+        Recognising items by their icon uses SigLIP 2 (
+        <a href="https://huggingface.co/google/siglip2-base-patch16-224" target="_blank" rel="noreferrer">
+          google/siglip2-base-patch16-224
+        </a>
+        ) by Google LLC and the SigLIP 2 authors, under the Apache 2.0 licence, run with ONNX Runtime Web (Microsoft, MIT licence). Full text in the licenses folder
+        of the source, and next to the model in the app's cache folder.
       </div>
     </Card>
   );

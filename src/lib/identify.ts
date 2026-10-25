@@ -28,8 +28,16 @@ export interface Candidate {
   parts: { title: number; power: number; stats: number; icon: number | null };
 }
 
-/** Weights for the signals (tuned on the 2026-10-12 test set; see scripts/dev/identify-eval.ts). */
-export const WEIGHTS = { title: 1, power: 0.7, stats: 0.35, icon: 0.8 };
+/**
+ * Weights for the signals, and the cosines the icon signal is read between (tuned on the
+ * 2026-10-12 and 2026-10-17 test sets; see scripts/dev/identify-eval.ts and icon-eval.ts).
+ *
+ * `icon` stays below `power`: the picture is a second opinion that can break a tie the text can't,
+ * never the deciding vote against a unique power that was read whole. Measured on 187 real tooltip
+ * crops: the right unique's art scores about 0.84, another unique's about 0.72, and the worst false
+ * high about 0.83, so `iconFloor` throws away the noise and the weight keeps the rest in its place.
+ */
+export const WEIGHTS = { title: 1, power: 0.7, stats: 0.35, icon: 0.6, iconFloor: 0.8, iconTop: 0.94 };
 
 const MAIN = /\b(strength|intelligence|dexterity|willpower)\b/i;
 
@@ -45,8 +53,9 @@ function statsScore(listed: string[] | undefined, lines: string[]): number {
   return hit / listed.length;
 }
 
-/** An icon cosine (about 0.7 for unrelated art, 1 for the same picture) as 0..1. */
-const iconScore = (cos: number | undefined) => (cos == null ? 0 : Math.max(0, Math.min(1, (cos - 0.7) / 0.3)));
+/** An icon cosine (about 0.72 for unrelated art, 1 for the same picture) as 0..1. */
+const iconScore = (cos: number | undefined, w: typeof WEIGHTS) =>
+  cos == null ? 0 : Math.max(0, Math.min(1, (cos - w.iconFloor) / (w.iconTop - w.iconFloor)));
 
 /** Candidates for the item, best first. */
 export function identifyUnique(inp: IdentifyInput, w = WEIGHTS): Candidate[] {
@@ -58,7 +67,7 @@ export function identifyUnique(inp: IdentifyInput, w = WEIGHTS): Candidate[] {
     const title = inp.title.trim() ? titleSimilarity(inp.title, u.n) : 0;
     const power = inp.power.trim() && u.d ? similarity(inp.power, u.d) : 0;
     const stats = statsScore(u.s, inp.stats);
-    const icon = inp.icon ? iconScore(inp.icon[u.n]) : null;
+    const icon = inp.icon ? iconScore(inp.icon[u.n], w) : null;
     const score = w.title * title + w.power * power + w.stats * stats + (icon == null ? 0 : w.icon * icon);
     out.push({ name: u.n, score, parts: { title, power, stats, icon } });
   }

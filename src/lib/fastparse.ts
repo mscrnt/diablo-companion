@@ -92,7 +92,16 @@ function finalNameFor(name: string, rarity: string) {
   return rarity === "unique" || rarity === "mythic" ? canonicalUnique(name) ?? name : name;
 }
 
-export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: BuildVariant | undefined, opts: { snap?: boolean } = {}): ParsedItem | null {
+/**
+ * `icon`: how much the item's picture looks like each unique's art (0..1 cosine), when icon
+ * recognition is on; one more signal for identify.ts, never a decision on its own.
+ */
+export function fastParse(
+  lines: FastLine[],
+  equippedLabel: boolean,
+  variant: BuildVariant | undefined,
+  opts: { snap?: boolean; icon?: Record<string, number>; className?: string } = {},
+): ParsedItem | null {
   // OCR reads the bullet icons as letters ("o +9.8% Crit…", "0 +4,375 Armor") — strip them;
   // then fix misread words against the game's own text ("ARIT10R" → "ARMOR")
   // a greater-affix starburst read as a character ("* +225 Intelligence") marks the line greater: its
@@ -414,7 +423,16 @@ export function fastParse(lines: FastLine[], equippedLabel: boolean, variant: Bu
   // missing title, or one merged with the comparison column's ("DEATHGRIP F o c USED STRIDER'S"), still names
   // it; a clear winner only, else the title or power on its own as before
   if (rarity === "unique" || rarity === "mythic") {
-    const pick = confident(identifyUniqueFrom({ title: rawName.replace(/[*✸✹✺❋✷]/g, ""), itemType: typeLine, power: powerText, stats: stats.map((s) => s.text) }));
+    const pick = confident(
+      identifyUniqueFrom({
+        title: rawName.replace(/[*✸✹✺❋✷]/g, ""),
+        itemType: typeLine,
+        power: powerText,
+        stats: stats.map((s) => s.text),
+        className: opts.className,
+        icon: opts.icon,
+      }),
+    );
     finalName = pick?.name ?? (rawName.trim() ? canonicalUnique(name, typeLine) : null) ?? identifyUnique(powerText, typeLine) ?? name;
   }
   else if (legendaryName && / of /i.test(name)) {

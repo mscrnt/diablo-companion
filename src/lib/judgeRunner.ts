@@ -14,6 +14,7 @@ import { parseTooltipText, type ParseDebug, type TooltipText } from "./parse";
 import { fastParse, looksSane } from "./fastparse";
 import { judgeEveryBuild } from "./everyBuild";
 import { otherBuilds } from "./profiles";
+import { iconScores, iconsReady } from "./icons/recognise";
 import { getActiveVariant, useBuilds, useLoot, useProfiles, useSettings } from "./store";
 import type { JudgeResult, ParsedItem } from "./types";
 import type { TooltipBox } from "./autojudge";
@@ -73,6 +74,23 @@ export async function openJudgeLog() {
   await invoke<string>("open_log_folder", { path: "judge-log" });
 }
 
+/**
+ * The item's picture as a signal for identify.ts, when icon recognition is on. Only for a tooltip
+ * whose type line says unique or mythic (nothing else has art worth matching), and only off the
+ * crop already taken for this judgement: one run of the model on the GPU, not a stream of them.
+ */
+async function iconArt(t: TooltipText, className?: string): Promise<Record<string, number> | undefined> {
+  if (!iconsReady() || !t.share || !t.lines.some((l) => /\b(unique|mythic)\b/i.test(l))) return undefined;
+  try {
+    const raw = atob(t.image.replace(/^data:[^,]+,/, ""));
+    const jpeg = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) jpeg[i] = raw.charCodeAt(i);
+    return (await iconScores(jpeg.buffer, t.share.box, t.share.region, className)) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface JudgeDebug {
   hovered?: ParseDebug;
   equipped?: ParseDebug;
@@ -95,10 +113,10 @@ export async function judgeTooltips(
   const dbg: { hovered?: ParseDebug; equipped?: ParseDebug } = {};
   try {
     // instant path: OCR + icon colours + rules; the LLM only when the rules aren't confident
-    const parse = async (t: TooltipText, allowAi = true): Promise<{ item: ParsedItem | null; debug: ParseDebug }> => {
+    const parse = async (t: TooltipText, allowAi = true, icon?: Record<string, number>): Promise<{ item: ParsedItem | null; debug: ParseDebug }> => {
       const f0 = performance.now();
       if (t.fast && !settings.autoJudge.alwaysUseAi) {
-        const item = fastParse(t.fast, t.equipped, variant);
+        const item = fastParse(t.fast, t.equipped, variant, { icon, className: build?.className });
         if (item && looksSane(item)) return { item, debug: { ocr: t.lines, raw: { fast: true, lines: t.fast }, ms: Math.round(performance.now() - f0) } };
       }
       if (!settings.llm.baseUrl) return { item: null, debug: { ocr: t.lines, raw: { fast: false, note: "no AI model configured" }, ms: 0 } };
@@ -107,7 +125,10 @@ export async function judgeTooltips(
     };
     // the verdict never waits on an AI read of the EQUIPPED column: the hovered tooltip's own comparison
     // and the worn-gear memory cover it; the AI reads it afterwards only to refresh that memory
-    const [h, e] = await Promise.all([parse(hov), eq ? parse(eq, false).catch(() => null) : Promise.resolve(null)]);
+    const [h, e] = await Promise.all([
+      iconArt(hov, build?.className).then((icon) => parse(hov, true, icon)),
+      eq ? parse(eq, false).catch(() => null) : Promise.resolve(null),
+    ]);
     if (eq && !e?.item && settings.llm.baseUrl)
       void parse(eq)
         .then((late) => late.item && recordEquipped({ ...decide(late.item, variant, { prog }), id: "", at: 0, ms: 0 }, late.item))
