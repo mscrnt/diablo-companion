@@ -2,7 +2,7 @@
 // Includes a tiny shim for Vite's eager `import.meta.glob("x.json", { eager: true })`.
 import { build } from "esbuild";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,8 +24,15 @@ const viteGlobShim = {
   },
 };
 
+// The tables come from the game data extracted on this PC (data/gamedata or GAMEDATA_DIR), as in the tests:
+// the entry loads tests/setup.ts first. It is imported here rather than injected into every module, because
+// injecting it puts its top-level await in front of CommonJS dependencies too, which esbuild refuses.
+const entry = join(here, ".out", name + ".entry.ts");
+mkdirSync(dirname(entry), { recursive: true });
+writeFileSync(entry, `import "../../../tests/setup";\nimport "../${name}";\n`);
+
 await build({
-  entryPoints: [join(here, name + ".ts")],
+  entryPoints: [entry],
   bundle: true,
   platform: "node",
   format: "esm",
@@ -35,8 +42,6 @@ await build({
   external: ["@tauri-apps/*", "onnxruntime-web", "onnxruntime-web/webgpu", "sharp"],
   logLevel: "error",
   plugins: [viteGlobShim],
-  // the tables come from the game data extracted on this PC (data/gamedata or GAMEDATA_DIR), as in the tests
-  inject: [join(here, "../../tests/setup.ts")],
   // same constant vite.config.ts defines for the app
   define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(here, "../../package.json"), "utf8")).version) },
   banner: { js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);" },

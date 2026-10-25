@@ -1,7 +1,9 @@
 // Icy Veins build importer: paste a build link, fetch that one build, nothing else.
 // A build lives in the site's planner and its public API hands it over whole; items,
 // aspects, sockets, glyphs, boards and mercenaries come back by name, so they map by name.
-import { itemKindOf, looseRef, refOf, skillNameOf, slotGroup, slotLabel, socketRef, sortGear } from "./buildmap";
+// Its affixes are the game's own sno numbers (affixId "1862295"), and its items carry the game's
+// item ids too, so both are read against the tables built from the game on this PC (buildmap.ts).
+import { affixById, itemById, itemKindOf, looseRef, refOf, skillNameOf, slotGroup, slotLabel, socketRef, sortGear } from "./buildmap";
 import { slugOf } from "./gamedata/convert";
 import { BROWSER_UA, http, httpJson } from "./http";
 import { humanize } from "./names";
@@ -90,6 +92,7 @@ const map = (x: unknown): Record<string, any> => (x && typeof x === "object" && 
 const list = (x: unknown): any[] => (Array.isArray(x) ? x : []);
 
 function gearOf(set: any, className: string): GearSlot[] {
+  const ids = map(set.itemIds);
   const names = map(set.equippedGear);
   const types = map(set.itemTypes);
   const aspects = map(set.itemAspects);
@@ -97,8 +100,11 @@ function gearOf(set: any, className: string): GearSlot[] {
   const sockets = map(set.itemSockets);
   const mythic = map(set.itemMythicToggle);
   const transfig = map(set.itemAmuletTransfigurationAspect);
+  const userAffixes = map(set.itemUserAffixes);
+  const tempers = map(set.itemTemperingAffix);
+  const mwAffix = map(set.itemMasterworkAffix);
   const out: GearSlot[] = [];
-  for (const key of new Set([...Object.keys(map(set.itemIds)), ...Object.keys(names)])) {
+  for (const key of new Set([...Object.keys(ids), ...Object.keys(names)])) {
     const slot = slotKeyOf(key);
     // an aspect on a plain legendary is what the build is really after, as on Mobalytics
     const shown = String(aspects[key] ?? names[key] ?? "").trim();
@@ -106,10 +112,14 @@ function gearOf(set: any, className: string): GearSlot[] {
     // an empty slot shows its own item type ("Ring", "Boots", "Chest Armor"): nothing to track on it
     const flat = (t: string) => slugOf(t).replace(/-/g, "");
     if (!aspects[key] && [String(types[key] ?? ""), slotLabel(slot).replace(/\s*\d+$/, "")].some((t) => t && flat(shown) === flat(t))) continue;
-    const item = refOf(shown, undefined, className);
+    // the game's own item id is the surer name; the planner's own wording stands in for what it doesn't know
+    const item = (!aspects[key] && itemById(ids[key], className)) || refOf(shown, undefined, className);
     const extras: GearSlot["extras"] = [];
     const tf = transfig[key];
     if (tf?.name) extras.push({ label: "Transfigured (Horadric Cube)", stats: [{ slug: refOf(String(tf.name), "aspects", className).slug, name: String(tf.name) }] });
+    // the masterwork lands on one line: an affix of the player's own, or the tempered one
+    const mw = mwAffix[key] ?? {};
+    const mwOn = (source: string, index: number) => String(mw.source ?? "") === source && Number(mw.index) === index;
     out.push({
       slot,
       slotLabel: slotLabel(slot),
@@ -117,9 +127,13 @@ function gearOf(set: any, className: string): GearSlot[] {
       itemSlug: item.slug,
       itemName: item.name,
       kind: itemKindOf(item.slug, item.name, `${slotGroup(slot) === "talisman" ? slot.replace(/-\d+$/, "") : ""} ${mythic[key] ? "mythic" : (quality[key] ?? "")}`),
-      // the planner stores affixes as the game's numeric ids, which name nothing on their own
-      affixes: [],
-      tempers: [],
+      affixes: list(userAffixes[key])
+        .map((a: any, i: number) => affixById(a?.affixId, { greater: !!a?.greaterAffix, masterwork: mwOn("user", i) }))
+        .filter(Boolean) as GearSlot["affixes"],
+      tempers: [tempers[key]]
+        .filter((t) => t?.affixId)
+        .map((t: any) => affixById(t.affixId, { masterwork: mwOn("tempered", 0) }))
+        .filter(Boolean) as GearSlot["tempers"],
       sockets: list(sockets[key]).filter(Boolean).map((s) => socketRef(String(s))),
       implicits: [],
       extras,

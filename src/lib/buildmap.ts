@@ -6,7 +6,7 @@
 // tables (built from the game files), with the class where a table has one entry per
 // class. None of their catalogs is fetched, bundled or stored.
 import { slugOf } from "./gamedata/convert";
-import { humanize, lookup, table, type Category } from "./names";
+import { byGameId, humanize, lookup, table, type Category } from "./names";
 import type { GearSlot, ItemKind, SocketRef, StatRef } from "./types";
 
 export const SLOT_LABELS: Record<string, string> = {
@@ -131,6 +131,45 @@ export function socketRef(name: string): SocketRef {
   const gem = refOf(base, "gems");
   if (lookup(gem.slug, "gems")) return { slug: gem.slug, name: gem.name, kind: "gem" };
   return { slug: slugOf(base), name: base, kind: "other" };
+}
+
+// ---- the game's own ids → the app's slugs ----------------------------------
+// Maxroll and Icy Veins store a build as the game's ids: an affix is a number ("nid": 1829592,
+// affixId "1862295"), a board is "Paragon_Necro_00", a glyph "Rare_038_Intelligence_Main", a rune
+// "Rune_Condition_OnSpendResource". names.ts indexes them from the game data read off this PC, so
+// nothing is asked of the site.
+
+/** An affix id → the stat it is; a tempered one takes its manual ("Summon Damage (Profane Finesse)"). */
+export function affixById(id: string | number, flags: { greater?: boolean; masterwork?: boolean } = {}): StatRef | null {
+  const e = byGameId("affixIds", id);
+  if (!e || e.t !== "stats") return null;
+  return { slug: e.g ?? slugOf(e.n), name: e.r ? `${e.n} (${e.r})` : e.n, greater: !!flags.greater, masterwork: !!flags.masterwork };
+}
+
+/** The id of an item's legendary power → the aspect it is, for this class. */
+export function aspectById(id: string | number, className?: string): Ref | null {
+  const e = byGameId("affixIds", id);
+  return e && e.t === "aspects" ? refOf(e.n, "aspects", className) : null;
+}
+
+/** An item id ("Helm_Unique_Generic_005") → the item, with the table it came from. */
+export function itemById(id: string | number, className?: string): (Ref & { table: string; mythic: boolean }) | null {
+  const e = byGameId("itemIds", id);
+  if (!e) return null;
+  const ref = e.t ? refOf(e.n, e.t as Category, className) : { slug: e.g ?? slugOf(e.n), name: e.n };
+  return { slug: ref.slug || (e.g ?? slugOf(e.n)), name: ref.name || e.n, table: e.t ?? "", mythic: e.m === 1 };
+}
+
+/** A paragon board id → the board, and the width its squares are numbered across. */
+export function boardById(id: string | number): (Ref & { width: number }) | null {
+  const e = byGameId("boardIds", id);
+  return e ? { slug: e.g ?? slugOf(e.n), name: e.n, width: e.w ?? 21 } : null;
+}
+
+/** A glyph id → the glyph, for this class. */
+export function glyphById(id: string | number, className?: string): Ref | null {
+  const e = byGameId("glyphIds", id);
+  return e ? refOf(e.n, "glyphs", className) : null;
 }
 
 /**

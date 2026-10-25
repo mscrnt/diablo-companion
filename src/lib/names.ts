@@ -16,6 +16,8 @@ export interface SlimEntry {
   set?: string; // charm set
   s?: string[]; // the stats a unique always rolls
   x?: 1; // deprecated / retired
+  g?: string; // id indexes: the slug this game id names
+  w?: number; // id indexes: a paragon board's width
 }
 
 export type Category =
@@ -36,7 +38,12 @@ export type Category =
   | "mercOpp"
   | "bloodied"
   | "wpTrees"
-  | "wpNodes";
+  | "wpNodes"
+  // the game's own ids, for the planners that store a build as ids (see GameId below)
+  | "affixIds"
+  | "boardIds"
+  | "glyphIds"
+  | "itemIds";
 
 type Slim = Record<Category, Record<string, SlimEntry>> & { meta?: Record<string, unknown> };
 
@@ -121,6 +128,19 @@ const SEARCH_ORDER: Category[] = [
   "mercOpp",
   "stats",
 ];
+
+/** The indexes keyed by the game's own ids (convert.ts), for builds a planner stores as ids. */
+export type GameId = "affixIds" | "boardIds" | "glyphIds" | "itemIds";
+
+/**
+ * What one of the game's own ids names: the entry carries the display name (`n`), the table it belongs to
+ * (`t`) and the slug in it (`g`). An id the data doesn't know gives undefined, and the caller keeps whatever
+ * the site itself showed.
+ */
+export function byGameId(index: GameId, id: string | number | null | undefined): SlimEntry | undefined {
+  const key = id === null || id === undefined ? "" : String(id).trim();
+  return key ? data?.[index]?.[key] : undefined;
+}
 
 export function lookup(slug: string, category?: Category): SlimEntry | undefined {
   if (!slug || !data) return undefined;

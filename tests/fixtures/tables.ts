@@ -10,7 +10,8 @@ import { hasGameData } from "../setup";
 export type TestTables = Partial<Record<Category, Record<string, SlimEntry>>>;
 
 const names = (list: [string, string][]): Record<string, SlimEntry> => Object.fromEntries(list.map(([slug, n]) => [slug, { n }]));
-const necro = (list: [string, string][]): Record<string, SlimEntry> => Object.fromEntries(list.map(([slug, n]) => [slug, { n, c: "necromancer" }]));
+const necro = (list: [string, string][], t?: string): Record<string, SlimEntry> =>
+  Object.fromEntries(list.map(([slug, n]) => [slug, { n, c: "necromancer", ...(t ? { t } : {}) }]));
 
 /** The names the tests name: the example build's gear, the few items the importers map, and this class's lists. */
 export const TABLES: TestTables = {
@@ -25,6 +26,9 @@ export const TABLES: TestTables = {
     "harlequin-crest": { n: "Harlequin Crest", t: "Helm", m: 1 },
     "ring-of-starless-skies": { n: "Ring of Starless Skies", t: "Ring", m: 1 },
     "fists-of-fate": { n: "Fists of Fate", t: "Gloves" },
+    // one unique that exists once per weapon type, so the item type has to pick the right copy
+    "infinity-2h-mace": { n: "Infinity (2h Mace)", t: "2h Mace" },
+    "infinity-bow": { n: "Infinity (Bow)", t: "Bow" },
     temerity: { n: "Temerity", t: "Pants" },
     enigma: { n: "Enigma", t: "Chest Armor" },
     insight: { n: "Insight", t: "2h Scythe" },
@@ -36,14 +40,17 @@ export const TABLES: TestTables = {
     "aspect-of-heavenly-strength": { n: "Aspect of Heavenly Strength", t: "Utility" },
     "aspect-of-reanimation": { n: "Aspect of Reanimation", c: "barbarian", t: "Offensive" },
     "aspect-of-reanimation-necromancer": { n: "Aspect of Reanimation", c: "necromancer", t: "Offensive" },
+    // an aspect several classes share: the first class (A to Z) keeps the plain slug
     "hellbent-commander-aspect": { n: "Hellbent Commander Aspect", c: "barbarian", t: "Offensive" },
     "hellbent-commander-aspect-necromancer": { n: "Hellbent Commander Aspect", c: "necromancer", t: "Offensive" },
+    "hellbent-commander-aspect-sorcerer": { n: "Hellbent Commander Aspect", c: "sorcerer", t: "Offensive" },
     "necrotic-carapace-aspect": { n: "Necrotic Carapace Aspect", c: "necromancer", t: "Defensive" },
     "aspect-of-disobedience": { n: "Aspect of Disobedience", t: "Defensive" },
   },
   stats: {
     intelligence: { n: "Intelligence", k: "gear" },
     "maximum-life": { n: "Maximum Life", k: "gear" },
+    "maximum-resource": { n: "Maximum Resource", k: "gear" },
     armor: { n: "Armor", k: "gear" },
     "total-armor": { n: "Total Armor", k: "implicit" },
     "critical-strike-chance": { n: "Critical Strike Chance", k: "gear" },
@@ -74,19 +81,26 @@ export const TABLES: TestTables = {
     "minion-finesse-summon-damage": { n: "Summon Damage", k: "tempering", r: "Minion Finesse" },
     "berserking-finesse-critical-strike-damage": { n: "Critical Strike Damage", k: "tempering", r: "Berserking Finesse" },
   },
-  skills: necro([
-    ["skeleton-warrior", "Skeleton Warrior"],
-    ["skeleton-mage", "Skeleton Mage"],
-    ["golem", "Golem"],
-    ["blight", "Blight"],
-    ["sever", "Sever"],
-    ["decrepify", "Decrepify"],
-    ["iron-maiden", "Iron Maiden"],
-    ["army-of-the-dead", "Army of the Dead"],
-    ["corpse-explosion", "Corpse Explosion"],
-    ["blood-wave", "Blood Wave"],
-    ["bone-prison", "Bone Prison"],
-  ]),
+  skills: necro(
+    [
+      ["skeleton-warrior", "Skeleton Warrior"],
+      ["skeleton-mage", "Skeleton Mage"],
+      ["golem", "Golem"],
+      ["blight", "Blight"],
+      ["sever", "Sever"],
+      ["reap", "Reap"],
+      ["decrepify", "Decrepify"],
+      ["iron-maiden", "Iron Maiden"],
+      ["army-of-the-dead", "Army of the Dead"],
+      ["corpse-explosion", "Corpse Explosion"],
+      ["corpse-tendrils", "Corpse Tendrils"],
+      ["blood-wave", "Blood Wave"],
+      ["blood-surge", "Blood Surge"],
+      ["bone-prison", "Bone Prison"],
+      ["bone-spirit", "Bone Spirit"],
+    ],
+    "basic",
+  ),
   glyphs: necro([
     ["necromancer-warrior", "Warrior"],
     ["necromancer-deadraiser", "Deadraiser"],
@@ -114,6 +128,8 @@ export const TABLES: TestTables = {
     "phoba-of-the-waking-touch": { n: "Phoba of the Waking Touch", c: "necromancer", set: "Rathma's Waking Touch" },
     "the-furnace": { n: "The Furnace", c: "barbarian" },
     "hellfire-torch": { n: "Hellfire Torch" },
+    // a charm that copies a unique and carries its name: only the slot says which it is
+    "fists-of-fate": { n: "Fists of Fate" },
   },
   seals: names([
     ["seal-of-the-diamond-mind", "Seal of the Diamond Mind"],
@@ -148,9 +164,30 @@ export const TABLES: TestTables = {
     ["flame-surge", "Flame Surge"],
   ]),
   mercOpp: names([
-    ["cast-when-the-player-becomes-injured", "Cast when the player becomes injured"],
+    ["cast-when-the-player-becomes-injured", "Cast when the player becomes Injured"],
     ["cast-when-the-player-casts-any-skill-in-combat", "Cast when the player casts any skill in combat"],
   ]),
+  // the game's own ids, the way Maxroll and Icy Veins store a build (convert.ts builds these from the
+  // install; the few below are the ids the importer tests use, with the same names the real index gives)
+  affixIds: {
+    "1829592": { n: "Maximum Life", g: "maximum-life", t: "stats", k: "gear" },
+    "2602157": { n: "Intelligence", g: "intelligence", t: "stats", k: "gear" },
+    "1834105": { n: "Maximum Resource", g: "maximum-resource", t: "stats", k: "gear" },
+    "1862295": { n: "Maximum Life", g: "maximum-life", t: "stats", k: "tempering", r: "Worldly Endurance" },
+    "1862314": { n: "Movement Speed", g: "movement-speed", t: "stats", k: "tempering", r: "Natural Motion" },
+    "1222592": { n: "Aspect of Hardened Bones", g: "aspect-of-hardened-bones", t: "aspects" },
+  },
+  boardIds: { Paragon_Necro_00: { n: "Start", g: "necromancer-start", w: 21 } },
+  glyphIds: { Rare_038_Intelligence_Main: { n: "Corporeal", g: "necromancer-corporeal" } },
+  itemIds: {
+    Helm_Unique_Generic_005: { n: "Leoric's Crown", g: "leorics-crown", t: "uniques" },
+    Runeword_Enigma: { n: "Enigma", g: "enigma", t: "uniques" },
+    S15_Charm_Unique_HellfireTorch: { n: "Hellfire Torch", g: "hellfire-torch", t: "uniques", m: 1 },
+    S15_Charm_Unique_Annihilus: { n: "Annihilus", g: "annihilus", t: "uniques" },
+    Rune_Condition_OnSpendResource: { n: "Poc", g: "poc", t: "runes" },
+    Rune_Condition_Bomb: { n: "Igni", g: "igni", t: "runes" },
+    Gem_Ruby_09: { n: "Ruby", g: "ruby", t: "gems" },
+  },
 };
 
 /**

@@ -443,6 +443,8 @@ export function convert(x: Extracted): Tables {
     const c = classOf(b.classHint);
     const board = slugOf(`${c ?? "generic"} ${b.name}`);
     put(T("boards"), board, { n: b.name, c });
+    // a planner stores the board by its game id and its squares as one number each: keep the width to read them
+    if (b.id) put(T("boardIds"), String(b.id), { n: b.name, g: board, ...(b.width ? { w: b.width } : {}) });
     (b.grid ?? []).forEach((row: any[], y: number) =>
       row.forEach((id, col) => {
         const node = nodeById.get(id);
@@ -460,6 +462,7 @@ export function convert(x: Extracted): Tables {
     const d = (g.affixes ?? []).map((a: any) => plainText(a.desc)).filter(Boolean).join("\n");
     const classes = classesOf(g.classes);
     for (const c of classes.length ? classes : ["all"]) put(T("glyphs"), slugOf(`${c} ${g.name}`), { n: g.name, ...(d ? { d } : {}), ...(c !== "all" ? { c } : {}) });
+    if (g.id) put(T("glyphIds"), String(g.id), { n: g.name, g: slugOf(`${classes[0] ?? "all"} ${g.name}`) });
   }
 
   // this season's Chaos perks (CollectiblePower), and the War Plans activity trees
@@ -511,6 +514,45 @@ export function convert(x: Extracted): Tables {
     if (!/^Opportunity_.*_Description$/.test(label) || /\{powername\}/i.test(text)) continue;
     const n = plainText(text).replace(/\.$/, "");
     put(T("mercOpp"), slugOf(n), { n });
+  }
+
+  // ---- the game's own ids ------------------------------------------------------------------------
+  // Maxroll and Icy Veins keep a build's affixes, aspects, boards, glyphs and runes as the game's ids
+  // ("nid": 1829592, "Paragon_Necro_00", "Rare_038_Intelligence_Main", "Rune_Condition_OnSpendResource"):
+  // these indexes turn an id back into the table slug (`g`) and name, so a build pasted from those planners
+  // is named from the game data instead of asking the site what its numbers mean.
+  const aspectByAffix = new Map<string, any>();
+  for (const a of x.aspects?.entries ?? []) if (a.affix?.id) aspectByAffix.set(String(a.affix.id).toLowerCase(), a);
+  for (const a of x.affixes?.entries ?? []) {
+    const keys = [a.sno, a.id].filter((k) => k || k === 0).map(String);
+    if (!keys.length) continue;
+    const asp = aspectByAffix.get(String(a.id ?? "").toLowerCase());
+    let e: SlimEntry | null = null;
+    if (asp?.name) {
+      // the aspect an item's legendary power is, as the Codex names it
+      const n = /^of\s/i.test(asp.name) ? `Aspect ${String(asp.name).trim()}` : `${String(asp.name).trim()} Aspect`;
+      e = { n, g: slugOf(n), t: "aspects" };
+    } else {
+      const n = (a.attributes ?? []).map((attr: any) => statOf(attr, param)).find(Boolean);
+      if (n) {
+        const manuals = [...(manualsOf.get(a.id) ?? [])];
+        const k = a.tempered ? "tempering" : (a.affixTags ?? []).includes("Transfigured") ? "transfigured" : a.affixType === 0 ? "implicit" : "gear";
+        e = { n, g: slugOf(n), t: "stats", k, ...(manuals.length === 1 ? { r: manuals[0] } : {}) };
+      }
+    }
+    if (e) for (const k of keys) put(T("affixIds"), k, e);
+  }
+  // items: the uniques and runewords above, plus the charms, seals, gems and runes a planner sockets
+  for (const u of uniqueSlug.keys())
+    if (u.id) put(T("itemIds"), String(u.id), { n: uniqueName.get(u)!, g: uniqueSlug.get(u)!, t: "uniques", ...(u.mythic ? { m: 1 as const } : {}) });
+  // a gem's name carries its tier, sometimes two words of it ("Flawless Horadric Ruby")
+  const GEM_TIER = /^((?:Crude|Chipped|Flawed|Regular|Flawless|Royal|Grand|Lesser|Greater|Horadric)\s+)+/i;
+  for (const i of x.items?.entries ?? []) {
+    const type = String(i.itemType ?? "");
+    const t = /^Charm$/i.test(type) ? "charms" : /HoradricSeal/i.test(type) ? "seals" : /^Gem$|SeasonalSocketable/i.test(type) ? "gems" : /^(Condition|Effect)Rune$/.test(type) ? "runes" : "";
+    if (!t || !i.id || !i.name || out.itemIds?.[String(i.id)]) continue;
+    const n = (t === "gems" ? String(i.name).replace(GEM_TIER, "") : String(i.name)).trim();
+    put(T("itemIds"), String(i.id), { n, g: slugOf(n), t });
   }
 
   return out;
