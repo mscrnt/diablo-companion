@@ -15,7 +15,7 @@ import type { Extracted } from "./convert";
 import { readInWorker } from "./host";
 import { parseBuildInfo, unframeBatch, type BuildInfo, type Progress } from "./io";
 import { cachedBuilds, detectInstall, pruneCache, readBatchRaw, readBuildInfoFile, readResource, pickGameFolder, type Candidate } from "./native";
-import { APP_FILES, needsReread, type CacheManifest } from "./pipeline";
+import { APP_FILES, APP_STRING_FILES, needsReread, type CacheManifest } from "./pipeline";
 import { outRel } from "./tauriIo";
 
 const UTF8 = new TextDecoder("utf-8");
@@ -242,7 +242,12 @@ async function anyCachedBuild(): Promise<CacheManifest | null> {
 // ------------------------------------------------------------------------------------------------
 // reading the data back
 
-const EXTRACTED: [keyof Extracted, string][] = [
+/**
+ * convert.ts's `Extracted` fields and the document each one comes from. `skillTrees` and
+ * `tempering` are handed over too, ready for the War Plans nodes and the tempering manual names;
+ * convert.ts declares them when it starts reading them.
+ */
+const EXTRACTED: [string, string][] = [
   ["affixes", "affixes.json"],
   ["aspects", "aspects.json"],
   ["uniques", "uniques.json"],
@@ -251,6 +256,10 @@ const EXTRACTED: [keyof Extracted, string][] = [
   ["charms", "charms.json"],
   ["paragon", "paragon.json"],
   ["powers", "powers.json"],
+  ["monsters", "monsters.json"],
+  ["gbid", "gbid.json"],
+  ["skillTrees", "skilltrees.json"],
+  ["tempering", "tempering.json"],
 ];
 
 let loaded: Promise<Extracted | null> | null = null;
@@ -271,10 +280,14 @@ export function loadGameData(): Promise<Extracted | null> {
     await waitForCache();
     const build = useGameData.getState().build;
     if (!build) return null;
-    const docs = await readDocs(build, EXTRACTED.map(([, f]) => f));
+    const docs = await readDocs(build, [...EXTRACTED.map(([, f]) => f), ...APP_STRING_FILES]);
     if (!docs["affixes.json"]) return null;
     const out: Extracted = { build };
     for (const [key, file] of EXTRACTED) if (docs[file]) (out as any)[key] = docs[file];
+    // convert.ts wants the string lists as one map, keyed by StringList name
+    const strings: Record<string, Record<string, string>> = {};
+    for (const f of APP_STRING_FILES) if (docs[f]) Object.assign(strings, docs[f]);
+    if (Object.keys(strings).length) (out as any).strings = strings;
     return out;
   })());
 }

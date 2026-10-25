@@ -3,7 +3,7 @@
 //
 // Nothing here comes from Diablo IV.
 import { describe, expect, it } from "vitest";
-import { extract, evalArithmetic, plain, resolveText } from "../src/lib/gamedata/extract";
+import { extract, evalArithmetic, plain, resolveText, setPrerequisites } from "../src/lib/gamedata/extract";
 import { genHordes, genMapPois, genOcrVocab } from "../src/lib/gamedata/gen";
 import { parseBuildInfo, type GameDataIO } from "../src/lib/gamedata/io";
 import { needsReread, type CacheManifest } from "../src/lib/gamedata/pipeline";
@@ -482,5 +482,47 @@ describe("the app's generated tables", () => {
     expect(v.stats).toContain("to bone prison");
     expect(v.ui).toContain("Empty Socket");
     expect(v.types).toContain("Helm");
+  });
+});
+
+// ------------------------------------------------------------------------------------------------
+
+describe("skill tree prerequisites", () => {
+  /** The shape of the Lair Bosses tree: a root, two first-ring nodes, then a node behind each. */
+  const tree = () => [
+    { index: 0, id: 100, kind: "root", connections: [1, 2], dep: [] as number[] },
+    { index: 1, id: 101, kind: "perk", connections: [0, 3], dep: [] as number[] },
+    { index: 2, id: 102, kind: "perk", connections: [0, 3], dep: [] as number[] },
+    { index: 3, id: 103, kind: "perk", connections: [1, 2, 4], dep: [] as number[] },
+    { index: 4, id: 104, kind: "perk", connections: [3], dep: [] as number[] },
+  ];
+
+  it("turns the undirected connections into prerequisites, away from the root", () => {
+    const n = setPrerequisites(tree());
+    expect(n.map((x) => x.dep)).toEqual([
+      [], // the root has none
+      [], // touching the root: open as soon as the tree is
+      [],
+      [101, 102], // either of the two in front of it
+      [103],
+    ]);
+  });
+
+  it("leaves a node nothing can reach alone", () => {
+    const n = setPrerequisites([
+      { index: 0, id: 1, kind: "root", connections: [], dep: [] as number[] },
+      { index: 1, id: 2, kind: "perk", connections: [], dep: [] as number[] },
+    ]);
+    expect(n[1].dep).toEqual([]);
+  });
+
+  it("does not loop on a cycle", () => {
+    const n = setPrerequisites([
+      { index: 0, id: 1, kind: "root", connections: [1], dep: [] as number[] },
+      { index: 1, id: 2, kind: "perk", connections: [0, 2], dep: [] as number[] },
+      { index: 2, id: 3, kind: "perk", connections: [1, 3], dep: [] as number[] },
+      { index: 3, id: 4, kind: "perk", connections: [2, 1], dep: [] as number[] },
+    ]);
+    expect(n.map((x) => x.dep)).toEqual([[], [], [2], [3]]);
   });
 });

@@ -20,6 +20,7 @@ The release workflow publishes each version's section as its GitHub release note
 - **Black bar layout:** panels can be moved and reordered in each bar, also in game in edit mode (Ctrl+Shift+O), and "Leave room for Discord" keeps the top left clear.
 
 ### Changed
+- The War Plans trees and the tempering manual names are read from the game too, so a tempered stat says which manual it comes from and the War Plans planner knows every node and what it needs first.
 - **The lookup tables are built from your own game files.** Uniques (Season 15 runewords included), aspects, stats, skills with every skill tree upgrade, gems, runes, charms, seals, Chaos perks, paragon boards, nodes and glyphs, mercenaries and the War Plans trees all come from the install on this PC instead of the copy of another site's data the app used to ship.
 - **War Plans** lists the activity trees in the game's order: Tree of Whispers, Nightmare Dungeons, Helltide, The Undercity, Lair Bosses, Infernal Hordes, The Pit (player feedback).
 - Up to 100 marked moments are kept (was 30, which a busy session filled in half an hour).

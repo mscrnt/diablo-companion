@@ -32,6 +32,10 @@ data/gamedata/
   monsters.json        named actors (monsters / bosses / NPCs), monster families, monster affixes
   powers.json          skills (Power_* strings with sno) and seasonal powers (CollectiblePower)
   gbid.json            GameBalance name tables (affix families, skill tags, item families, ...)
+  skilltrees.json      the War Plans activity trees and the mercenary trees: nodes with their name,
+                       description, grid position, prerequisites and the power each one grants
+  tempering.json       tempering manuals: each manual's name, class, tier, recipe family and the
+                       affixes it can roll
   map.json             world-map POIs: waypoints, altars, journals, strongholds, dungeons, cellars, side quests, Helltide chests
   generated/*.json     the slim tables the app uses: hordes.json, map-pois.json, ocr-vocab.json
   raw/                 cache of the binary files copied out of CASC (~110 MB). The app should IGNORE it.
@@ -173,6 +177,63 @@ World-map points of interest in the overworld (World `Sanctuary_Eastern_Continen
 }
 ```
 `extract.mjs` writes this in the same run as the rest (the map stage reuses `raw/` and the string lists, and copies the ~3.4k overworld MarkerSet meta files it needs into `raw/base/meta`). `node scripts/gen-map-pois.mjs` then refreshes the slim copy in `src/generated/map-pois.json`.
+
+### `skilltrees.json`
+
+A GenericSkillTree (group 170) only names a SkillKit (group 39); the nodes are that kit's
+`arNodes`. A node names itself through `gbidReward` into the `SkillTreeRewards` /
+`Warplans_SkillTreeRewards` GameBalance table (type 43), which points at a Power whose `Power_*`
+StringList holds the text the game shows. `arConnections` is undirected, so `dep` (the
+prerequisites) is derived by walking out from the root node: a node's prerequisites are its
+neighbours one step closer to the root, and the root itself never counts as one (every node
+touching it is open as soon as the tree is).
+
+```jsonc
+{ "entries": [{
+  "sno": 2494487, "id": "Warplans_Pit", "name": "The Pit",
+  "rootTooltip": "Complete War Plans with this Activity to unlock upgrade points.",
+  "kind": "warplans",                       // or "mercenary"
+  "skillKit": { "sno": 2494528, "id": "Warplans_Pit" },
+  "reputation": { "sno": 2494519, "id": "Warplans_Pit" },
+  "rootIcon": 2180620647,                   // image handle, not a file
+  "nodeCount": 14,
+  "nodes": [{
+    "index": 1, "id": 729, "kind": "perk",  // "root" for the tree's own node
+    "name": "Flawless Find", "desc": "…{c_important}Gem Fragments{/c}…", "descPlain": "Gem Fragments…",
+    "reward": "Warplans_Pit_RuneChest",     // the SkillTreeRewards entry
+    "power": { "sno": 2541141, "id": "Warplans_BSK_RuneChest" },
+    "x": -2400, "y": -720,                  // tree grid units
+    "requiredLevel": 2, "exclusiveGroup": null,
+    "connections": [0, 3, 8, 2],            // indices into this tree's nodes, both ways
+    "dep": [730]                            // node ids that must come first
+  }]
+}]}
+```
+
+The icon a node shows is not here: the game draws it from the Power's own art, which needs the
+texture pipeline (see `extract-icons.mjs`), so only the image handle is exported.
+
+### `tempering.json`
+
+Which affixes each tempering manual can roll, so a tempered stat can name the manual it comes
+from. The manual is an Item with `itemType` `TemperManual`; the affix pool is on the Recipe (group
+49) of the same SNO name, under `temperingData`.
+
+```jsonc
+{ "entries": [{
+  "sno": 1861305, "id": "Tempering_Barb_Defensive_CDR_Tier3",
+  "name": "Barbarian Strategy",            // the manual's display name, from the item
+  "item": { "sno": 1861324, "id": "Tempering_Barb_Defensive_CDR_Tier3" },
+  "classes": ["Barbarian"], "tier": 3, "rarity": 2,
+  "family": "Barb_Defensive_CDR",          // TemperRecipeFamily (GameBalance type 89)
+  "itemLabelGroup": "Defensive",
+  "otherTiers": [{ "sno": 1924867, "id": "Tempering_Barb_Defensive_CDR_Tier2" }],
+  "affixes": [{ "sno": 1859249, "id": "Tempered_CDR_Skill_Barb_GroundStomp_Tier3" }]
+}]}
+```
+
+552 manuals (178 tier 1, 187 tier 2, 187 tier 3) cover 1,618 of the 2,371 affixes flagged
+`tempered` in `affixes.json`. The rest are passive-rank and unique affixes that no manual rolls.
 
 ## What is NOT here (and why)
 

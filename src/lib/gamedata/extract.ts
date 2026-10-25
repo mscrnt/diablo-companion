@@ -20,7 +20,7 @@ export const META_GROUPS: Record<number, string> = {
   80: "Subzone", 82: "MonsterFamily", 86: "WorldState", 92: "Territory", 96: "QuestChain", 98: "ItemType",
   99: "Achievement", 104: "Affix", 106: "ParagonNode", 107: "MonsterAffix", 108: "ParagonBoard",
   109: "SetItemBonus", 111: "ParagonGlyph", 112: "ParagonGlyphAffix", 116: "ItemRequirement", 119: "Jewelry",
-  124: "ParagonThreshold", 128: "Aspect", 135: "DungeonAffix", 151: "CollectiblePower", 158: "Zone",
+  49: "Recipe", 124: "ParagonThreshold", 128: "Aspect", 135: "DungeonAffix", 151: "CollectiblePower", 158: "Zone",
   162: "CommunityModifier", 170: "GenericSkillTree",
 };
 /** fUsableByClass / fAllowedForPlayerClass index order (verified: Barbarian aspects set index 2). */
@@ -145,6 +145,35 @@ export function evalArithmetic(src: string): number {
   return v;
 }
 
+/**
+ * A skill tree's connections are undirected, so work out which way they run: walk out from the
+ * root, and a node's prerequisites are the neighbours one step closer to it. The root itself is
+ * never a prerequisite, because every node touching it is open as soon as the tree is.
+ */
+export function setPrerequisites<T extends { index: number; id: number; kind: string; connections: number[]; dep: number[] }>(nodes: T[]): T[] {
+  const depth = new Map<number, number>();
+  const queue: number[] = [];
+  for (const n of nodes)
+    if (n.kind === "root") {
+      depth.set(n.index, 0);
+      queue.push(n.index);
+    }
+  for (let qi = 0; qi < queue.length; qi++) {
+    const at = queue[qi];
+    for (const j of nodes[at].connections)
+      if (!depth.has(j)) {
+        depth.set(j, depth.get(at)! + 1);
+        queue.push(j);
+      }
+  }
+  for (const n of nodes) {
+    const d = depth.get(n.index);
+    if (d === undefined || d === 0) continue;
+    n.dep = n.connections.filter((j) => depth.get(j) === d - 1 && nodes[j].kind !== "root").map((j) => nodes[j].id);
+  }
+  return nodes;
+}
+
 /** How the string lists are grouped into strings/*.json. */
 const CATS: [string, RegExp][] = [
   ["affixes", /^Affix_/],
@@ -254,6 +283,8 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
   // ---- GameBalance -> GBID name tables (needed to name affix families, skill tags, ...)
   io.progress({ stage: "Reading the game's balance tables" });
   const gbTables: Record<number, { files: string[]; names: Record<number, string> }> = {};
+  /** SkillTreeRewards (type 43) by GBID: what a skill-tree node gives, which names the node. */
+  const treeRewards = new Map<number, { id: string; power: SnoRef | null }>();
   for await (const [, name, v] of groupMetas(20)) {
     if (!v) continue;
     const t = v.eGameBalanceType;
@@ -264,6 +295,7 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
       if (typeof n === "string" && n) {
         (gbid[t] ??= {})[gbidHash(n)] = n;
         gbTables[t].names[gbidHash(n)] = n;
+        if (t === 43) treeRewards.set(gbidHash(n), { id: n, power: e.snoPower ?? null });
       }
       // DataAttributes table (type 84) defines data-driven attributes (negative eAttribute ids)
       if (t === 84 && typeof n === "string" && e.nDataAttribKey !== undefined) attributes[e.nDataAttribKey | 0] = n;
@@ -329,6 +361,10 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
     return on.length === CLASSES.length ? ["All"] : on;
   };
   const AD = stl.AttributeDescriptions || NOSTR;
+  // Power_* lists, keyed without case: an affix parameter spells the power id its own way
+  // ("Druid_landslide" for Power_Druid_Landslide), and a case-sensitive lookup finds nothing.
+  const powerStl = new Map<string, Record<string, string>>();
+  for (const [name, labels] of Object.entries(stl)) if (name.startsWith("Power_")) powerStl.set(name.slice(6).toLowerCase(), labels);
   const attrList = (arr: any[] | undefined) =>
     (arr || []).map((a) => {
       const t = a.tAttribute || a;
@@ -338,7 +374,7 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
         const pe = toc.byId.get(t.nParam);
         if (pe) {
           out.paramName = pe[1];
-          const ps = pe[0] === 29 ? stl["Power_" + pe[1]] : null;
+          const ps = pe[0] === 29 ? powerStl.get(String(pe[1]).toLowerCase()) : null;
           if (ps && ((ps as any).name || ps.Name)) out.paramDisplayName = (ps as any).name || ps.Name;
         }
       }
@@ -467,7 +503,11 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
         encrypted: !v && !!encryptedSnos[id] ? true : undefined,
       });
     if (!v) continue;
-    const isUnique = /_Unique_/i.test(name) && !/^(zzOld|Talisman_Charm_Unique|QST_|PTR_)/i.test(name) && !/^\[PH\]/.test(s.Name || "");
+    // runewords carry their power the same way a unique does, and their id does not say "_Unique_"
+    const isUnique =
+      (/_Unique_/i.test(name) || /^(S\d\d_)?Runeword_/i.test(name)) &&
+      !/^(zzOld|Talisman_Charm_Unique|QST_|PTR_)/i.test(name) &&
+      !/^\[PH\]/.test(s.Name || "");
     if (isUnique && s.Name) {
       const forced = (v.arForcedAffixes || []).map(affixBrief).filter(Boolean);
       const inherent = (v.arInherentAffixes || []).map(affixBrief).filter(Boolean);
@@ -490,7 +530,7 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
         forcedAffix: affixBrief(v.snoGemForcedAffix),
       });
     }
-    if (/^Rune_/i.test(name) && s.Name) {
+    if (/^(S\d\d_)?Rune_/i.test(name) && s.Name) {
       runes.push({
         ...base, runeDescription: s.RuneDescription || null, runeDescriptionPlain: plain(s.RuneDescription),
         runewordPrefix: s.RunewordPhrasePrefix || null,
@@ -570,6 +610,83 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
     counts: { boards: boards.length, nodes: nodes.length, glyphs: glyphs.length, glyphAffixes: glyphAffixes.length },
     boards, nodes, glyphs, glyphAffixes, thresholds,
   });
+
+  // ---- Generic skill trees: the War Plans activity trees and the mercenary trees
+  //
+  // A GenericSkillTree (group 170) only points at a SkillKit (group 39); the nodes are that kit's
+  // arNodes. A node names itself through gbidReward -> SkillTreeRewards -> its Power, whose
+  // Power_* string list holds the text the game shows. arConnections is undirected, so the
+  // prerequisites are worked out below by walking out from the root.
+  io.progress({ stage: "Reading the activity trees" });
+  const skillKits = new Map<number, any>();
+  for await (const [id, , v] of groupMetas(39)) if (v) skillKits.set(id, v);
+  const trees: any[] = [];
+  for await (const [id, name, v] of groupMetas(170)) {
+    const t = v && v.tGenericSkillTree;
+    const kit = t && t.snoSkillKit ? skillKits.get(t.snoSkillKit.sno) : null;
+    const raw: any[] = (kit && kit.arNodes) || [];
+    if (!raw.length) continue;
+    const s = Sx("GenericSkillTree", name);
+    const nodes = raw.map((n, i) => {
+      const reward = n.gbidReward ? treeRewards.get(n.gbidReward.gbid) : undefined;
+      const ps = reward && reward.power ? powerStl.get(String(reward.power.name).toLowerCase()) : undefined;
+      const desc = ps ? (ps as any).desc || ps.Description || null : null;
+      return {
+        index: i,
+        id: n.dwID,
+        kind: n.eRootNodeType === 1 ? "root" : "perk",
+        name: ps ? (ps as any).name || ps.Name || null : null,
+        desc,
+        descPlain: desc ? plain(desc) : null,
+        reward: reward ? reward.id : gbName(n.gbidReward),
+        power: ref(reward ? reward.power : null),
+        x: n.vPosition ? n.vPosition.x : 0,
+        y: n.vPosition ? n.vPosition.y : 0,
+        requiredLevel: n.dwNodeRequiredPlayerLevel,
+        exclusiveGroup: n.nExclusiveGroupId === -1 ? null : n.nExclusiveGroupId,
+        connections: (n.arConnections || []).map((c: any) => c.nIndexNode).filter((j: number) => j >= 0 && j < raw.length),
+        // filled in below
+        dep: [] as number[],
+      };
+    });
+    setPrerequisites(nodes);
+    trees.push({
+      sno: id, id: name, name: s.Name || null, rootTooltip: s.RootNodeTooltip || null,
+      kind: /^Warplans_/i.test(name) ? "warplans" : /^Mercenary_/i.test(name) ? "mercenary" : "other",
+      skillKit: ref(t.snoSkillKit), reputation: ref(t.snoReputation),
+      rootIcon: (t.hRootIcon && t.hRootIcon.hImageHandle) || null,
+      nodeCount: nodes.length, nodes,
+    });
+  }
+  await writeJson("skilltrees.json", envelope("GenericSkillTree (.gsk) -> SkillKit (.skl) + SkillTreeRewards + StringList Power_*", trees));
+
+  // ---- Tempering manuals: which affixes each manual can roll
+  // The manual is an Item with itemType TemperManual; the affix pool is on the Recipe (group 49)
+  // of the same SNO name, as arTemperedAffixes.
+  io.progress({ stage: "Reading the tempering manuals" });
+  const manualName = new Map<string, any>();
+  for (const i of items) if (i.itemType === "TemperManual") manualName.set(i.id, i);
+  const manuals: any[] = [];
+  for await (const [id, name, v] of groupMetas(49)) {
+    const td = v && v.temperingData;
+    const list = (td && td.arTemperedAffixes) || [];
+    if (!list.length) continue;
+    const item = manualName.get(name);
+    manuals.push({
+      sno: id, id: name,
+      name: item ? item.name : null,
+      item: item ? { sno: item.sno, id: item.id } : null,
+      classes: item ? item.classes : classesOf(td.usableByClass),
+      tier: Number((name.match(/_Tier(\d+)$/) || [])[1]) || null,
+      rarity: td.eTemperingRecipeRarity,
+      family: gbName(td.gbidRecipeFamily),
+      itemLabelGroup: gbName(td.gbidItemLabelGroup),
+      hidden: !!v.bRecipeIsHidden || undefined,
+      otherTiers: (td.arRecipesInFamily || []).map(ref),
+      affixes: list.filter((a: any) => a && a.snoAffix).map((a: any) => ref(a.snoAffix)),
+    });
+  }
+  await writeJson("tempering.json", envelope("Recipe (.rcp) arTemperedAffixes + Item (.itm) TemperManual", manuals));
 
   // ---- World: zones, territories, worlds/dungeons, level areas, subzones, events, bosses
   io.progress({ stage: "Reading zones and dungeons" });
@@ -668,6 +785,8 @@ export async function extract({ io, build, skipCasc = false, keep = () => true }
       events: events.length, dungeonAffixes: dungeonAffixes.length, actorsNamed: actorNames.length,
       bosses: actorNames.filter((a) => a.boss || a.worldBoss).length, skills: powers.length,
       seasonalPowers: collectiblePowers.length,
+      skillTrees: trees.length, skillTreeNodes: trees.reduce((a, t) => a + t.nodes.length, 0),
+      temperManuals: manuals.length,
     },
     stringFiles: stringFileStats, parseErrors: failures.length, readerSoftErrors: mr.errors,
     encryptedSnosInBuild: Object.keys(encryptedSnos).length,

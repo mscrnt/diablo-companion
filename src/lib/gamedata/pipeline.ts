@@ -6,12 +6,21 @@ import { extractMap } from "./extractMap";
 import { genHordes, genMapPois, genOcrVocab } from "./gen";
 import { compact, pretty, type BuildInfo, type GameDataIO } from "./io";
 
-/** The documents the app reads back at every start (convert.ts's `Extracted` plus the small tables). */
+/**
+ * The documents the app reads back at every start: convert.ts's `Extracted`, the world map, and the
+ * three small tables. The string lists are the only ones convert.ts asks for by name, which keeps
+ * the cache to about 20 MB instead of the 33 MB a full write would take.
+ */
 export const APP_FILES = [
   "manifest.json", "affixes.json", "aspects.json", "uniques.json", "items.json", "gems_runes.json",
-  "charms.json", "paragon.json", "powers.json", "map.json",
+  "charms.json", "paragon.json", "powers.json", "monsters.json", "gbid.json", "skilltrees.json",
+  "tempering.json", "map.json",
+  "strings/powers.json", "strings/items.json", "strings/paragon.json", "strings/actors.json", "strings/achievements.json",
   "generated/hordes.json", "generated/map-pois.json", "generated/ocr-vocab.json",
 ];
+
+/** The string-list files convert.ts reads, merged into one map by `loadGameData()`. */
+export const APP_STRING_FILES = APP_FILES.filter((f) => f.startsWith("strings/"));
 
 export interface RunOpts {
   io: GameDataIO;
