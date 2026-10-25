@@ -78,15 +78,12 @@ Versions follow [semantic versioning](https://semver.org): `patch` for fixes onl
 
 ## Data refresh
 The app reads the game data from the player's own Diablo IV install at runtime (`src/lib/gamedata/`),
-so nothing needs refreshing for a release. These commands run the same reader from a terminal, to
-inspect the data or to refresh the small tables still committed in `src/generated/`:
+so nothing needs refreshing for a release and no game data is in the repo. These commands run the same
+reader from a terminal, to inspect the data and for the tests and dev scripts, which read `data/gamedata`
+(tests that need it are skipped without it):
 ```
 node tools/datamine/build-cascx.mjs --sidecar    # once: build cascx.exe (read-only CascLib wrapper)
 node tools/datamine/extract.mjs                  # read the local install into data/gamedata (~1 min)
-node scripts/gen-hordes.mjs                      # then: src/generated/hordes.json
-node scripts/gen-map-pois.mjs                    #       src/generated/map-pois.json
-node scripts/gen-ocr-vocab.mjs                   #       src/generated/ocr-vocab.json
-node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs   # build data (Mobalytics)
 ```
 See `data/gamedata/README.md` for the output schemas and `src-tauri/resources/d4data/README.md` for
 the pinned type definitions. `research/` holds the S15 farming knowledge and timer source notes used
@@ -106,7 +103,7 @@ See `ROADMAP.md` for what's next.
 ## License
 The code is released under the [PolyForm Noncommercial License 1.0.0](LICENSE.md): free to use, modify and share for personal, hobby, research and other noncommercial purposes. Commercial use is not permitted.
 
-Game data bundled in `src/generated` and `src/seed` (from Mobalytics and the Diablo IV game files) belongs to its respective owners and isn't covered by this license. Game data the app reads from your own install stays on your PC.
+No game data ships with the app or sits in this repo: the app reads it from your own Diablo IV install, and it stays on your PC. Diablo IV and its data belong to Blizzard Entertainment. Builds you import stay credited to the site and author they came from.
 
 Reading those files uses two MIT-licensed projects, with thanks:
 [DiabloTools/d4data](https://github.com/DiabloTools/d4data) for the file layouts (pinned copies in

@@ -2,7 +2,7 @@ import { loadStaticData } from "../../src/lib/names";
 import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { planFarm, bossRoute } from "../../src/lib/farm";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
 await loadStaticData();
 const v = normaliseMobalytics(raw as any).variants.find((v) => v.id === "1")!;
 const steps = planFarm(v, () => emptyProgress);

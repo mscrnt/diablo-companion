@@ -2,7 +2,7 @@
 // The guide lists a few exact stats per slot; everything else still has some value
 // (Crit Chance on a crit build, Max Life anywhere, +Minion ranks on a minion build) and
 // a bigger roll beats a smaller one. The judge uses this instead of counting matches.
-import { normName } from "./names";
+import { normName, table, trigramSim } from "./names";
 import type { BuildVariant, CompareRow, GearSlot, ParsedItem } from "./types";
 
 export interface BuildProfile {
@@ -28,10 +28,38 @@ export function statKey(text: string): string {
     .replace(/\s+/g, " ")
     .trim();
   // the tooltip says "+4 to Minion Skills", the guide "Ranks to Minion Skills"
-  return normName(t).replace(/^to /, "ranks to ");
+  return canonicalStat(normName(t).replace(/^to /, "ranks to "));
 }
 
-const base = (name: string) => normName(name.replace(/\s*\(.*\)\s*$/, ""));
+const base = (name: string) => canonicalStat(normName(name.replace(/\s*\(.*\)\s*$/, "")));
+
+// The stat names come from the game (the tooltip, the tables read off this PC), a build's from the site it was
+// imported from, which words some of them its own way ("Core Skill Damage" for the game's "Core Damage",
+// "Critical Strike Damage" for "Critical Strike Damage Multiplier"). Both sides go through this, so they meet.
+let canonOf: object | null = null;
+let gameNames = new Set<string>();
+const canon = new Map<string, string>();
+export function canonicalStat(key: string): string {
+  const k = key.replace(/ multiplier$/, "");
+  const t = table("stats");
+  if (canonOf !== t) {
+    canonOf = t;
+    canon.clear();
+    gameNames = new Set(Object.values(t).map((e) => normName(e.n).replace(/ multiplier$/, "")));
+  }
+  if (!gameNames.size || gameNames.has(k) || k.length < 4) return k;
+  let hit = canon.get(k);
+  if (hit === undefined) {
+    let best = 0.8;
+    hit = k;
+    for (const n of gameNames) {
+      const s = trigramSim(k, n);
+      if (s > best) (best = s), (hit = n);
+    }
+    canon.set(k, hit);
+  }
+  return hit;
+}
 
 export function buildProfile(variant: BuildVariant | undefined): BuildProfile {
   const wanted = new Set<string>();

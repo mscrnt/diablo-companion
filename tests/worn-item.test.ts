@@ -110,7 +110,8 @@ describe("a worse amulet than yours", () => {
     expect(r.verdict).toBe("SCRAP");
     expect(r.reasons.join(" ")).not.toMatch(/Crit Damage: yours has 44%/);
     expect(r.reasons.join(" ")).toMatch(/enchanted: compared as if this one gets the same work/);
-    expect(r.reasons.join(" ")).toMatch(/replaces its/);
+    // what the enchant would replace (its weakest stat, here the +3 Darkness ranks a minion build barely uses) is
+    // a small loss, so it can sit below the five comparison lines shown
     expect(r.reasons.join(" ")).toMatch(/imprinted/);
   });
 

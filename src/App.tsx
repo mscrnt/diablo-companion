@@ -3,13 +3,13 @@ import { AppWindow, Bug, Camera, Castle, Eye, Flame, Hourglass, Map as MapIcon, 
 import { startEngine, useRuntime } from "./lib/engine";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Welcome from "./pages/Welcome";
-import { loadStaticData } from "./lib/names";
+import { loadStaticData, reloadStaticData, staticMeta } from "./lib/names";
 import { tidyCharacter } from "./lib/charmap";
 import { APP_VERSION, RELEASES_URL } from "./lib/version";
 import { useBuilds, useCoach, useLoot, useProfiles, useSettings } from "./lib/store";
 import { HelpImproveModal } from "./components/HelpImprove";
 import { GameDataStatus } from "./components/GameData";
-import { checkGameData } from "./lib/gamedata";
+import { checkGameData, useGameData } from "./lib/gamedata";
 import Dashboard from "./pages/Dashboard";
 import Timers from "./pages/Timers";
 import BuildPage from "./pages/Build";
@@ -73,11 +73,16 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      await loadStaticData();
+      // the tables come from the game data read off this PC: a cached read loads in a moment; the first read
+      // (a new install, an upgrade from 0.2.x, or a patch) runs in the background and they load when it's done
+      await Promise.race([loadStaticData(), new Promise((r) => setTimeout(r, 4000))]);
       tidyCharacter();
       // cheap: reads the install's .build.info and our cache manifest, then re-reads in the
-      // background when the game has been patched (0.2.x upgrades land here with no cache yet)
+      // background when the game has been patched
       void checkGameData();
+      useGameData.subscribe((s, prev) => {
+        if (s.build && s.build !== prev.build && staticMeta()?.build !== s.build) void reloadStaticData();
+      });
       // wait for persisted builds, then seed the user's build on first run
       if (!useBuilds.persist.hasHydrated()) await new Promise<void>((r) => useBuilds.persist.onFinishHydration(() => r()));
       if (!useSettings.persist.hasHydrated()) await new Promise<void>((r) => useSettings.persist.onFinishHydration(() => r()));

@@ -1,11 +1,10 @@
 // Infernal Hordes helper: spots the Infernal Offers on screen, ranks them for
 // Aether vs danger, advises which Spoils chest to open at the end, and times the run
 // (wave by wave) from the quest tracker.
-// Offer texts come from the game files (src/generated/hordes.json, scripts/gen-hordes.mjs).
-import data from "../generated/hordes.json";
+// Offer texts come from the game files read off this PC (gamedata/gen.ts genHordes).
 import { isDungeonCleared } from "./dungeon";
 import { isWarPlansScreen } from "./helltide";
-import { normName, trigramSim } from "./names";
+import { generatedTable, normName, onStaticData, trigramSim } from "./names";
 import type { OcrLine } from "./native";
 import type { BuildVariant, SlotProgress } from "./types";
 
@@ -15,8 +14,15 @@ export interface Offer {
   bane: string;
   boon: string;
 }
-export const OFFERS: Offer[] = (data as any).offers;
-export const CHESTS: { key: string; name: string; detail: string; cost: number | null }[] = (data as any).chests;
+// filled from the game data read off this PC (names.ts loadStaticData); empty until then
+export const OFFERS: Offer[] = [];
+export const CHESTS: { key: string; name: string; detail: string; cost: number | null }[] = [];
+/** The offers and Spoils chests from the generated tables. */
+onStaticData(() => setHordesData(generatedTable("hordes")));
+export function setHordesData(d: { offers?: Offer[]; chests?: typeof CHESTS } | null) {
+  OFFERS.splice(0, OFFERS.length, ...(d?.offers ?? []));
+  CHESTS.splice(0, CHESTS.length, ...(d?.chests ?? []));
+}
 
 /**
  * Hand-tuned estimates from each offer's boon/bane text:

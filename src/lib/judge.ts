@@ -214,7 +214,7 @@ function upkeep(item: ParsedItem, slot: GearSlot, q: Quality, p: SlotProgress, w
   const wantWorth = want ? (prof ? statWeight(normName(want), slot, prof) : 1) : 0;
   // a misread line can still be the wanted stat ("x26% Critical St e Ramäge Multiplier"): never re-roll into what it already is
   const isWant = (a: ParsedItem["affixes"][number]) =>
-    !!want && (a.match ? normName(a.match) === normName(want) : similarity(cleanAffix(a.text).replace(/^[+x\-\d.,%\s]+/i, ""), want) >= 0.75);
+    !!want && (a.match ? statKey(a.match) === statKey(want) : similarity(cleanAffix(a.text).replace(/^[+x\-\d.,%\s]+/i, ""), want) >= 0.75);
   // the base stat above the line ("1,594 Armor", "288 All Resist") can't be enchanted
   const implicit = (a: ParsedItem["affixes"][number]) => a === item.affixes[0] && /^\d[\d,.]*\s+(armor|all resist)/i.test(a.text);
   if (want && enchanted) {
@@ -695,7 +695,7 @@ interface Work {
 function workOn(slot: GearSlot, w: ParsedItem | null, ctx: Ctx): Work | null {
   const remembered = ctx.worn?.(slot.slot);
   const src = [...(w?.affixes ?? []), ...(remembered?.affixes ?? [])];
-  const key = (a: { text: string; match?: string | null }) => (a.match ? normName(a.match) : statKey(a.text));
+  const key = (a: { text: string; match?: string | null }) => (statKey(a.match ?? a.text));
   const crit = new Set(src.filter((a) => a.masterwork).map(key));
   const tempered = new Set(src.filter((a) => a.tempered).map(key));
   const enchanted = new Set(src.filter((a) => a.enchanted).map(key));
@@ -809,7 +809,7 @@ function swapValue(
   const rows = !work
     ? raw
     : raw.flatMap((r) => {
-        const key = r.match ? normName(r.match) : statKey(r.label);
+        const key = statKey(r.match ?? r.label);
         if (canTemper && r.mine == null && work.tempered.has(key)) return [];
         if (canEnchant && r.mine == null && work.enchanted.has(key)) {
           enchantSwap = true;

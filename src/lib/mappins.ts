@@ -1,7 +1,7 @@
 // Pins on the in-game map, from screen capture only.
 //
 // When the map is open, the waypoint icons on screen are cyan glyphs at known world
-// positions (src/generated/map-pois.json). Detecting them and fitting
+// positions (the map places read off this PC, gamedata/gen.ts genMapPois). Detecting them and fitting
 //     frame px = s · (u, v) + t
 // (u, v = the map-art projection from docs/research/map-data.md; orientation is fixed:
 // screen-right is +u, screen-down is +v, never mirrored or rotated) tells us the map's
@@ -16,7 +16,7 @@
 // old one at a known ratio) and confirmed by the anchors in view. See zoomCarry.
 //
 // Pure module: no DOM, no Tauri. The capture loop lives in mapPinsRunner.ts.
-import poiData from "../generated/map-pois.json";
+import { generatedTable, onStaticData } from "./names";
 import type { MapPinGroup } from "./store";
 
 // ---- data -----------------------------------------------------------------------------
@@ -50,20 +50,32 @@ export interface Poi {
   t?: string;
 }
 
-export const POIS = (poiData as { pois: Poi[] }).pois;
+// filled from the game data read off this PC (names.ts loadStaticData, setMapPois); empty until then
+export const POIS: Poi[] = [];
 
 const S2 = 6144 * Math.SQRT2;
 /** World x/y → map-art (u, v), 0..1 over the 4096 px map art. */
 export const toUv = (p: { x: number; y: number }): [number, number] => [2560 / 4096 + (p.y - p.x) / S2, 2212 / 4096 + (p.x + p.y) / S2];
 
-export const WAYPOINTS = POIS.filter((p) => p.k === "waypoint");
-export const WAYPOINT_UV = WAYPOINTS.map(toUv);
+export const WAYPOINTS: Poi[] = [];
+export const WAYPOINT_UV: [number, number][] = [];
 /**
  * Dungeon entrances: black-outlined icons the map always shows (cellars and altars only
  * appear once found), used as secondary anchors.
  */
-export const ICON_POIS = POIS.filter((p) => p.k === "dungeon" || p.k === "boss_dungeon");
-export const ICON_UV = ICON_POIS.map(toUv);
+export const ICON_POIS: Poi[] = [];
+export const ICON_UV: [number, number][] = [];
+
+/** The world map's places, and the anchors derived from them (in place, so every reference sees them). */
+onStaticData(() => setMapPois(generatedTable("mapPois")));
+export function setMapPois(d: { pois?: Poi[] } | null) {
+  const fill = <T>(a: T[], v: T[]) => a.splice(0, a.length, ...v);
+  fill(POIS, d?.pois ?? []);
+  fill(WAYPOINTS, POIS.filter((p) => p.k === "waypoint"));
+  fill(WAYPOINT_UV, WAYPOINTS.map(toUv));
+  fill(ICON_POIS, POIS.filter((p) => p.k === "dungeon" || p.k === "boss_dungeon"));
+  fill(ICON_UV, ICON_POIS.map(toUv));
+}
 
 // ---- frames and blobs -----------------------------------------------------------------
 

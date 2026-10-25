@@ -33,6 +33,8 @@ await build({
   external: ["@tauri-apps/*"],
   logLevel: "error",
   plugins: [viteGlobShim],
+  // the tables come from the game data extracted on this PC (data/gamedata or GAMEDATA_DIR), as in the tests
+  inject: [join(here, "../../tests/setup.ts")],
   // same constant vite.config.ts defines for the app
   define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(here, "../../package.json"), "utf8")).version) },
   banner: { js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);" },

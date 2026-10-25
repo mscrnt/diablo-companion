@@ -2,7 +2,7 @@ import { loadStaticData } from "../../src/lib/names";
 import { findOffers, findChests, chestAdvice, looksLikeHordes, parseAether } from "../../src/lib/hordes";
 import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
 await loadStaticData();
 const L = (text: string, x: number, y: number) => ({ text, x, y, w: 300, h: 24 });
 // OCR-ish text with typos, three offers side by side

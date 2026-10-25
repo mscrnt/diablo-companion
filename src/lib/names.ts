@@ -1,6 +1,6 @@
-// Slug → display-name resolution backed by src/generated/static-slim.json
-// (built from Mobalytics static data by scripts/slim-static.mjs). Falls back to
-// humanising the slug when an entry is missing.
+// Slug → display-name resolution backed by tables built from the player's own Diablo IV install
+// (src/lib/gamedata: read off this PC, converted by convert.ts). Falls back to humanising the slug
+// when an entry is missing.
 import { confusionKey, setOcrVocab, type OcrVocabData } from "./ocrfix";
 
 export interface SlimEntry {
@@ -42,23 +42,61 @@ type Slim = Record<Category, Record<string, SlimEntry>> & { meta?: Record<string
 
 let data: Slim | null = null;
 let loading: Promise<void> | null = null;
+let loaded = false;
+let generated: Record<string, any> | null = null;
+const listeners = new Set<() => void>();
 
-/** Lazy-load the tables (≈1.7 MB) and the OCR vocabulary once; safe to call repeatedly. */
+/** What the tables come from: the app reads the player's own install; tests hand in their own. */
+export interface StaticSource {
+  tables: Slim | null;
+  ocrVocab: OcrVocabData | null;
+  /** the other tables built from the game data: hordes (offers, chests, whisper caches), mapPois */
+  generated?: Record<string, any> | null;
+}
+
+/** The game data read off this PC (src/lib/gamedata), converted to the lookup tables. */
+async function fromGameData(): Promise<StaticSource> {
+  const [{ convert }, gd] = await Promise.all([import("./gamedata/convert"), import("./gamedata")]);
+  const [x, gen] = await Promise.all([gd.loadGameData(), gd.loadGeneratedTables()]);
+  return { tables: x ? (convert(x) as unknown as Slim) : null, ocrVocab: gen?.ocrVocab ?? null, generated: gen ? { hordes: gen.hordes, mapPois: gen.mapPois } : null };
+}
+let source: () => Promise<StaticSource> = fromGameData;
+
+/** Use another source for the tables (tests); the next load reads it. */
+export function setStaticSource(fn: () => Promise<StaticSource>) {
+  source = fn;
+  loading = null;
+}
+
+/** Load the tables and the OCR vocabulary once; safe to call repeatedly. Empty until the game has been read. */
 export function loadStaticData(): Promise<void> {
-  loading ??= Promise.all([
-    import("../generated/static-slim.json")
-      .then((m) => {
-        data = (m as any).default as Slim;
-      })
-      .catch(() => {
-        data = null;
-      }),
-    import("../generated/ocr-vocab.json")
-      .then((m) => setOcrVocab((m as any).default as OcrVocabData))
-      .catch(() => setOcrVocab(null)),
-  ]).then(() => {});
+  loading ??= source()
+    .catch((): StaticSource => ({ tables: null, ocrVocab: null, generated: null }))
+    .then((r) => {
+      data = r.tables;
+      setOcrVocab(r.ocrVocab);
+      generated = r.generated ?? null;
+      loaded = true;
+      for (const fn of listeners) fn();
+    });
   return loading;
 }
+
+/** Load again (the game was read anew, after a patch or for the first time). */
+export function reloadStaticData(): Promise<void> {
+  loading = null;
+  return loadStaticData();
+}
+
+/** Run `fn` each time the tables (re)load, and now if they already have. */
+export function onStaticData(fn: () => void): () => void {
+  listeners.add(fn);
+  if (loaded) fn();
+  return () => listeners.delete(fn);
+}
+
+/** One of the other tables built from the game data ("hordes", "mapPois"), or null before the game is read. */
+export const generatedTable = (k: string): any => generated?.[k] ?? null;
 
 export const staticReady = () => !!data;
 export const staticMeta = () => data?.meta;
@@ -261,6 +299,7 @@ export function canonicalUnique(name: string, itemType = ""): string | null {
   let best: string | null = null;
   let bestS = 0;
   let bestType = -1;
+  let bestPlain = -1;
   // OCR slips in the stylised title font ("TYRÄEL'S rn1Gi4T" = Tyrael's Might): compare glyph-confusion keys too
   const key = (t: string) => confusionKey(t).replace(/4/g, "h");
   const k = key(name);
@@ -270,10 +309,14 @@ export function canonicalUnique(name: string, itemType = ""): string | null {
     const base = u.n.replace(/\s*\([^)]*\)\s*$/, "");
     const s = Math.max(trigramSim(name, base), trigramSim(k, key(base)));
     const type = !u.t || !itemType ? 0 : typeMatches(u.t, itemType) ? 1 : -1;
-    if (s > bestS + 1e-9 || (Math.abs(s - bestS) < 1e-9 && type > bestType)) {
+    // on a tie the plain name beats a variant of it ("Shard of Verathiel" over "Shard of Verathiel (Crucible)")
+    const plain = u.n === base ? 1 : 0;
+    const tie = Math.abs(s - bestS) < 1e-9;
+    if (s > bestS + 1e-9 || (tie && (type > bestType || (type === bestType && plain > bestPlain)))) {
       bestS = s;
       best = u.n;
       bestType = type;
+      bestPlain = plain;
     }
   }
   return bestS >= 0.6 ? best : null;

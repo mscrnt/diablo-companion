@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { importBuild } from "../lib/importers";
-import { normaliseMobalytics } from "../lib/mobalytics";
 import { listModels } from "../lib/llm";
 import { useBuilds, useSettings } from "../lib/store";
 import { HelpImproveChoices, applyChoices, type Choices } from "../components/HelpImprove";
@@ -29,12 +28,6 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
     } finally {
       setBusy(false);
     }
-  };
-
-  const example = async () => {
-    const raw = (await import("../seed/necromancer-mages-necro-guide.json")).default;
-    addBuild(normaliseMobalytics(raw, "https://mobalytics.gg/diablo-4/builds/necromancer-mages-necro-guide"), "1");
-    setMsg({ ok: true, text: "Loaded the example Necromancer build." });
   };
 
   const testLlm = async () => {
@@ -66,9 +59,6 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
           <input type="url" className="grow" placeholder="Paste a build link from Mobalytics, Maxroll, Icy Veins or d4builds" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && url && doImport()} />
           <button className="btn primary" disabled={!url || busy} onClick={doImport}>
             {busy ? <span className="loader" /> : "Import"}
-          </button>
-          <button className="btn ghost" onClick={example}>
-            Use the example build
           </button>
         </div>
         {msg && <div className={msg.ok ? "note" : "err"} style={{ marginTop: 8 }}>{msg.text}</div>}

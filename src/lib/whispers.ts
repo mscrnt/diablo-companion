@@ -1,8 +1,7 @@
 // Tree of Whispers helper: rank the Bounty Caches on the reward screen for the
 // active build (slot caches for missing pieces, Talismans for missing charms,
 // Primordial Dust for cube crafts…). Cache names come from the game files.
-import data from "../generated/hordes.json";
-import { table, trigramSim } from "./names";
+import { generatedTable, onStaticData, table, trigramSim } from "./names";
 import type { OcrLine } from "./native";
 import type { BuildVariant, SlotProgress } from "./types";
 
@@ -13,7 +12,12 @@ export interface WhisperCache {
   name: string;
   description: string;
 }
-export const WHISPER_CACHES: WhisperCache[] = (data as any).whisperCaches ?? [];
+// filled from the game data read off this PC (names.ts loadStaticData); empty until then
+export const WHISPER_CACHES: WhisperCache[] = [];
+onStaticData(() => setWhisperCaches(generatedTable("hordes")));
+export function setWhisperCaches(d: { whisperCaches?: WhisperCache[] } | null) {
+  WHISPER_CACHES.splice(0, WHISPER_CACHES.length, ...(d?.whisperCaches ?? []));
+}
 
 const KIND_SLOTS: Record<string, string[]> = {
   Helms: ["helm"],

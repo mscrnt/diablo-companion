@@ -1,7 +1,7 @@
 // Snap Windows OCR text to the game's own vocabulary before parsing.
 // OCR misreads small caps and stylised letters ("ARIT10R" for ARMOR, "DOTTIINANCE",
-// "Thoms" for Thorns, "Pequires Level 70"). src/generated/ocr-vocab.json (built by
-// scripts/gen-ocr-vocab.mjs from the datamined game strings) lists every word and stat
+// "Thoms" for Thorns, "Pequires Level 70"). The OCR vocabulary (gamedata/gen.ts genOcrVocab, built from
+// the game strings read off this PC) lists every word and stat
 // line a tooltip can show. Numbers are never touched: only words are fixed, and only
 // when the fix is unambiguous. When unsure, the OCR text is kept as it was.
 

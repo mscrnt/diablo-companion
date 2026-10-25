@@ -1,7 +1,7 @@
 import { loadStaticData } from "../src/lib/names";
 import { normaliseMobalytics } from "../src/lib/mobalytics";
 import { emptyProgress } from "../src/lib/store";
-import raw from "../src/seed/necromancer-mages-necro-guide.json";
+import raw from "./fixtures/necromancer-mages-necro-guide.json";
 
 /** The bundled example build (Skeletal Warrior Minions, "End Game Warriors" variant) with nothing owned yet. */
 export async function exampleBuild() {

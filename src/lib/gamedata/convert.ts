@@ -17,6 +17,10 @@ export interface Extracted {
   monsters?: { actors: any[] };
   /** gbid.json: the GameBalance name tables an affix parameter can point into. */
   gbid?: { skillTags?: string[] };
+  /** skilltrees.json: the War Plans (and mercenary) trees with their nodes, positions and prerequisites. */
+  skillTrees?: { entries: any[] };
+  /** tempering.json: each tempering manual and the affixes it can roll. */
+  tempering?: { entries: any[] };
   /** strings/{items,powers,actors,world}.json merged: StringList name → its labels. */
   strings?: Record<string, Record<string, string>>;
 }
@@ -312,7 +316,7 @@ export function convert(x: Extracted): Tables {
       const type = itemTypeName(u.itemTypeName, u.itemType);
       uniqueSlug.set(u, seasonOf(u.id) === 10 ? `${slugOf(name)}-chaos-${slugOf(type)}` : types.size > 1 ? `${slugOf(name)}-${slugOf(type)}` : slugOf(name));
       // a runeword exists on a dozen weapons, and the game names every copy the same: say which one this is
-      uniqueName.set(u, u.runeword && types.size > 1 ? `${name} (${type})` : name);
+      uniqueName.set(u, (u.runeword || /^(S\d\d_)?Runeword_/.test(u.id)) && types.size > 1 ? `${name} (${type})` : name);
     }
   }
   for (const u of [...uniqueSlug.keys()].sort((a, b) => seasonOf(b.id) - seasonOf(a.id))) {
@@ -347,6 +351,11 @@ export function convert(x: Extracted): Tables {
   // Kullean transfiguration; the affix's own parameter fills the blank in its line ("Cold Resistance")
   const talentByPower = new Map<string, string>();
   for (const s of x.powers?.skills ?? []) if (s.name) talentByPower.set(String(s.id).toLowerCase(), s.name);
+  // the tempering manuals each affix comes from ("Demolition Finesse"): a tempering stat is also listed under
+  // "<manual>-<stat>", the way builds name a tempering choice
+  const manualsOf = new Map<string, Set<string>>();
+  for (const m of x.tempering?.entries ?? [])
+    for (const f of m.name ? (m.affixes ?? []) : []) manualsOf.set(f.id, (manualsOf.get(f.id) ?? new Set()).add(String(m.name).trim()));
   for (const a of x.affixes?.entries ?? []) {
     if (/^(Asp_|Legendary)|_Unique_/.test(a.id ?? "")) continue;
     const k = a.tempered ? "tempering" : (a.affixTags ?? []).includes("Transfigured") ? "transfigured" : a.affixType === 0 ? "implicit" : "gear";
@@ -365,6 +374,7 @@ export function convert(x: Extracted): Tables {
       for (const alias of [n, n.replace(/ for [\d.]+ seconds?$/i, ""), statNameOf(idWords(attr.attribute))]) {
         if (!alias || alias.length < 3 || alias.length > 70) continue;
         put(T("stats"), slugOf(alias), { n: alias, k });
+        for (const r of manualsOf.get(a.id) ?? []) put(T("stats"), slugOf(`${r} ${alias}`), { n: alias, k, r });
       }
     }
   }
@@ -457,9 +467,31 @@ export function convert(x: Extracted): Tables {
     if (!/ChaosPerk/i.test(p.id ?? "") || !p.name) continue;
     put(T("chaosPerks"), slugOf(p.name), { n: p.name, d: p.descPlain ?? plainText(p.desc) });
   }
+  // War Plans: each tree is its root node too ("lair-bosses"); a perk's prerequisites are the perks one step
+  // nearer the root (the root itself is never listed). Trees open 7 upgrade points (not in the tree data).
+  for (const tree of x.skillTrees?.entries ?? []) {
+    if (tree.kind !== "warplans" || !tree.name) continue;
+    const t = slugOf(tree.name);
+    put(T("wpTrees"), t, { n: tree.name, max: 7 } as SlimEntry);
+    const slugById = new Map<number, string>((tree.nodes ?? []).map((n: any) => [n.id, n.kind === "root" ? t : slugOf(n.name ?? "")]));
+    for (const n of tree.nodes ?? []) {
+      const slug = slugById.get(n.id);
+      if (!slug) continue;
+      const root = n.kind === "root";
+      put(T("wpNodes"), slug, {
+        n: root ? tree.name : n.name,
+        d: root ? plainText(tree.rootTooltip) : (n.descPlain ?? plainText(n.desc)),
+        t,
+        k: root ? "root" : "perk",
+        dep: root ? [] : (n.dep ?? []).map((id: number) => slugById.get(id)).filter((s: string | undefined) => s && s !== t),
+        x: n.x ?? 0,
+        y: n.y ?? 0,
+      } as SlimEntry);
+    }
+  }
   for (const [list, labels] of Object.entries(x.strings ?? {})) {
     if (!/^GenericSkillTree_Warplans_/.test(list) || !labels.Name) continue;
-    put(T("wpTrees"), slugOf(labels.Name), { n: labels.Name });
+    put(T("wpTrees"), slugOf(labels.Name), { n: labels.Name, max: 7 } as SlimEntry);
   }
 
   // mercenaries: the four hirelings, their skill trees, and the triggers a reinforcement can be set to

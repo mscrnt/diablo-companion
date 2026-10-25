@@ -6,8 +6,7 @@ We only ship coordinates.
 
 - Extractor: `src/lib/gamedata/extractMap.ts` writes `map.json` (1,668 entries plus 90 territory outlines),
   as part of the reader the app runs on the player's own install and `tools/datamine/extract.mjs` runs from a terminal.
-- Slim app copy: `src/lib/gamedata/gen.ts` `genMapPois()` (1,414 POIs, 142 KB), also written by
-  `scripts/gen-map-pois.mjs` into `src/generated/map-pois.json`.
+- Slim app copy: `src/lib/gamedata/gen.ts` `genMapPois()` (1,414 POIs, 142 KB), built in the same read.
 - Schema: `data/gamedata/README.md`, section `map.json`.
 
 ## Result

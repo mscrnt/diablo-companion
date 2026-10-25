@@ -5,7 +5,7 @@ import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { fastParse, looksSane } from "../../src/lib/fastparse";
 import { decide } from "../../src/lib/judge";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
 
 await loadStaticData();
 const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;

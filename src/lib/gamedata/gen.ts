@@ -1,5 +1,4 @@
-// The app's small lookup tables, built from the extracted game data: what scripts/gen-hordes.mjs,
-// scripts/gen-map-pois.mjs and scripts/gen-ocr-vocab.mjs used to write into src/generated/.
+// The app's small lookup tables, built from the extracted game data (they used to ship in src/generated/).
 //
 // Everything here comes from the player's own game files. The OCR vocabulary used to mix in the
 // Mobalytics stat names from data/static as well; that is gone, the game's own SkillTagNames and

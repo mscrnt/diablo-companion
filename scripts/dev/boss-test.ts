@@ -2,7 +2,7 @@ import { loadStaticData } from "../../src/lib/names";
 import { findBoss, bossInfo } from "../../src/lib/boss";
 import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { readFileSync } from "node:fs";
-import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
 await loadStaticData();
 const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
 const st = JSON.parse(readFileSync(process.env.APPDATA + "/com.kenneth.d4companion/d4c-state.json", "utf8"));

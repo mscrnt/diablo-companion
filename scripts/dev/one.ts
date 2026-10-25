@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { loadStaticData } from "../../src/lib/names";
 import { fastParse } from "../../src/lib/fastparse";
 import { normaliseMobalytics } from "../../src/lib/mobalytics";
-import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
 await loadStaticData();
 const v = normaliseMobalytics(raw as any).variants.find((x) => x.id === "1")!;
 const dir = process.env.LOCALAPPDATA + "/com.kenneth.d4companion/logs/judge-log";

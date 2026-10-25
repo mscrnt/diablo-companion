@@ -1,6 +1,6 @@
 import { loadStaticData } from "../../src/lib/names";
 import { normaliseMobalytics } from "../../src/lib/mobalytics";
-import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
 await loadStaticData();
 const b = normaliseMobalytics(raw as any);
 console.log(b.name, "|", b.author, "|", b.className, b.season, "| variants:", b.variants.map((v) => `${v.id}=${v.name}`).join(", "));

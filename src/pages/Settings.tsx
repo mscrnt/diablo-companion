@@ -4,7 +4,6 @@ import { checkLlm, useRuntime } from "../lib/engine";
 import { obsReplayStatus } from "../lib/obs";
 import { discord } from "../lib/alerts";
 import { useSettings, type ActionId } from "../lib/store";
-import { staticMeta } from "../lib/names";
 import { APP_VERSION, REPO_URL, RELEASES_URL, checkForUpdate, installUpdate } from "../lib/version";
 import { DebugReportButton } from "../components/DebugReport";
 import { ExportStatsButton } from "../components/ExportStats";
@@ -32,7 +31,6 @@ export default function SettingsPage() {
   const pad = useRuntime((s) => s.lastPad);
   const errs = useRuntime((s) => s.hotkeyErrors);
   const [obsMsg, setObsMsg] = useState("");
-  const meta = staticMeta() as any;
 
   return (
     <>
@@ -83,11 +81,6 @@ export default function SettingsPage() {
               Only Mobalytics needs it: without it, those imports fall back to its API (all gear/skills/paragon, but no author notes). Maxroll, Icy Veins and d4builds builds come
               straight from the link you paste.
             </div>
-            {meta && (
-              <div className="small dim">
-                Static data {String(meta.staticDataVersion ?? "")} · fetched {String(meta.fetchedAt ?? "").slice(0, 10)}: refresh with <span className="mono">node scripts/fetch-mobalytics-static.mjs && node scripts/slim-static.mjs</span>
-              </div>
-            )}
           </div>
         </Card>
 

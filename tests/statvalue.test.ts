@@ -15,7 +15,7 @@ describe("build-aware stat value (Skeletal Warrior minion necro)", () => {
   it("reads stat names off tooltip lines", () => {
     expect(statKey("+4 to Minion Skills")).toBe("ranks to minion skills");
     expect(statKey("+1,304 Maximum Life (+1,155)")).toBe("maximum life");
-    expect(statKey("x26.5% Shadow Damage Multiplier [20 - 30]%")).toBe("shadow damage multiplier");
+    expect(statKey("x26.5% Shadow Damage Multiplier [20 - 30]%")).toBe("shadow damage");
   });
 
   it("weighs stats by what they do for this build", () => {

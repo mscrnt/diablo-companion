@@ -5,7 +5,7 @@ import { normaliseMobalytics } from "../../src/lib/mobalytics";
 import { decide } from "../../src/lib/judge";
 import { cubeHint } from "../../src/lib/farm";
 import { emptyProgress } from "../../src/lib/store";
-import raw from "../../src/seed/necromancer-mages-necro-guide.json";
+import raw from "../../tests/fixtures/necromancer-mages-necro-guide.json";
 import type { ParsedItem } from "../../src/lib/types";
 
 await loadStaticData();
