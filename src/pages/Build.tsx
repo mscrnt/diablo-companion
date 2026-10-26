@@ -241,7 +241,7 @@ function Library({ busy, onRefresh }: { busy: boolean; onRefresh: (u: string) =>
     <Card
       title={`Build library (${total})`}
       style={{ marginTop: 14 }}
-      right={<span className="small muted">every build you imported, by class · one no character plays waits here, and the loot judge still says stash it</span>}
+      right={<span className="small muted">Every build you imported, by class. A build none of your characters plays waits here, and the loot judge still tells you to stash gear for it.</span>}
     >
       {total === 0 && <div className="muted small">Nothing yet. Paste a build link above.</div>}
       {groups.map((g) => (
@@ -279,22 +279,27 @@ function Library({ busy, onRefresh }: { busy: boolean; onRefresh: (u: string) =>
                     <button className="btn sm" disabled={busy || !b.url} onClick={() => onRefresh(b.url || b.slug)} title="Re-fetch the latest version">
                       ⟳
                     </button>
-                    <select
-                      value=""
-                      onChange={(e) => e.target.value && assignBuild(b.id, e.target.value)}
-                      title="Give this build to another character, or put it back in your library"
-                      style={{ maxWidth: 130 }}
-                    >
-                      <option value="">Move to…</option>
-                      {Object.values(profiles)
-                        .filter((p) => p.id !== activeId && p.id !== row.owner?.id)
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {profileLabel(p)}
-                          </option>
-                        ))}
-                      {row.owner && <option value={LIBRARY}>Your library</option>}
-                    </select>
+                    {(() => {
+                      // somewhere else it can go: another character, or back to the library (no menu when there's nowhere)
+                      const to = Object.values(profiles).filter((p) => p.id !== activeId && p.id !== row.owner?.id);
+                      if (!to.length && !row.owner) return null;
+                      return (
+                        <select
+                          value=""
+                          onChange={(e) => e.target.value && assignBuild(b.id, e.target.value)}
+                          title="Give this build to another character, or put it back in your library"
+                          style={{ maxWidth: 130 }}
+                        >
+                          <option value="">Move to…</option>
+                          {to.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {profileLabel(p)}
+                            </option>
+                          ))}
+                          {row.owner && <option value={LIBRARY}>Your library</option>}
+                        </select>
+                      );
+                    })()}
                     <button
                       className="btn ghost sm right"
                       title="Forget this build"

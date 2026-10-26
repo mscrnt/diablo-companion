@@ -30,7 +30,10 @@ let waitingForData = false;
 const send = (m: ToWorker, transfer?: Transferable[]) => worker?.postMessage(m, transfer ?? []);
 
 // ---- the app cache folder -----------------------------------------------------------------
-const libraryPath = (gameBuild: string) => `library/${gameBuild.replace(/[^0-9A-Za-z.]/g, "_")}.json`;
+// LIBRARY_V goes up when what goes into the library changes (2: no fish or placeholder uniques), so a library
+// built by an older version is built again instead of being kept until the next game patch
+const LIBRARY_V = 2;
+const libraryPath = (gameBuild: string) => `library/${gameBuild.replace(/[^0-9A-Za-z.]/g, "_")}-v${LIBRARY_V}.json`;
 
 async function readCachedLibrary(gameBuild: string): Promise<IconLibrary | null> {
   try {
