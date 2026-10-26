@@ -10,15 +10,10 @@ import { readCharacterName, sameName } from "./charname";
 import { debugEvent } from "./debug";
 import type { OtherBuild } from "./everyBuild";
 import { slugOf } from "./gamedata/convert";
+import { assignBuild, attachLibrary, libraryBuilds } from "./library";
 import { table } from "./names";
-import { emptyProgress, emptyTalisman, getActiveVariant, newProfile, useBuilds, useProfiles, type GearData, type Profile } from "./store";
+import { emptyGear, emptyProgress, getActiveVariant, liveGear, newProfile, useBuilds, useLibrary, useProfiles, type GearData, type Profile } from "./store";
 import type { Build, SlotProgress } from "./types";
-
-const gearOf = (): GearData => {
-  const s = useBuilds.getState();
-  return { builds: s.builds, activeBuildId: s.activeBuildId, activeVariantId: s.activeVariantId, progress: s.progress, variantOf: s.variantOf, worn: s.worn, talisman: s.talisman };
-};
-const emptyGear = (): GearData => ({ builds: {}, activeBuildId: null, activeVariantId: null, progress: {}, variantOf: {}, worn: {}, talisman: emptyTalisman });
 
 const sheetOf = (): CharacterProfile => {
   const c = useCharacter.getState();
@@ -26,8 +21,8 @@ const sheetOf = (): CharacterProfile => {
 };
 const emptySheet = (): CharacterProfile => ({ session: null, stats: {}, statsAt: 0, statsV: 1, skills: {}, glyphs: {} });
 
-/** All three stores loaded from disk: switching before that would save half-loaded data. */
-const ready = () => useProfiles.persist.hasHydrated() && useBuilds.persist.hasHydrated() && useCharacter.persist.hasHydrated();
+/** All four stores loaded from disk: switching before that would save half-loaded data. */
+const ready = () => useProfiles.persist.hasHydrated() && useBuilds.persist.hasHydrated() && useCharacter.persist.hasHydrated() && useLibrary.persist.hasHydrated();
 
 export const activeProfile = (): Profile => {
   const { profiles, activeId } = useProfiles.getState();
@@ -35,7 +30,7 @@ export const activeProfile = (): Profile => {
 };
 
 /** A profile's builds and gear: the live ones for the active character. */
-const gearFor = (p: Profile): GearData => (p.id === useProfiles.getState().activeId ? gearOf() : p.gear ?? emptyGear());
+const gearFor = (p: Profile): GearData => (p.id === useProfiles.getState().activeId ? liveGear() : p.gear ?? emptyGear());
 
 /** "Bazaq", or a stand-in while the name hasn't been read. */
 export const profileLabel = (p: Profile) => p.name || "Your character";
@@ -94,13 +89,23 @@ export function switchProfile(id: string): boolean {
   const to = profiles[id];
   if (!to || id === activeId) return false;
   const from = profiles[activeId];
-  const saved = from ? { [activeId]: { ...from, gear: gearOf(), sheet: sheetOf() } } : {};
+  const saved = from ? { [activeId]: { ...from, gear: liveGear(), sheet: sheetOf() } } : {};
   useBuilds.setState(to.gear ?? emptyGear());
   useCharacter.setState(to.sheet ?? emptySheet());
   useProfiles.setState({ activeId: id, profiles: { ...profiles, ...saved, [id]: { ...to, gear: null, sheet: null, seenAt: Date.now() } } });
   // the profile's id only: names never go in the debug log
   debugEvent("profiles", "switch", { to: id.slice(0, 8), builds: Object.keys(to.gear?.builds ?? {}).length });
+  attachLibraryHere();
   return true;
+}
+
+/**
+ * The character you play takes any build of its class that was waiting in your library (library.ts):
+ * imported for a class you weren't playing then, and hers the moment she shows up.
+ */
+export function attachLibraryHere(): Build[] {
+  const p = activeProfile();
+  return p ? attachLibrary(shownClass(p), p.name) : [];
 }
 
 /** A new, empty profile for a character (not made active). Returns its id. */
@@ -120,27 +125,12 @@ export function removeProfile(id: string) {
   });
 }
 
-/** Move one of the active character's builds, with its tracked progress, to another character. */
+/**
+ * Move one of the active character's builds, with its tracked progress, to another character.
+ * (library.ts moves a build between any two places, the library included.)
+ */
 export function moveBuild(buildId: string, toId: string) {
-  const { profiles, activeId } = useProfiles.getState();
-  const to = profiles[toId];
-  const s = useBuilds.getState();
-  const b = s.builds[buildId];
-  if (!to || toId === activeId || !b) return;
-  const g = to.gear ?? emptyGear();
-  const progress = Object.fromEntries(Object.entries(s.progress).filter(([k]) => k.startsWith(`${buildId}:`)));
-  const variant = s.activeBuildId === buildId ? s.activeVariantId : s.variantOf[buildId] ?? b.variants[b.variants.length - 1]?.id ?? null;
-  const gear: GearData = {
-    ...g,
-    builds: { ...g.builds, [buildId]: b },
-    // a character without a build plays this one
-    activeBuildId: g.activeBuildId ?? buildId,
-    activeVariantId: g.activeBuildId ? g.activeVariantId : variant,
-    progress: { ...g.progress, ...progress },
-    variantOf: variant ? { ...g.variantOf, [buildId]: variant } : g.variantOf,
-  };
-  useProfiles.setState({ profiles: { ...profiles, [toId]: { ...to, gear } } });
-  s.removeBuild(buildId);
+  if (toId !== useProfiles.getState().activeId && useBuilds.getState().builds[buildId]) assignBuild(buildId, toId);
 }
 
 export type Seen = "same" | "switched" | "named" | "new";
@@ -185,12 +175,14 @@ export function noteCharacterFrame(lines: { text: string }[], now = Date.now()) 
   if (vote.n < (known ? 2 : 3) || !ready()) return;
   // (the debug log records toasts: it scrubs names, see debug.ts)
   const seen = characterSeen(vote.name, now);
+  // a frame of the Character panel is also where a new character's class first shows itself
+  attachLibraryHere();
   const who = activeProfile().name;
   if (seen === "switched") overlayToast(`Playing ${who}`, "Their builds and gear are loaded.", "#d4ad62", 5000);
   if (seen === "new") overlayToast(`New character: ${who}`, "Import a build for them on the Build page. Loot is still judged for your other characters.", "#d4ad62", 8000);
 }
 
-/** Every build except the one you play now: your other builds, then your other characters' builds. */
+/** Every build except the one you play now: your other builds, your other characters', then your library's. */
 export function otherBuilds(): OtherBuild[] {
   const { profiles, activeId } = useProfiles.getState();
   const out: OtherBuild[] = [];
@@ -215,5 +207,6 @@ export function otherBuilds(): OtherBuild[] {
       });
     }
   }
-  return out.sort((a, b) => Number(b.sameCharacter) - Number(a.sameCharacter));
+  // a build no character has yet comes last: it can say "stash it", never "scrap it" (everyBuild.ts)
+  return [...out.sort((a, b) => Number(b.sameCharacter) - Number(a.sameCharacter)), ...libraryBuilds()];
 }

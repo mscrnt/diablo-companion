@@ -3,18 +3,19 @@ import { Anvil, Diamond, ScanEye, ScrollText, Sparkles, Star } from "lucide-reac
 import { Badge, Card, Empty, PageHead, timeAgo } from "../components/ui";
 import { judgingFor } from "../lib/buildlabel";
 import { SITE_LABEL, importBuild } from "../lib/importers";
+import { LIBRARY, assignBuild, byClass, forgetBuild, landBuild, libraryRows, type LibraryRow } from "../lib/library";
 import { scanSkillBar, useSkillBar } from "../lib/skillbar";
 import { useRuntime } from "../lib/engine";
 import { describe, normName } from "../lib/names";
 import { moveBuild, profileClass, profileLabel, removeProfile, shownClass, switchProfile } from "../lib/profiles";
-import { emptyProgress, useActiveVariant, useBuilds, useProfiles, useSettings } from "../lib/store";
+import { emptyProgress, useActiveVariant, useBuilds, useLibrary, useProfiles, useSettings } from "../lib/store";
 import type { GearSlot, OwnState } from "../lib/types";
 
 const STATES: OwnState[] = ["missing", "have", "upgrade", "perfect"];
 const STATE_LABEL: Record<OwnState, string> = { missing: "Missing", have: "Have (rough)", upgrade: "Have (good)", perfect: "Perfect" };
 
 export default function BuildPage() {
-  const { builds, activeBuildId, setActive, removeBuild, addBuild, updates, setUpdate } = useBuilds();
+  const { builds, activeBuildId, setActive, removeBuild, updates, setUpdate } = useBuilds();
   const { build, variant } = useActiveVariant();
   const { profiles, activeId } = useProfiles();
   const others = Object.values(profiles).filter((p) => p.id !== activeId);
@@ -29,17 +30,11 @@ export default function BuildPage() {
     setMsg(null);
     try {
       const { build: b, via, defaultVariant } = await importBuild(u, { flaresolverr });
-      // a build for another class than this character has shown is kept, not made the one it plays
+      // a build for another class than this character has shown goes to the library, not onto the character
       const who = profiles[activeId];
-      const cls = who ? shownClass(who) : "";
-      const before = useBuilds.getState();
-      addBuild(b, defaultVariant);
+      const landed = landBuild(b, { className: who ? shownClass(who) : "", label: who ? profileLabel(who) : "This character", variant: defaultVariant });
       setUpdate(b.id, null);
-      const otherClass = !!cls && !!b.className && b.className.toLowerCase() !== cls.toLowerCase() && !!before.activeBuildId && before.activeBuildId !== b.id;
-      if (otherClass) {
-        setActive(before.activeBuildId!, before.activeVariantId ?? undefined);
-        setMsg({ ok: true, text: `Saved "${b.name}". It's a ${b.className} build and ${profileLabel(who!)} is a ${cls}, so it's kept for when you play one.` });
-      } else setMsg({ ok: true, text: `Imported "${b.name}" via ${via} (${b.variants.length} variants, updated ${b.updatedAt.slice(0, 10)}).` });
+      setMsg({ ok: true, text: landed.to === "library" ? landed.text : `Imported "${b.name}" via ${via} (${b.variants.length} variants, updated ${b.updatedAt.slice(0, 10)}).` });
       setUrl("");
     } catch (e) {
       setMsg({ ok: false, text: String((e as Error).message ?? e) });
@@ -160,6 +155,8 @@ export default function BuildPage() {
         </div>
       </Card>
 
+      <Library busy={busy} onRefresh={doImport} />
+
       {!variant ? (
         <Empty icon={ScrollText}>Import a build to get started.</Empty>
       ) : (
@@ -217,6 +214,101 @@ function Characters() {
           );
         })}
       </div>
+    </Card>
+  );
+}
+
+/**
+ * Every build you ever imported, grouped by class, with the character that plays it. A build for a class no
+ * character of yours plays waits in the library: it's never the build the judge follows, but it can still
+ * say "stash it" for an item, and the day you play that class it's hers (library.ts).
+ */
+function Library({ busy, onRefresh }: { busy: boolean; onRefresh: (u: string) => void }) {
+  const live = useBuilds();
+  const { profiles, activeId } = useProfiles();
+  const lib = useLibrary();
+  const me = profiles[activeId];
+  const myClass = me ? shownClass(me) : "";
+  const groups = byClass(libraryRows({ profiles: Object.values(profiles), activeId, live, library: lib.builds, variantOf: lib.variantOf }));
+  const total = groups.reduce((n, g) => n + g.rows.length, 0);
+  // the class is the character's, so giving her another class's build needs a yes
+  const take = (row: LibraryRow) => {
+    const cls = row.build.className;
+    if (cls && myClass && cls.toLowerCase() !== myClass.toLowerCase() && !confirm(`${profileLabel(me)} is a ${myClass}, and this is a ${cls} build. Use it anyway?`)) return;
+    assignBuild(row.build.id, activeId);
+  };
+  return (
+    <Card
+      title={`Build library (${total})`}
+      style={{ marginTop: 14 }}
+      right={<span className="small muted">every build you imported, by class · one no character plays waits here, and the loot judge still says stash it</span>}
+    >
+      {total === 0 && <div className="muted small">Nothing yet. Paste a build link above.</div>}
+      {groups.map((g) => (
+        <div key={g.className} style={{ marginBottom: 12 }}>
+          <div className="row" style={{ gap: 6 }}>
+            <b style={{ color: "var(--gold)" }}>{g.className}</b>
+            <span className="small muted">
+              {g.rows.length} build{g.rows.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="grid g3" style={{ marginTop: 6 }}>
+            {g.rows.map((row) => {
+              const b = row.build;
+              const mine = row.owner?.id === activeId;
+              const where = row.owner ? profileLabel(profiles[row.owner.id]) : "In your library";
+              return (
+                <div key={b.id} className="slot" style={{ gridTemplateColumns: "1fr", borderColor: mine && row.active ? "var(--gold)" : undefined }}>
+                  <div className="row" style={{ gap: 6 }}>
+                    <b className={mine && row.active ? "rar-unique" : ""}>{b.name}</b>
+                    {row.active && (
+                      <span className="badge" style={{ color: "var(--gold)" }} title={mine ? "The build the loot judge follows" : `${where}'s active build`}>
+                        active
+                      </span>
+                    )}
+                  </div>
+                  <div className="small muted">
+                    {[where, `from ${SITE_LABEL[b.source]}${b.author ? ` by ${b.author}` : ""}`, b.updatedAt && `updated ${b.updatedAt.slice(0, 10)}`].filter(Boolean).join(" · ")}
+                  </div>
+                  <div className="row" style={{ marginTop: 6 }}>
+                    {!mine && (
+                      <button className="btn sm gold" onClick={() => take(row)}>
+                        Use on {profileLabel(me)}
+                      </button>
+                    )}
+                    <button className="btn sm" disabled={busy || !b.url} onClick={() => onRefresh(b.url || b.slug)} title="Re-fetch the latest version">
+                      ⟳
+                    </button>
+                    <select
+                      value=""
+                      onChange={(e) => e.target.value && assignBuild(b.id, e.target.value)}
+                      title="Give this build to another character, or put it back in your library"
+                      style={{ maxWidth: 130 }}
+                    >
+                      <option value="">Move to…</option>
+                      {Object.values(profiles)
+                        .filter((p) => p.id !== activeId && p.id !== row.owner?.id)
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {profileLabel(p)}
+                          </option>
+                        ))}
+                      {row.owner && <option value={LIBRARY}>Your library</option>}
+                    </select>
+                    <button
+                      className="btn ghost sm right"
+                      title="Forget this build"
+                      onClick={() => confirm(`Remove ${b.name} from your library? Its tracked progress is kept if you re-import it.`) && forgetBuild(b.id)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </Card>
   );
 }
