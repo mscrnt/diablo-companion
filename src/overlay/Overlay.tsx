@@ -10,9 +10,30 @@ import type { HelltideInfo } from "../lib/helltide";
 import type { BossInfo } from "../lib/boss";
 import type { MapPinsFrame } from "../lib/mapPinsRunner";
 import type { PoiKind } from "../lib/mappins";
-import { ArrowLeftRight, BookOpen, Castle, ChevronDown, ChevronUp, CircleCheck, DoorOpen, Eye, Flame, Gem, Landmark, MapPin, Package, ScrollText, Skull, Sparkles, Star, TreeDeciduous, Warehouse, X, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Castle, ChevronDown, ChevronUp, CircleCheck, DoorOpen, ExternalLink, Eye, EyeOff, Flame, Gem, Landmark, MapPin, Package, ScrollText, Settings2, Skull, Sparkles, Star, TreeDeciduous, Warehouse, X, type LucideIcon } from "lucide-react";
 import { VERDICT_STYLE } from "../lib/judge";
-import { BAR_LABELS, clampDiscordRoom, normalizeBars, splitBar, type BarItem, type BarMove, type BarPanel, type Side } from "../lib/barlayout";
+import { clampDiscordRoom, normalizeBars, splitBar, type BarItem, type BarMove, type BarPanel, type Side } from "../lib/barlayout";
+import {
+  EVENT_KINDS,
+  LEAD_CHOICES,
+  MAP_PINS_SPEC,
+  OVERLAY_SPEC,
+  PANELS,
+  PANEL_LABELS,
+  PIN_GROUPS,
+  eventKindLabel,
+  hiddenPanels,
+  optionValue,
+  optionsFor,
+  pinGroupsNow,
+  showPanel,
+  type OverlayPatch,
+  type PanelId,
+  type PanelOption,
+  type PanelSettings,
+  type PanelSpec,
+} from "../lib/overlaypanels";
+import { MAP_PIN_PRESETS } from "../lib/store";
 import { judgingFor } from "../lib/buildlabel";
 import { EVENT_META, eventLabel, fmtCountdown, isActive } from "../lib/timers";
 import type { JudgeResult } from "../lib/types";
@@ -131,6 +152,8 @@ export default function Overlay() {
   const [now, setNow] = useState(Date.now());
   /** edit mode: the Discord room's height while its edge is dragged */
   const [roomDrag, setRoomDrag] = useState<number | null>(null);
+  /** edit mode: the one open options popover, and the button it hangs off */
+  const [pop, setPop] = useState<{ id: PopId; at: Anchor } | null>(null);
   const vTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const tipTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pinTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -225,14 +248,38 @@ export default function Overlay() {
     });
   }, [verdict?.id]);
 
-  // edit mode: Esc finishes (the overlay has the keyboard while it's interactive)
+  // edit mode: Esc closes the open popover, then finishes (the overlay has the keyboard while it's
+  // interactive). Nothing here can leave a popover behind: it also goes when edit mode ends.
+  const popRef = useRef<typeof pop>(null);
+  popRef.current = pop;
+  const closePop = () => {
+    popRef.current?.at.focus();
+    setPop(null);
+  };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && stRef.current?.edit) emitMain("overlay-action", "overlayEdit");
+      if (e.key !== "Escape" || !stRef.current?.edit) return;
+      e.preventDefault();
+      if (popRef.current) closePop();
+      else emitMain("overlay-action", "overlayEdit");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  useEffect(() => {
+    if (!st?.edit) setPop(null);
+  }, [st?.edit]);
+  // the window follows the game window: a popover placed against the old size would sit off screen
+  useEffect(() => {
+    const onResize = () => setPop(null);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  // a panel hidden while its own popover is open takes the popover with it
+  useEffect(() => {
+    const w = st?.settings.widgets;
+    if (pop && w && pop.id in w && !w[pop.id as PanelId].on) setPop(null);
+  }, [pop, st]);
 
   if (!st) return null;
   const dpr = window.devicePixelRatio || 1;
@@ -246,8 +293,31 @@ export default function Overlay() {
   const guideOn = !!guide?.active;
   const visible = st.visible || guideOn;
   const judgeFor = judgingFor(st.build?.name, st.build?.variant);
+  // edit mode: the settings its gears show, and every change on its way to the main window's store
+  const panelSettings: PanelSettings = { overlay: st.settings, ...st.opts };
+  const patch = (p: OverlayPatch) => emitMain("overlay-settings", p);
+  const openPop = (id: PopId) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    const at = anchorOf(e.currentTarget);
+    setPop((cur) => (cur?.id === id ? null : { id, at }));
+  };
+  const hidden = hiddenPanels(st.settings.widgets);
+  const editCtl = (id: PanelId) => <EditCtl id={id} open={pop?.id === id} onPop={openPop(id)} onHide={() => patch(showPanel(id, false))} />;
 
   const panels = {
+    activity:
+      st.settings.widgets.activity.on &&
+      (hordes?.active || helltide?.active || undercity || boss ? (
+        <>
+          {hordes?.active && <HordesPanel h={hordes} />}
+          {helltide?.active && <HelltidePanel h={helltide} />}
+          {undercity && <UndercityPanel u={undercity} />}
+          {boss && <BossPanel b={boss} />}
+        </>
+      ) : st.edit ? (
+        <div className="ov-panel small muted" data-dbg="panel:activity-placeholder">
+          Helltide, Hordes, Undercity and boss cards show here
+        </div>
+      ) : null),
     timers: st.settings.widgets.timers.on && <TimersPanel st={st} now={now} big={bars} />,
     run: st.settings.widgets.run.on && (st.run || st.edit) && <RunPanel st={st} now={now} big={bars} />,
     farm: st.settings.widgets.farm.on && st.farm.length > 0 && <FarmPanel st={st} />,
@@ -300,26 +370,16 @@ export default function Overlay() {
   // bar layout: each bar's panels in the player's order (top group, then bottom group)
   const barCfg = st.settings.bars;
   const barLists = normalizeBars(barCfg);
-  const barContent: Record<BarPanel, ReactNode> = {
-    activity: (hordes?.active || helltide?.active || undercity || boss) && (
-      <>
-        {hordes?.active && <HordesPanel h={hordes} />}
-        {helltide?.active && <HelltidePanel h={helltide} />}
-        {undercity && <UndercityPanel u={undercity} />}
-        {boss && <BossPanel b={boss} />}
-      </>
-    ),
-    ...panels,
-  };
-  // panels switched off on the Overlay page don't take a slot, even in edit mode
-  const barOn = (id: BarPanel) => id === "activity" || st.settings.widgets[id].on;
+  const barContent: Record<BarPanel, ReactNode> = panels;
+  // panels switched off (Overlay page, or the hide button here) don't take a slot, even in edit mode
+  const barOn = (id: BarPanel) => st.settings.widgets[id].on;
   const discordRoom = barCfg.discord ? (roomDrag ?? barCfg.discordRoom) : 0;
   const renderBar = (side: Side) => {
     const list = barLists[side];
     const { top, bottom } = splitBar(list);
     const slot = (id: BarPanel) =>
       barOn(id) && (barContent[id] || st.edit) ? (
-        <BarSlot key={id} id={id} list={list} edit={st.edit}>
+        <BarSlot key={id} id={id} list={list} edit={st.edit} ctl={editCtl(id)}>
           {barContent[id]}
         </BarSlot>
       ) : null;
@@ -335,11 +395,27 @@ export default function Overlay() {
   };
 
   return (
-    <div className={"ov-root " + (st.edit ? "edit" : "")} style={{ opacity: visible ? st.settings.opacity : 0, transition: "opacity .15s" }}>
+    <div
+      className={"ov-root " + (st.edit ? "edit" : "")}
+      style={{ opacity: visible ? st.settings.opacity : 0, transition: "opacity .15s" }}
+      // a click anywhere else closes the open popover, and still does what it was aimed at
+      onPointerDownCapture={(e) => {
+        if (pop && !(e.target as HTMLElement).closest?.(".ov-pop,[data-pop]")) setPop(null);
+      }}
+    >
       {st.edit && (
         <div className="ov-bar">
           <b style={{ color: "var(--gold)" }}>Overlay edit mode</b>
-          <span className="small muted">{bars ? "Move panels with the arrows. Esc or Done to finish." : "Drag widgets anywhere. Esc or Done to finish."}</span>
+          <span className="small muted">{bars ? "Arrows move a panel, the gear opens its options. Esc closes." : "Drag a widget, the gear opens its options. Esc closes."}</span>
+          <button className="btn sm" data-pop aria-expanded={pop?.id === "mapPins"} title="Pins drawn on the game's own map" onClick={openPop("mapPins")}>
+            <Ico icon={MapPin} size={13} /> Map pins
+          </button>
+          <button className="btn sm" data-pop aria-expanded={pop?.id === "hidden"} disabled={hidden.length === 0} onClick={openPop("hidden")}>
+            <Ico icon={EyeOff} size={13} /> Hidden{hidden.length ? ` (${hidden.length})` : ": none"}
+          </button>
+          <button className="btn sm" data-pop aria-expanded={pop?.id === "overlay"} title="Overlay options" onClick={openPop("overlay")}>
+            <Ico icon={Settings2} size={13} /> Overlay
+          </button>
           <button className="btn sm primary" onClick={() => emitMain("overlay-action", "overlayEdit")}>
             Done
           </button>
@@ -376,7 +452,7 @@ export default function Overlay() {
         (Object.keys(panels) as (keyof typeof panels)[]).map(
           (k) =>
             panels[k] && (
-              <Widget key={k} id={k} pos={st.settings.widgets[k]} edit={st.edit}>
+              <Widget key={k} id={k} pos={st.settings.widgets[k]} edit={st.edit} ctl={editCtl(k)}>
                 {panels[k]}
               </Widget>
             ),
@@ -387,28 +463,227 @@ export default function Overlay() {
 
       {hordes?.active && <HordesBadges h={hordes} toCss={toCss} />}
       {advisor && advisor.items.length > 0 && <AdvisorBadges a={advisor} toCss={toCss} />}
-      {hordes?.active && !bars && (
-        <div style={{ position: "absolute", left: 12, top: "38%", width: 360 }}>
-          <HordesPanel h={hordes} />
-        </div>
-      )}
 
-      {visible && st.settings.widgets.verdict.on && (
-        <StatusCorner
-          hordes={hordes}
-          tip={tip}
-          verdict={verdict}
-          autoJudge={st.autoJudge}
-          judgeFor={judgeFor}
-          now={now}
-          width={bars ? `calc(${(1 - st.settings.gameBounds!.right) * 100}% - 24px)` : "380px"}
-        />
+      {visible && st.settings.widgets.status.on && (
+        <div
+          className="ov-status"
+          style={{
+            width: bars ? `calc(${(1 - st.settings.gameBounds!.right) * 100}% - 24px)` : "380px",
+            transform: `scale(${st.settings.widgets.status.scale})`,
+          }}
+        >
+          {st.edit && editCtl("status")}
+          <StatusCorner hordes={hordes} tip={tip} verdict={verdict} autoJudge={st.autoJudge} judgeFor={judgeFor} now={now} />
+        </div>
       )}
 
       {guideOn && guide && <GuidePanel g={guide} toCss={toCss} />}
 
       {mapPins && st.visible && !guideOn && <MapPinsLayer m={mapPins} toCss={toCss} now={now} />}
+
+      {st.edit && pop && (
+        <Popover
+          at={pop.at}
+          title={pop.id === "hidden" ? "Hidden panels" : pop.id === "mapPins" ? "Map pins" : pop.id === "overlay" ? "Overlay" : PANEL_LABELS[pop.id]}
+          onClose={closePop}
+        >
+          {pop.id === "hidden" ? (
+            <HiddenList hidden={hidden} onShow={(id) => patch(showPanel(id, true))} />
+          ) : (
+            <PanelOptions
+              spec={pop.id === "mapPins" ? MAP_PINS_SPEC : pop.id === "overlay" ? OVERLAY_SPEC : PANELS[pop.id]}
+              layout={bars ? "bars" : "free"}
+              s={panelSettings}
+              onPatch={patch}
+            />
+          )}
+        </Popover>
+      )}
     </div>
+  );
+}
+
+// ---- edit mode: options popovers -----------------------------------------------
+// Each panel's gear opens one of these. They hold existing settings only, and every change goes to
+// the main window (bus "overlay-settings"), which owns the store; the new values come back in the
+// next state snapshot, so what a control shows is always what was saved.
+
+type PopId = PanelId | "overlay" | "mapPins" | "hidden";
+
+/** The button a popover hangs off: where it is, and how to put the keyboard back on it. */
+interface Anchor {
+  left: number;
+  top: number;
+  bottom: number;
+  focus: () => void;
+}
+
+function anchorOf(el: HTMLElement): Anchor {
+  const r = el.getBoundingClientRect();
+  return { left: r.left, top: r.top, bottom: r.bottom, focus: () => el.focus() };
+}
+
+/** A small panel beside its button, kept inside the screen and opening upwards when there's no room below. */
+function Popover({ at, title, onClose, children }: { at: Anchor; title: string; onClose: () => void; children: ReactNode }) {
+  const body = useRef<HTMLDivElement>(null);
+  // the keyboard goes to the first option, so Tab stays among them and Enter doesn't close at once
+  useEffect(() => body.current?.querySelector<HTMLElement>("input, button:not([disabled])")?.focus(), []);
+  const w = 320;
+  const left = Math.max(8, Math.min(window.innerWidth - w - 8, at.left));
+  const below = window.innerHeight - at.bottom - 16;
+  const above = at.top - 16;
+  const place = below >= above ? { top: at.bottom + 6, maxHeight: Math.max(160, below) } : { bottom: window.innerHeight - at.top + 6, maxHeight: Math.max(160, above) };
+  return (
+    <div className="ov-pop" data-dbg={`popover:${title}`} role="dialog" aria-label={title} style={{ left, width: w, ...place }}>
+      <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+        <span className="ov-title" style={{ margin: 0 }}>
+          {title}
+        </span>
+        <button className="btn ghost sm right" title="Close" aria-label="Close" onClick={onClose}>
+          <Ico icon={X} size={13} />
+        </button>
+      </div>
+      <div className="ov-pop-body" ref={body}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PanelOptions({ spec, layout, s, onPatch }: { spec: PanelSpec; layout: "bars" | "free"; s: PanelSettings; onPatch: (p: OverlayPatch) => void }) {
+  const opts = optionsFor(spec, layout);
+  return (
+    <>
+      {opts.length === 0 && <div className="small muted">Nothing to set here yet.</div>}
+      {opts.map((o, i) => (
+        <OptionRow key={i} o={o} s={s} onPatch={onPatch} />
+      ))}
+      <button className="btn sm" title={`Opens ${spec.more.label} in the main window`} onClick={() => emitMain("overlay-open", spec.more.page)}>
+        <Ico icon={ExternalLink} size={13} /> More in Settings
+      </button>
+    </>
+  );
+}
+
+function OptionRow({ o, s, onPatch }: { o: PanelOption; s: PanelSettings; onPatch: (p: OverlayPatch) => void }) {
+  switch (o.kind) {
+    case "toggle":
+      return <Toggle label={o.label} on={!!optionValue(s, o.path)} onChange={(v) => onPatch({ set: o.path, value: v })} />;
+    case "range":
+      return <RangeRow o={o} s={s} onPatch={onPatch} />;
+    case "choice":
+      return (
+        <Chips
+          label={o.label}
+          items={o.choices.map((c) => ({ key: c.value, label: c.label, on: optionValue(s, o.path) === c.value }))}
+          onPick={(k) => onPatch({ set: o.path, value: k })}
+        />
+      );
+    case "eventKinds":
+      return (
+        <div className="ov-pop-group">
+          <div className="ov-pop-label">{o.label}</div>
+          {EVENT_KINDS.map((k) => (
+            <Toggle key={k} label={eventKindLabel(k)} on={!!s.alerts.enabled[k]} onChange={(v) => onPatch({ set: `alerts.enabled.${k}`, value: v })} />
+          ))}
+        </div>
+      );
+    case "leadMinutes":
+      return (
+        <Chips
+          label={o.label}
+          items={LEAD_CHOICES.map((m) => ({ key: String(m), label: `${m} min`, on: s.alerts.leadMinutes.includes(m) }))}
+          onPick={(k) => onPatch({ lead: Number(k), on: !s.alerts.leadMinutes.includes(Number(k)) })}
+        />
+      );
+    case "pinPresets":
+      return (
+        <Chips
+          label={o.label}
+          disabled={!s.mapPins.enabled}
+          items={MAP_PIN_PRESETS.map((p) => ({ key: p.id, label: p.label, on: s.mapPins.preset === p.id }))}
+          onPick={(k) => onPatch({ set: "mapPins.preset", value: k })}
+        />
+      );
+    case "pinGroups": {
+      const on = pinGroupsNow(s.mapPins);
+      return (
+        <div className="ov-pop-group">
+          <div className="ov-pop-label">{o.label}</div>
+          {PIN_GROUPS.map((g) => (
+            <Toggle key={g.id} label={g.label} disabled={!s.mapPins.enabled} on={on[g.id]} onChange={(v) => onPatch({ pinGroup: g.id, on: v })} />
+          ))}
+        </div>
+      );
+    }
+  }
+}
+
+function Toggle({ label, on, onChange, disabled }: { label: string; on: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <label className="ov-pop-row" style={{ opacity: disabled ? 0.5 : 1 }}>
+      <input type="checkbox" checked={on} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+/** A row of buttons that act as radios (one value) or as ticks (a set), pressed state and all. */
+function Chips({ label, items, onPick, disabled }: { label: string; items: { key: string; label: string; on: boolean }[]; onPick: (k: string) => void; disabled?: boolean }) {
+  return (
+    <div className="ov-pop-group">
+      <div className="ov-pop-label">{label}</div>
+      <div className="ov-pop-chips">
+        {items.map((it) => (
+          <button key={it.key} className={"btn sm " + (it.on ? "gold" : "")} aria-pressed={it.on} disabled={disabled} onClick={() => onPick(it.key)}>
+            {it.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RangeRow({ o, s, onPatch }: { o: Extract<PanelOption, { kind: "range" }>; s: PanelSettings; onPatch: (p: OverlayPatch) => void }) {
+  const v = Number(optionValue(s, o.path) ?? o.min);
+  // the slider follows the thumb at once; the saved value comes back from the main window
+  const [live, setLive] = useState<number | null>(null);
+  useEffect(() => {
+    if (live != null && Math.abs(live - v) < 1e-6) setLive(null);
+  }, [v, live]);
+  const shown = live ?? v;
+  return (
+    <label className="field">
+      {o.label}: {o.fmt ? o.fmt(shown) : shown}
+      <input
+        type="range"
+        min={o.min}
+        max={o.max}
+        step={o.step ?? 1}
+        value={shown}
+        onChange={(e) => {
+          const x = Number(e.target.value);
+          setLive(x);
+          onPatch({ set: o.path, value: x });
+        }}
+      />
+    </label>
+  );
+}
+
+function HiddenList({ hidden, onShow }: { hidden: PanelId[]; onShow: (id: PanelId) => void }) {
+  if (hidden.length === 0) return <div className="small muted">Nothing is hidden.</div>;
+  return (
+    <>
+      {hidden.map((id) => (
+        <div key={id} className="ov-pop-row">
+          <span style={{ flex: 1, minWidth: 0 }}>{PANEL_LABELS[id]}</span>
+          <button className="btn sm" title={`Show ${PANEL_LABELS[id]}`} onClick={() => onShow(id)}>
+            <Ico icon={Eye} size={13} /> Show
+          </button>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -636,7 +911,7 @@ function JudgingFor({ label }: { label: string }) {
   );
 }
 
-function StatusCorner({ tip, verdict, autoJudge, judgeFor, width, now, hordes }: { tip: TooltipEvt | null; verdict: JudgeResult | null; autoJudge: boolean; judgeFor: string | null; width: string; now: number; hordes?: HordesState | null }) {
+function StatusCorner({ tip, verdict, autoJudge, judgeFor, now, hordes }: { tip: TooltipEvt | null; verdict: JudgeResult | null; autoJudge: boolean; judgeFor: string | null; now: number; hordes?: HordesState | null }) {
   const checking = !!tip && tip.state !== "done";
   const recent = verdict && now - verdict.at < 15_000 ? verdict : null;
   const s = recent ? VERDICT_STYLE[recent.verdict] ?? VERDICT_STYLE.UNKNOWN : null;
@@ -645,10 +920,8 @@ function StatusCorner({ tip, verdict, autoJudge, judgeFor, width, now, hordes }:
       className="ov-panel"
       data-dbg="status-corner"
       style={{
-        position: "absolute",
-        right: 12,
-        bottom: 12,
-        width,
+        width: "100%",
+        minWidth: 0,
         borderColor: checking ? "var(--gold2)" : s?.color ?? "#4a3828",
         borderWidth: 2,
         padding: "12px 14px",
@@ -1001,27 +1274,42 @@ function MapPinsLayer({ m, toCss, now }: { m: MapPinsFrame & { labelUntil?: numb
   );
 }
 
-/** A panel in a black bar. In edit mode: its name and arrows to move it (up, down, to the other bar). */
-function BarSlot({ id, list, edit, children }: { id: BarPanel; list: BarItem[]; edit: boolean; children: ReactNode }) {
+/** A panel in a black bar. In edit mode: its name, arrows to move it (up, down, to the other bar) and `ctl`. */
+function BarSlot({ id, list, edit, ctl, children }: { id: BarPanel; list: BarItem[]; edit: boolean; ctl: ReactNode; children: ReactNode }) {
   if (!edit) return <>{children}</>;
   const i = list.indexOf(id);
   const move = (m: BarMove) => emitMain("bar-layout", { id, move: m });
   return (
     <div className="ov-slot" data-dbg={`bar-slot:${id}`}>
       <div className="ov-slot-ctl">
-        <span className="ov-slot-name">{BAR_LABELS[id]}</span>
-        <button className="btn sm" title="Move up" disabled={i <= 0} onClick={() => move("up")}>
+        <span className="ov-slot-name">{PANEL_LABELS[id]}</span>
+        <button className="btn sm" title="Move up" aria-label="Move up" disabled={i <= 0} onClick={() => move("up")}>
           <Ico icon={ChevronUp} size={13} />
         </button>
-        <button className="btn sm" title="Move down" disabled={i >= list.length - 1} onClick={() => move("down")}>
+        <button className="btn sm" title="Move down" aria-label="Move down" disabled={i >= list.length - 1} onClick={() => move("down")}>
           <Ico icon={ChevronDown} size={13} />
         </button>
-        <button className="btn sm" title="Move to the other side" onClick={() => move("swap")}>
+        <button className="btn sm" title="Move to the other side" aria-label="Move to the other side" onClick={() => move("swap")}>
           <Ico icon={ArrowLeftRight} size={13} />
         </button>
+        {ctl}
       </div>
-      {children || <div className="ov-panel small muted">{BAR_LABELS[id]} shows here</div>}
+      {children || <div className="ov-panel small muted">{PANEL_LABELS[id]} shows here</div>}
     </div>
+  );
+}
+
+/** The gear and the hide button every panel carries in edit mode. */
+function EditCtl({ id, open, onPop, onHide }: { id: PanelId; open: boolean; onPop: (e: React.MouseEvent<HTMLButtonElement>) => void; onHide: () => void }) {
+  return (
+    <>
+      <button className="btn sm" data-pop aria-expanded={open} title={`${PANEL_LABELS[id]} options`} aria-label={`${PANEL_LABELS[id]} options`} onClick={onPop}>
+        <Ico icon={Settings2} size={13} />
+      </button>
+      <button className="btn sm" title={`Hide ${PANEL_LABELS[id]}`} aria-label={`Hide ${PANEL_LABELS[id]}`} onClick={onHide}>
+        <Ico icon={EyeOff} size={13} />
+      </button>
+    </>
   );
 }
 
@@ -1056,7 +1344,7 @@ function DiscordRoom({ width, room, onDrag, onDone, onRemove }: { width: string;
   );
 }
 
-function Widget({ id, pos, edit, children }: { id: string; pos: { x: number; y: number; scale: number }; edit: boolean; children: ReactNode }) {
+function Widget({ id, pos, edit, ctl, children }: { id: PanelId; pos: { x: number; y: number; scale: number }; edit: boolean; ctl: ReactNode; children: ReactNode }) {
   const [drag, setDrag] = useState<{ dx: number; dy: number; x: number; y: number } | null>(null);
   const x = drag ? drag.x : pos.x;
   const y = drag ? drag.y : pos.y;
@@ -1081,6 +1369,13 @@ function Widget({ id, pos, edit, children }: { id: string; pos: { x: number; y: 
         setDrag(null);
       }}
     >
+      {/* the buttons must not start a drag of the widget under them */}
+      {edit && (
+        <div className="ov-slot-ctl" onPointerDown={(e) => e.stopPropagation()}>
+          <span className="ov-slot-name">{PANEL_LABELS[id]}</span>
+          {ctl}
+        </div>
+      )}
       {children}
     </div>
   );

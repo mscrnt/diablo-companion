@@ -6,6 +6,7 @@ import { alertsAllowed, discord, overlayToast, playTone, toast } from "./alerts"
 import { clampDiscordRoom, movePanel, type BarMove, type BarPanel } from "./barlayout";
 import { emitOverlay, onGlobal, onMain } from "./bus";
 import { planFarm } from "./farm";
+import { applyOverlayPatch, touchesMapPins, type OverlayPatch, type PanelSettings } from "./overlaypanels";
 import { isTauri } from "./http";
 import { judgeNow } from "./judgeRunner";
 import { registerIcons, useGameData } from "./gamedata";
@@ -14,7 +15,7 @@ import { snoozeJudge, startAutoJudge } from "./autojudge";
 import { guideNext, useGuide } from "./guide";
 import { listModels } from "./llm";
 import { checkForUpdate, type UpdateInfo } from "./version";
-import { captureMonitor, captureRegion, gameStatus, setOverlayCapturable, setOverlayInteractive, type GameStatus } from "./native";
+import { captureMonitor, captureRegion, focusThisWindow, gameStatus, setOverlayCapturable, setOverlayInteractive, type GameStatus } from "./native";
 import { detectPillarbox, hamming, sceneSignature } from "./vision";
 import { scanSkillBar, useSkillBar } from "./skillbar";
 import { startHordes } from "./hordesRunner";
@@ -43,6 +44,8 @@ interface Runtime {
   lastPad: string[];
   /** a newer GitHub release, if any */
   update: UpdateInfo | null;
+  /** a page the main window should open ("More in Settings" in the overlay's edit mode) */
+  goPage: string | null;
 }
 
 export const useRuntime = create<Runtime>(() => ({
@@ -56,6 +59,7 @@ export const useRuntime = create<Runtime>(() => ({
   hotkeyErrors: [],
   lastPad: [],
   update: null,
+  goPage: null,
 }));
 
 // ---- actions ------------------------------------------------------------------
@@ -153,6 +157,23 @@ export function editBars(p: { id?: BarPanel; move?: BarMove; discord?: boolean; 
     if (p.discordRoom != null) b.discordRoom = clampDiscordRoom(p.discordRoom);
   });
   pushOverlay();
+}
+
+/** A panel's gear in the overlay's edit mode changed one setting (see overlaypanels.ts). */
+export function editPanel(p: OverlayPatch) {
+  let ok = false;
+  useSettings.getState().update((s) => void (ok = applyOverlayPatch(s, p)));
+  debugEvent("input", ok ? "overlay-settings" : "overlay-settings-rejected", p);
+  if (!ok) return;
+  if (touchesMapPins(p)) mapPinsPresetChanged();
+  pushOverlay();
+}
+
+/** "More in Settings": leave edit mode and bring the main window up on that page. */
+export async function openMainOn(page: string) {
+  await setOverlayEdit(false);
+  useRuntime.setState({ goPage: page });
+  if (isTauri) await focusThisWindow().catch(() => {});
 }
 
 // ---- hotkeys & controller ---------------------------------------------------------
@@ -342,6 +363,8 @@ export interface OverlayState {
   visible: boolean;
   edit: boolean;
   settings: ReturnType<typeof useSettings.getState>["settings"]["overlay"];
+  /** the other settings edit mode's gears show and change (the overlay has no store of its own) */
+  opts: Omit<PanelSettings, "overlay">;
   events: GameEvent[];
   run: ReturnType<typeof useRuns.getState>["active"];
   runActivity: string;
@@ -374,6 +397,13 @@ function snapshot(): OverlayState {
     visible,
     edit: rt.overlayEdit,
     settings: s.overlay,
+    opts: {
+      alerts: { enabled: s.alerts.enabled, leadMinutes: s.alerts.leadMinutes, sound: s.alerts.sound, volume: s.alerts.volume, onlyWhileGameRuns: s.alerts.onlyWhileGameRuns },
+      autoJudge: s.autoJudge,
+      hordes: s.hordes,
+      mapPins: s.mapPins,
+      autoRuns: s.autoRuns,
+    },
     events: rt.events.filter((e) => (e.end ?? e.start) > now).slice(0, 12),
     run: runs.active,
     runActivity: runs.activity,
@@ -581,6 +611,8 @@ export async function startEngine() {
     debugEvent("input", "bar-layout", p);
     editBars(p);
   });
+  onMain<OverlayPatch>("overlay-settings", (p) => editPanel(p));
+  onMain<string>("overlay-open", (page) => void openMainOn(page));
   onMain("overlay-ready", () => {
     pushOverlay(true);
     emitOverlay("guide", useGuide.getState());
@@ -601,18 +633,20 @@ export async function startEngine() {
     () => !!useRuntime.getState().game?.visible,
     () => useRuntime.getState().game?.rect ?? null,
   );
-  // pins on the in-game map: only while the overlay is showing over the game
+  // pins on the in-game map: only while the overlay is showing over the game. Edit mode keeps them
+  // coming, so the kinds can be ticked off with the map open and the change seen straight away.
   startMapPins(
     () => {
       const rt = useRuntime.getState();
       const o = useSettings.getState().settings.overlay;
-      return !!rt.game?.visible && o.enabled && !rt.overlayHidden && !rt.overlayEdit;
+      return !!rt.game?.visible && o.enabled && !rt.overlayHidden;
     },
     () => useRuntime.getState().game?.rect ?? null,
     () => {
       const ht = useRuntime.getState().events.find((e) => e.kind === "helltide" && isActive(e));
       return ht?.zone ? regionKey(ht.zone) : null;
     },
+    () => useRuntime.getState().overlayEdit,
   );
 
   // skill bar check: every 60s while playing; toast when something changes

@@ -75,3 +75,11 @@ export const setOverlayInteractive = (interactive: boolean) => invoke("set_overl
 export const jpegUrl = (b64: string) => (b64.startsWith("data:") ? b64 : `data:image/jpeg;base64,${b64}`);
 
 export const setOverlayCapturable = (capturable: boolean) => invoke("set_overlay_capturable", { capturable });
+
+/** Bring this window to the front (the overlay's "More in Settings" asks the main window to do it). */
+export async function focusThisWindow() {
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  const w = getCurrentWindow();
+  await w.show();
+  await w.setFocus();
+}

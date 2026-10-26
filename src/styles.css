@@ -280,6 +280,19 @@ input[type="checkbox"] { accent-color: var(--blood2); width: 16px; height: 16px;
 .ov-discord-edge { position: absolute; left: 0; right: 0; bottom: -7px; height: 14px; cursor: ns-resize; background: #8c9effaa; border-radius: 7px; font-size: 10px; line-height: 14px; text-align: center; color: #0d0a08; font-weight: 700; }
 .ov-discord-add { align-self: flex-start; }
 
+/* status corner: pinned bottom right, scaled from that corner so it never runs off screen */
+.ov-status { position: absolute; right: 12px; bottom: 12px; transform-origin: bottom right; pointer-events: none; }
+.ov-root.edit .ov-status { pointer-events: auto; outline: 2px dashed var(--gold2); outline-offset: 4px; border-radius: 10px; }
+
+/* edit mode: a panel's options, beside the gear that opened them */
+.ov-pop { position: fixed; z-index: 5; box-sizing: border-box; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: #120e0bf7; border: 1px solid var(--gold); border-radius: 10px; box-shadow: 0 10px 30px #000c; pointer-events: auto; }
+.ov-pop-body { display: flex; flex-direction: column; gap: 8px; }
+.ov-pop-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.ov-pop-row > input { flex: none; }
+.ov-pop-group { display: flex; flex-direction: column; gap: 4px; }
+.ov-pop-label { font-size: 11px; color: var(--muted); }
+.ov-pop-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
 /* guided overlay */
 .ov-guide { position: absolute; top: 9%; left: 50%; transform: translateX(-50%); min-width: 520px; max-width: 760px; background: #0d0a08f2; border: 2px solid var(--gold); border-radius: 14px; padding: 16px 20px; box-shadow: 0 10px 40px #000c, 0 0 30px -10px var(--gold); animation: pop .2s ease-out; }
 .ov-guide-main { font-family: var(--display); font-size: 30px; font-weight: 800; color: var(--gold2); margin: 6px 0 4px; letter-spacing: .03em; }
