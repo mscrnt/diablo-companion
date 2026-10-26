@@ -95,7 +95,8 @@ export interface Settings {
     capturable: boolean;
     /** detected game image bounds inside the overlay (fractions), for docking in black bars */
     gameBounds: { left: number; right: number; top: number; bottom: number } | null;
-    widgets: Record<"timers" | "verdict" | "run" | "build" | "watchers" | "toasts" | "farm", WidgetPos>;
+    /** `status` is pinned to the bottom-right corner, so only its `on` and `scale` are used */
+    widgets: Record<"timers" | "verdict" | "run" | "build" | "watchers" | "toasts" | "farm" | "activity" | "status", WidgetPos>;
     /**
      * "bars" layout: the panels of each bar in order, top to bottom ("gap": the ones after it sit at the
      * bottom), and room kept clear at the top of the left bar for Discord's voice overlay (fraction of the height)
@@ -220,6 +221,8 @@ export const defaultSettings: Settings = {
       watchers: { on: true, x: 0.80, y: 0.62, scale: 1 },
       toasts: { on: true, x: 0.40, y: 0.80, scale: 1 },
       farm: { on: false, x: 0.012, y: 0.66, scale: 1 },
+      activity: { on: true, x: 0.012, y: 0.38, scale: 1 },
+      status: { on: true, x: 0.70, y: 0.86, scale: 1 },
     },
     bars: {
       left: ["activity", "timers", "run", "farm", "build", "gap"],
@@ -290,7 +293,19 @@ export function migrateMapPins(m: Settings, persisted: any): Settings {
     const mine = key(m.padChords.mapPinsPreset);
     if (Object.entries(m.padChords).some(([a, c]) => a !== "mapPinsPreset" && c.length && key(c) === mine)) m.padChords = { ...m.padChords, mapPinsPreset: [] };
   }
-  return addNewActivities(freeNewBinding(freeNewBinding(m, persisted, "markMoment"), persisted, "flagVerdict"), persisted);
+  return addNewActivities(migrateStatusWidget(freeNewBinding(freeNewBinding(m, persisted, "markMoment"), persisted, "flagVerdict"), persisted), persisted);
+}
+
+/**
+ * The status corner used to follow the "Loot verdict" switch, and the activity panel had no switch of
+ * its own. Both have one now, so a saved layout with the verdict panel off keeps its corner off too.
+ */
+export function migrateStatusWidget(m: Settings, persisted: any): Settings {
+  const saved = persisted?.overlay?.widgets;
+  if (saved && !saved.status && saved.verdict && saved.verdict.on === false) {
+    m.overlay = { ...m.overlay, widgets: { ...m.overlay.widgets, status: { ...m.overlay.widgets.status, on: false } } };
+  }
+  return m;
 }
 
 /** Activities a release added to the list: once, after the one before them in the defaults, for lists saved earlier. */

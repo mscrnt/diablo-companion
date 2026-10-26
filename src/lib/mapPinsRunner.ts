@@ -139,9 +139,10 @@ export function mapPinsPresetChanged(): boolean {
 
 /**
  * `active`: game on screen, overlay showing, feature on. `helltideRegion`: POI region key of
- * the running Helltide (e.g. "Dry_Steppes"), or null.
+ * the running Helltide (e.g. "Dry_Steppes"), or null. `editing`: the overlay's edit mode has the
+ * mouse, so a held button is a click on a panel's options, not a drag of the map.
  */
-export function startMapPins(active: () => boolean, gameRect: () => Rect | null, helltideRegion: () => string | null) {
+export function startMapPins(active: () => boolean, gameRect: () => Rect | null, helltideRegion: () => string | null, editing: () => boolean = () => false) {
   const tracker = new MapTracker();
   let lastSent = "";
   let lastLog = 0;
@@ -431,7 +432,7 @@ export function startMapPins(active: () => boolean, gameRect: () => Rect | null,
   // they come back once it's let go and a probe sees the map still.
   const holdLoop = async () => {
     try {
-      if (tracker.tracking || shown) {
+      if ((tracker.tracking || shown) && !editing()) {
         const down = await mouseDown();
         if (down && !held) {
           held = true;

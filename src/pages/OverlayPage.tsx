@@ -9,7 +9,9 @@ import { MAP_PIN_PRESETS, defaultSettings, useSettings, type MapPinGroup, type M
 import { detectPillarbox } from "../lib/vision";
 
 const WIDGETS: { id: keyof typeof defaultSettings.overlay.widgets; label: string; desc: string }[] = [
+  { id: "activity", label: "Activity", desc: "Helltide, Infernal Hordes, Undercity and lair boss cards." },
   { id: "timers", label: "Event timers", desc: "Next world boss / helltide / legion with countdowns." },
+  { id: "status", label: "Status corner", desc: "Bottom-right card: what the loot judge is doing, and the Hordes pick." },
   { id: "verdict", label: "Loot verdict", desc: "Pops up after you judge an item." },
   { id: "run", label: "Run timer", desc: "Current run, splits and PB delta." },
   { id: "watchers", label: "Watchers", desc: "Values from 'show on overlay' screen watchers (cinders, gold…)." },
@@ -342,7 +344,7 @@ function BarLayoutCard() {
               </tr>
             ) : (
               <tr key={id}>
-                <td style={{ opacity: id === "activity" || o.widgets[id].on ? 1 : 0.5 }}>{BAR_LABELS[id]}</td>
+                <td style={{ opacity: o.widgets[id].on ? 1 : 0.5 }}>{BAR_LABELS[id]}</td>
                 <td style={{ width: 130 }}>
                   <div className="row" style={{ gap: 4, justifyContent: "flex-end" }}>
                     <button className="btn ghost sm" title="Move up" disabled={i === 0} onClick={() => editBars({ id, move: "up" })}>
@@ -367,7 +369,8 @@ function BarLayoutCard() {
     <Card title="Black bar layout" style={{ marginTop: 14 }}>
       <div className="col">
         <div className="small muted">
-          Used when the panels sit in the black bars beside the game. In game, press <span className="kbd">{key}</span> to move them on the overlay itself.
+          Used when the panels sit in the black bars beside the game. In game, press <span className="kbd">{key}</span> to move them on the overlay itself: each panel also has a gear
+          for its options and a button to hide it, and the toolbar brings hidden ones back.
         </div>
         <Check checked={o.bars.discord} onChange={(v) => editBars({ discord: v })} label="Leave room for Discord at the top left (its voice overlay sits there)" />
         {o.bars.discord && (

@@ -96,6 +96,14 @@ export default function App() {
     })();
   }, []);
 
+  // "More in Settings" in the overlay's edit mode asks for a page (engine.ts: openMainOn)
+  const goPage = useRuntime((s) => s.goPage);
+  useEffect(() => {
+    if (!goPage) return;
+    if (NAV.some((n) => n.id === goPage)) setPage(goPage as PageId);
+    useRuntime.setState({ goPage: null });
+  }, [goPage]);
+
   const go = (p: PageId) => setPage(p);
   if (!ready)
     return (
