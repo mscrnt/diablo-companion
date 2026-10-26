@@ -484,6 +484,14 @@ export function getActiveVariant() {
 /** One character's builds and gear: what useBuilds holds while that character is active. */
 export type GearData = Pick<BuildState, "builds" | "activeBuildId" | "activeVariantId" | "progress" | "variantOf" | "worn" | "talisman">;
 
+/** The active character's builds and gear, as they go into its profile. */
+export const liveGear = (): GearData => {
+  const s = useBuilds.getState();
+  return { builds: s.builds, activeBuildId: s.activeBuildId, activeVariantId: s.activeVariantId, progress: s.progress, variantOf: s.variantOf, worn: s.worn, talisman: s.talisman };
+};
+
+export const emptyGear = (): GearData => ({ builds: {}, activeBuildId: null, activeVariantId: null, progress: {}, variantOf: {}, worn: {}, talisman: emptyTalisman });
+
 export interface Profile {
   id: string;
   /** the character's name as read in game ("Bazaq"); "" until it's been read */
@@ -532,6 +540,48 @@ export const useProfiles = create<ProfileState>()(
 const shareNames = (s: ProfileState) => setCharacterNames(Object.values(s.profiles).map((p) => p.name));
 shareNames(useProfiles.getState());
 useProfiles.subscribe(shareNames);
+
+// ---- build library -----------------------------------------------------------
+// Every build you imported is in the library (library.ts). A build a character plays lives in that
+// character's own gear; this store keeps the ones no character has yet, with the variant you picked and
+// the progress they carried, so a build for a class you don't play yet waits here instead of taking over.
+
+interface LibraryState {
+  builds: Record<string, Build>;
+  /** the variant picked for a library build, so it comes back with it */
+  variantOf: Record<string, string>;
+  /** progress of a build that was on a character: `${buildId}:${variantId}:${slot}` */
+  progress: Record<string, SlotProgress>;
+  add: (b: Build, variantId?: string | null, progress?: Record<string, SlotProgress>) => void;
+  remove: (...ids: string[]) => void;
+}
+
+export const useLibrary = create<LibraryState>()(
+  persist(
+    (set) => ({
+      builds: {},
+      variantOf: {},
+      progress: {},
+      add: (b, variantId, progress) =>
+        set((s) => ({
+          builds: { ...s.builds, [b.id]: b },
+          variantOf: variantId ? { ...s.variantOf, [b.id]: variantId } : s.variantOf,
+          progress: { ...s.progress, ...progress },
+        })),
+      remove: (...ids) =>
+        set((s) => {
+          const builds = { ...s.builds };
+          const variantOf = { ...s.variantOf };
+          for (const id of ids) {
+            delete builds[id];
+            delete variantOf[id];
+          }
+          return { builds, variantOf, progress: Object.fromEntries(Object.entries(s.progress).filter(([k]) => !ids.includes(k.split(":")[0]))) };
+        }),
+    }),
+    { name: "library", storage: persistStorage },
+  ),
+);
 
 // ---- loot history ------------------------------------------------------------
 

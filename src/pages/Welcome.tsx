@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { importBuild } from "../lib/importers";
+import { landBuild } from "../lib/library";
 import { listModels } from "../lib/llm";
+import { activeProfile, profileLabel, shownClass } from "../lib/profiles";
 import { useBuilds, useSettings } from "../lib/store";
 import { HelpImproveChoices, applyChoices, type Choices } from "../components/HelpImprove";
 import { GameDataStep } from "../components/GameData";
@@ -8,7 +10,6 @@ import { GameDataStep } from "../components/GameData";
 /** First run: pick a build (a link from any of the four build sites), optionally connect an AI model, and choose how to help improve the app. */
 export default function Welcome({ onDone }: { onDone: () => void }) {
   const { settings, update } = useSettings();
-  const addBuild = useBuilds((s) => s.addBuild);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -21,8 +22,10 @@ export default function Welcome({ onDone }: { onDone: () => void }) {
     setMsg(null);
     try {
       const { build, defaultVariant } = await importBuild(url, { flaresolverr: settings.flaresolverr || undefined, prefer: settings.flaresolverr ? "full" : "fast" });
-      addBuild(build, defaultVariant);
-      setMsg({ ok: true, text: `Imported "${build.name}" (${build.className}, ${build.season}).` });
+      // first run: no character has shown its class yet, so this build is the one you play (library.ts)
+      const me = activeProfile();
+      const landed = landBuild(build, { className: me ? shownClass(me) : "", label: me ? profileLabel(me) : "This character", variant: defaultVariant });
+      setMsg({ ok: true, text: landed.to === "library" ? landed.text : `Imported "${build.name}" (${build.className}, ${build.season}).` });
     } catch (e) {
       setMsg({ ok: false, text: String((e as Error).message ?? e) });
     } finally {
