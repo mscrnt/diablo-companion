@@ -15,6 +15,7 @@ import { glyphActiveAt } from "./glyphring";
 import { persistStorage } from "./persist";
 import { invoke } from "@tauri-apps/api/core";
 import { getActiveVariant, useSettings } from "./store";
+import type { BuildVariant, SkillBarEntry } from "./types";
 
 /** progress of a "Map my character" run, so it can be paused and resumed later */
 export interface MapSession {
@@ -196,11 +197,25 @@ async function hoverText(): Promise<string[]> {
   return lines;
 }
 
+/**
+ * The skills to map: the build's skill bar, or, when the guide never filled its bar in (some Mobalytics guides
+ * only give the skill points), the active skills it puts the most points into, up to six.
+ */
+export function barOf(variant: BuildVariant | undefined): SkillBarEntry[] {
+  if (variant?.skillBar?.length) return variant.skillBar;
+  const skills = table("skills");
+  return Object.entries<number>(variant?.skillRanks ?? {})
+    .filter(([slug, rank]) => rank > 0 && skills[slug]?.t === "basic")
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([slug], i) => ({ position: i, slug, name: skills[slug].n, description: "" }));
+}
+
 export async function mapSkills(my?: number, embedded = false) {
   my ??= beginFlow("character", "Skill ranks", 1);
   const { variant } = getActiveVariant();
   const key = useSettings.getState().settings.hotkeys.judge;
-  const bar = variant?.skillBar ?? [];
+  const bar = barOf(variant);
   // every class skill is a candidate (you might be running something not in the build)
   const cls = (getActiveVariant().build?.className ?? "").toLowerCase();
   const names = Object.entries(table("skills"))
@@ -397,7 +412,7 @@ export async function mapCharacter() {
   const c = useCharacter.getState();
   const { variant } = getActiveVariant();
   const s = c.session;
-  const allSkills = (variant?.skillBar ?? []).every((b) => s?.skills.includes(b.slug));
+  const allSkills = barOf(variant).every((b) => s?.skills.includes(b.slug));
   const allGlyphs = (variant?.paragon ?? []).every((p) => s?.glyphs.includes(p.glyphSlug));
   // a finished (or very old) session starts over
   if (!s || (s.stats && allSkills && allGlyphs) || Date.now() - s.startedAt > 7 * 86400_000) c.patchSession(null), c.patchSession({});
@@ -408,7 +423,7 @@ export async function mapCharacter() {
     await mapStats(my, true);
     if (!flowAlive(my)) return;
   }
-  if (!(variant?.skillBar ?? []).every((b) => useCharacter.getState().session?.skills.includes(b.slug))) {
+  if (!barOf(variant).every((b) => useCharacter.getState().session?.skills.includes(b.slug))) {
     guideSet({ step: 2 });
     await guideSleep(600);
     await mapSkills(my, true);

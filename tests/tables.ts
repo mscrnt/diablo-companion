@@ -8,6 +8,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { convert, type Extracted } from "../src/lib/gamedata/convert";
 import { APP_STRING_FILES } from "../src/lib/gamedata/pipeline";
 import { setStaticSource, type StaticSource } from "../src/lib/names";
@@ -34,7 +35,9 @@ const read = (f: string) => (existsSync(join(GAMEDATA, f)) ? JSON.parse(readFile
 function tables(): StaticSource["tables"] {
   const build = read("manifest.json")?.build?.version ?? read("uniques.json")?.build ?? "?";
   // keyed by the game build and the converter's own code, so a change to either converts again
-  const code = createHash("sha1").update(readFileSync(new URL("../src/lib/gamedata/convert.ts", import.meta.url))).digest("hex").slice(0, 10);
+  // (from the repo root: dev scripts run bundled from scripts/dev/.out, where a path relative to this file is wrong)
+  const src = ["src/lib/gamedata/convert.ts", fileURLToPath(new URL("../src/lib/gamedata/convert.ts", import.meta.url))].find((f) => existsSync(f));
+  const code = src ? createHash("sha1").update(readFileSync(src)).digest("hex").slice(0, 10) : "x";
   const cache = join(GAMEDATA, ".test", `tables-${build}-${code}.json`);
   try {
     if (existsSync(cache)) return JSON.parse(readFileSync(cache, "utf8"));
