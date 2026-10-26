@@ -163,3 +163,12 @@ describe("where the game keeps a unique's picture", () => {
     expect(p.noArt.sort()).toEqual([2, 4, 5]);
   });
 });
+
+describe("the art square of an item you wear", () => {
+  it("sits below the EQUIPPED bar", async () => {
+    const { artBox, artSquare, EQUIPPED_DROP } = await import("../src/lib/icons/crop");
+    const box = { x: 1000, y: 200, w: 400, h: 700 };
+    expect(artBox(box, false)).toEqual(box);
+    expect(artSquare(artBox(box, true)).y - artSquare(box).y).toBe(Math.round(400 * EQUIPPED_DROP));
+  });
+});

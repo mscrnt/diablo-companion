@@ -16,6 +16,14 @@ import type { Rect } from "./types";
 export const INSET = 0.05;
 
 /**
+ * An item you wear shows "EQUIPPED" in a bar above its art, which pushes the picture down by about a fifth of
+ * the tooltip's width (measured on the 2026-10-25 crops of The Undercrown, Deathgrip and Bloodless Scream, where
+ * the square caught the bar and only the top of the art). `artBox` moves the box to match.
+ */
+export const EQUIPPED_DROP = 0.21;
+export const artBox = (box: Rect, equipped?: boolean): Rect => (equipped ? { ...box, y: box.y + Math.round(box.w * EQUIPPED_DROP) } : box);
+
+/**
  * The art square in screen pixels, from the tooltip's box in screen pixels. The untrimmed one: the
  * test-mode icon log keeps taking this, so its pictures stay comparable between versions.
  */

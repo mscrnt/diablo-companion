@@ -20,6 +20,7 @@ import { judgeTarget } from "./profiles";
 import type { JudgeResult, ParsedItem } from "./types";
 import type { TooltipBox } from "./autojudge";
 import { debugEvent } from "./debug";
+import { artBox } from "./icons/crop";
 import { shareJudgement } from "./share";
 
 let running = false;
@@ -87,7 +88,7 @@ async function iconArt(t: TooltipText, className?: string): Promise<Record<strin
     const jpeg = new Uint8Array(raw.length);
     for (let i = 0; i < raw.length; i++) jpeg[i] = raw.charCodeAt(i);
     const t0 = performance.now();
-    const scores = await iconScores(jpeg.buffer, t.share.box, t.share.region, className);
+    const scores = await iconScores(jpeg.buffer, artBox(t.share.box, t.equipped), t.share.region, className);
     // the best few picture matches, so a test session shows what the icon said next to the verdict
     if (scores)
       debugEvent("icons", "match", {

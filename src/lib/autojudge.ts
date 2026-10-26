@@ -17,7 +17,7 @@ import type { JudgeResult } from "./types";
 import { onFrame } from "./activity";
 import { debugEvent, debugEventEvery } from "./debug";
 import { isPersonalLine, overlaps } from "./privacy";
-import { artSquare } from "./icons/crop";
+import { artBox, artSquare } from "./icons/crop";
 
 // Words that only appear inside item tooltips.
 const MARKERS = [
@@ -455,7 +455,7 @@ async function tick(isFocused: () => boolean) {
       // the base type).
       const it = result?.item;
       if (it && /unique|mythic|legendary/i.test(it.rarity ?? "")) {
-        captureRegion(artSquare(det.hovered.box), { maxEdge: 512, quality: 92 })
+        captureRegion(artSquare(artBox(det.hovered.box, it.equipped)), { maxEdge: 512, quality: 92 })
           .then((icon) =>
             testLog(
               "icon",
