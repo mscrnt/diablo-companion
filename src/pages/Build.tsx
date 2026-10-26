@@ -6,7 +6,7 @@ import { SITE_LABEL, importBuild } from "../lib/importers";
 import { scanSkillBar, useSkillBar } from "../lib/skillbar";
 import { useRuntime } from "../lib/engine";
 import { describe, normName } from "../lib/names";
-import { moveBuild, profileClass, profileLabel, removeProfile, switchProfile } from "../lib/profiles";
+import { moveBuild, profileClass, profileLabel, removeProfile, shownClass, switchProfile } from "../lib/profiles";
 import { emptyProgress, useActiveVariant, useBuilds, useProfiles, useSettings } from "../lib/store";
 import type { GearSlot, OwnState } from "../lib/types";
 
@@ -29,9 +29,17 @@ export default function BuildPage() {
     setMsg(null);
     try {
       const { build: b, via, defaultVariant } = await importBuild(u, { flaresolverr });
+      // a build for another class than this character has shown is kept, not made the one it plays
+      const who = profiles[activeId];
+      const cls = who ? shownClass(who) : "";
+      const before = useBuilds.getState();
       addBuild(b, defaultVariant);
       setUpdate(b.id, null);
-      setMsg({ ok: true, text: `Imported "${b.name}" via ${via} (${b.variants.length} variants, updated ${b.updatedAt.slice(0, 10)}).` });
+      const otherClass = !!cls && !!b.className && b.className.toLowerCase() !== cls.toLowerCase() && !!before.activeBuildId && before.activeBuildId !== b.id;
+      if (otherClass) {
+        setActive(before.activeBuildId!, before.activeVariantId ?? undefined);
+        setMsg({ ok: true, text: `Saved "${b.name}". It's a ${b.className} build and ${profileLabel(who!)} is a ${cls}, so it's kept for when you play one.` });
+      } else setMsg({ ok: true, text: `Imported "${b.name}" via ${via} (${b.variants.length} variants, updated ${b.updatedAt.slice(0, 10)}).` });
       setUrl("");
     } catch (e) {
       setMsg({ ok: false, text: String((e as Error).message ?? e) });

@@ -15,7 +15,8 @@ import { fastParse, looksSane } from "./fastparse";
 import { judgeEveryBuild } from "./everyBuild";
 import { otherBuilds } from "./profiles";
 import { iconScores, iconsReady } from "./icons/recognise";
-import { getActiveVariant, useBuilds, useLoot, useProfiles, useSettings } from "./store";
+import { useBuilds, useLoot, useProfiles, useSettings } from "./store";
+import { judgeTarget } from "./profiles";
 import type { JudgeResult, ParsedItem } from "./types";
 import type { TooltipBox } from "./autojudge";
 import { debugEvent } from "./debug";
@@ -113,7 +114,8 @@ export async function judgeTooltips(
   meta?: { sig?: string; box?: TooltipBox; quiet?: boolean; debug?: (d: JudgeDebug) => void },
 ): Promise<JudgeResult | null> {
   const { settings } = useSettings.getState();
-  const { build, variant, prog } = getActiveVariant();
+  // the active build, unless it's for another class than this character has shown (profiles.ts judgeTarget)
+  const { variant, prog, className } = judgeTarget();
   const t0 = performance.now();
   const id = crypto.randomUUID();
   const { useRuntime } = await import("./engine");
@@ -124,7 +126,7 @@ export async function judgeTooltips(
     const parse = async (t: TooltipText, allowAi = true, icon?: Record<string, number>): Promise<{ item: ParsedItem | null; debug: ParseDebug }> => {
       const f0 = performance.now();
       if (t.fast && !settings.autoJudge.alwaysUseAi) {
-        const item = fastParse(t.fast, t.equipped, variant, { icon, className: build?.className });
+        const item = fastParse(t.fast, t.equipped, variant, { icon, className });
         if (item && looksSane(item)) return { item, debug: { ocr: t.lines, raw: { fast: true, lines: t.fast }, ms: Math.round(performance.now() - f0) } };
       }
       if (!settings.llm.baseUrl) return { item: null, debug: { ocr: t.lines, raw: { fast: false, note: "no AI model configured" }, ms: 0 } };
@@ -134,7 +136,7 @@ export async function judgeTooltips(
     // the verdict never waits on an AI read of the EQUIPPED column: the hovered tooltip's own comparison
     // and the worn-gear memory cover it; the AI reads it afterwards only to refresh that memory
     const [h, e] = await Promise.all([
-      iconArt(hov, build?.className).then((icon) => parse(hov, true, icon)),
+      iconArt(hov, className).then((icon) => parse(hov, true, icon)),
       eq ? parse(eq, false).catch(() => null) : Promise.resolve(null),
     ]);
     if (eq && !e?.item && settings.llm.baseUrl)
@@ -160,7 +162,7 @@ export async function judgeTooltips(
     const worn = (slot: string) => useBuilds.getState().worn[slot];
     const inCodex = (slug: string) => !!useBuilds.getState().owned[slug];
     const { talisman } = useBuilds.getState();
-    const scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex, talisman, className: build?.className }, equipped ?? hovered.compare ?? null);
+    const scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex, talisman, className }, equipped ?? hovered.compare ?? null);
     const result: JudgeResult = {
       // no use to the active build: maybe to another build, or another character (the stash is shared)
       ...judgeEveryBuild(hovered, scored, otherBuilds(), { cubeHint, inCodex }),

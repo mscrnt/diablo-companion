@@ -9,8 +9,10 @@ import { useCharacter, type CharacterProfile } from "./charmap";
 import { readCharacterName, sameName } from "./charname";
 import { debugEvent } from "./debug";
 import type { OtherBuild } from "./everyBuild";
+import { slugOf } from "./gamedata/convert";
 import { table } from "./names";
-import { emptyProgress, emptyTalisman, newProfile, useBuilds, useProfiles, type GearData, type Profile } from "./store";
+import { emptyProgress, emptyTalisman, getActiveVariant, newProfile, useBuilds, useProfiles, type GearData, type Profile } from "./store";
+import type { Build, SlotProgress } from "./types";
 
 const gearOf = (): GearData => {
   const s = useBuilds.getState();
@@ -43,18 +45,47 @@ export const profileLabel = (p: Profile) => p.name || "Your character";
  * the skills read in game (Map my character).
  */
 export function profileClass(p: Profile): string {
+  if (p.className) return p.className;
+  // what the character itself has shown beats the build that happens to be active: a Barbarian build imported
+  // onto a Necromancer had every Necromancer item scrapped as "not your Barbarian" (2026-10-25)
+  const shown = shownClass(p);
+  if (shown) return shown;
   const g = gearFor(p);
   const build = (g.activeBuildId && g.builds[g.activeBuildId]) || Object.values(g.builds)[0];
-  if (build?.className) return build.className;
-  if (p.className) return p.className;
+  return build?.className ?? "";
+}
+
+/**
+ * The class a character has shown the app, or "": the skills mapped off its panel, and the class uniques it was
+ * seen wearing (a worn Deathgrip is a Necromancer's).
+ */
+export function shownClass(p: Profile): string {
+  const g = gearFor(p);
   const sheet = p.id === useProfiles.getState().activeId ? sheetOf() : p.sheet;
   const votes: Record<string, number> = {};
-  for (const slug of Object.keys(sheet?.skills ?? {})) {
-    const c = table("skills")[slug]?.c;
-    if (c) votes[c] = (votes[c] ?? 0) + 1;
-  }
+  const vote = (c: string | undefined, n: number) => c && (votes[c] = (votes[c] ?? 0) + n);
+  for (const slug of Object.keys(sheet?.skills ?? {})) vote(table("skills")[slug]?.c, 1);
+  const uniques = table("uniques");
+  for (const w of Object.values(g.worn ?? {})) if (w?.name && !w.doubt) vote(uniques[slugOf(w.name)]?.c, 2);
   const top = Object.entries(votes).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
   return top && top.charAt(0).toUpperCase() + top.slice(1);
+}
+
+/**
+ * The build the loot judge follows for the character you play: the active one, unless it's for another class
+ * than the character has shown (then the first of its builds that fits; with none, the active one anyway).
+ */
+export function judgeTarget() {
+  const active = getActiveVariant();
+  const cls = shownClass(activeProfile());
+  const fits = (b?: Build) => !cls || !b?.className || b.className.toLowerCase() === cls.toLowerCase();
+  if (fits(active.build)) return { ...active, className: cls || active.build?.className, mismatch: false };
+  const { builds, variantOf, progress } = useBuilds.getState();
+  const b = Object.values(builds).find((x) => fits(x));
+  if (!b) return { ...active, className: cls || active.build?.className, mismatch: true };
+  const variant = b.variants.find((v) => v.id === variantOf[b.id]) ?? b.variants[b.variants.length - 1];
+  const prog = (slot: string): SlotProgress => (variant && progress[`${b.id}:${variant.id}:${slot}`]) || emptyProgress;
+  return { build: b, variant, prog, className: cls, mismatch: true };
 }
 
 /** Make another character active: the current one's builds, gear and stats go into its profile, the other's come out. */

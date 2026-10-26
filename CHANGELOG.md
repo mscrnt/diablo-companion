@@ -5,6 +5,8 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-26
+
 ### Added
 - **The game data now comes from your own Diablo IV install.** On first run, and after every game patch, the app reads item names, affixes, aspects, runes, paragon glyphs, charms and the world map straight out of the game files on your PC, in the background. Nothing is downloaded, the game folder is only read, and the game does not need to be running. Settings shows the folder, the build and when it was last read, with a Re-read button, and a Choose folder button if the game is somewhere unusual.
 - **Import a build from Maxroll, Icy Veins or d4builds too,** not just Mobalytics: one paste box takes a link from any of the four. Only the build you paste is fetched, nothing is searched or listed, and the build keeps a link back to the page it came from. d4builds imports gear, affixes, tempers, greater and masterwork marks, gems and runes, the skill bar, paragon boards and glyphs, the talisman and the mercenaries. Maxroll and Icy Veins store a build as the game's own numbers, so the app reads those against your install and gets the same: items by name, affixes and tempers with their manual, the aspect on a plain legendary, runes, and the paragon boards with their glyphs and nodes. Only each planner's own skill tree numbering is left out, since nothing in the game data names it.
@@ -33,6 +35,7 @@ The release workflow publishes each version's section as its GitHub release note
 - World event timers no longer fetch anything from other sites, and imported builds are never checked for updates in the background: builds come only from a link you paste.
 
 ### Fixed
+- **Loot judge:** a character's class comes from the character (the skills mapped off its panel, the class uniques it wears), not from the build that happens to be active. A Barbarian build imported while playing a Necromancer had every Necromancer item called scrap. Importing a build for another class now keeps it for when you play one, and the judge follows one of the character's own builds.
 - **Loot judge:** a guide's "Primary Core Stat" is your class's main stat, so the Intelligence on a Necromancer's helm counts (it was always "missing": The Undercrown read 0 of 2 wanted stats). Stat names a build site words its own way meet the game's here too.
 - Opening the game's War Plans screen no longer shows the Helltide cinders panel (its "Helltide" tab and point counter looked like a Helltide) or starts the Infernal Hordes helper.
 - **Tree of Whispers:** cache names that wrap onto two lines ("Greater Collection of / Chestplates", "Ancestral Collection of / Rings") are read whole. Each one was read as a Boots cache, so the advice ranked caches you weren't offered.
@@ -211,7 +214,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mscrnt/diablo-companion/compare/v0.2.4...v0.3.0
 [0.2.4]: https://github.com/mscrnt/diablo-companion/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/mscrnt/diablo-companion/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/mscrnt/diablo-companion/compare/v0.2.1...v0.2.2
