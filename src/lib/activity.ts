@@ -673,8 +673,10 @@ async function bossTick(rect: Rect) {
     const active = runs.active;
     const label = `Boss: ${boss.split(",")[0]}`;
     if (active && active.activity === label) {
-      const dur = (banner ? bossSeen : now - 10000) - active.start;
-      runs.stop(true);
+      // the fight ended when the bar went: the run (and the day's average) stops there, not 10 s later
+      const endAt = banner ? bossSeen : now - 10000;
+      const dur = endAt - active.start;
+      runs.stop(true, endAt);
       const today = useRuns.getState().runs.filter((x) => x.activity === label && x.end && x.start > now - 86400_000);
       const avg = today.reduce((a, x) => a + (x.end! - x.start), 0) / Math.max(1, today.length);
       const f = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`;
