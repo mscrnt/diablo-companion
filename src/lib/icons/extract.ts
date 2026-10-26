@@ -7,6 +7,7 @@
 //      GPU block formats, see bcn.ts) and each icon's rectangle cut out
 // Nothing is modified, decompiled or sent anywhere, and the art never leaves the machine: only the
 // vectors made from it are kept.
+import { isRealUnique } from "../gamedata/convert";
 import { decodeBlocks } from "./bcn";
 import type { GameFiles, GameMeta, IconArt, IconPlanVia, IconPlanWire, SheetDef, UniqueRow } from "./types";
 
@@ -91,6 +92,8 @@ function itemHandles(m: Record<string, unknown>): { own: number[]; perClass: num
  * `INVENTORY_SHEET` and `perClassTypes`.
  */
 export async function plan(files: GameFiles, meta: GameMeta, uniques: UniqueRow[], onStep?: (done: number, total: number) => Promise<void>): Promise<IconPlanWire> {
+  // only what a player can wear: no fish, caches, test rings or unfinished entries
+  uniques = uniques.filter(isRealUnique);
   // the raw copy is deleted once a read is parsed, so the reader may have to fetch all of this again
   await files.ensure?.(["base:Misc\\2D_table.dat", "base:Texture-Base-Global.dat", ...uniques.map((u) => `base:meta\\${u.sno}`)]);
   const table = await files.read("base/Misc/2D_table.dat");

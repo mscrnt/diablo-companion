@@ -1,6 +1,6 @@
 [package]
 name = "d4c"
-version = "0.2.4"
+version = "0.3.0"
 description = "Sanctuary Toolkit, a Diablo IV companion"
 authors = ["Kenneth Blossom"]
 license = "PolyForm-Noncommercial-1.0.0"

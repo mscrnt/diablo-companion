@@ -275,6 +275,17 @@ function skillUpgrades(skill: any): { slug: string; name: string; desc: string; 
 
 const PLACEHOLDER = /^\s*[([](?:PH|WIP|NYI)[)\]]/i;
 
+/**
+ * A unique a player can find and wear. The game's unique list also holds fish ("Tiny Celestial Crookfish"),
+ * caches, quest pieces, test rings and unfinished entries ("[ph_Hope's Respite]", "(DNS)"); they matched item
+ * pictures in the 2026-10-25 test.
+ */
+export function isRealUnique(u: { id?: string; name?: string; itemType?: string }): boolean {
+  if (/^(Fish|ReputationCache|CollectiblePower|QuestGlyph|Cache_Generic)$/.test(u.itemType ?? "")) return false;
+  if (/^(TEST_|performance_test|Template_)/i.test(u.id ?? "")) return false;
+  return !/\[ph|\(ph\)|\[ph\]|\(dns\)|\(debug\)|\[wip|\(wip\)|\(nyi\)/i.test(u.name ?? "");
+}
+
 /** The tables, from the extractor's output. */
 export function convert(x: Extracted): Tables {
   const out = { meta: { source: "game files on this PC", build: x.build ?? null, converted: new Date().toISOString() } } as unknown as Tables;
@@ -307,7 +318,7 @@ export function convert(x: Extracted): Tables {
 
   const byName = new Map<string, any[]>();
   const known = new Set((x.uniques?.entries ?? []).map((u) => u.name));
-  for (const u of [...(x.uniques?.entries ?? []), ...extra.filter((i) => !known.has(i.name))]) if (u.name) byName.set(u.name, [...(byName.get(u.name) ?? []), u]);
+  for (const u of [...(x.uniques?.entries ?? []), ...extra.filter((i) => !known.has(i.name))]) if (u.name && isRealUnique(u)) byName.set(u.name, [...(byName.get(u.name) ?? []), u]);
   const uniqueSlug = new Map<any, string>();
   const uniqueName = new Map<any, string>();
   for (const [name, list] of byName) {
