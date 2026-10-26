@@ -27,7 +27,9 @@ describe("reading the weekly bonus off a frame", () => {
   it("reads the event's tooltip, with the boss off the same frame when it's there", () => {
     expect(readWeeklyBonus([line("World Boss"), line("Weekly bonus claimed")])).toEqual({ boss: null, via: "claimed" });
     expect(readWeeklyBonus([line("Ashava, the Pestilent"), line("Weekly bonus ciaimed")])).toEqual({ boss: "Ashava", via: "claimed" });
-    expect(readWeeklyBonus([line("Weekly Bonus Spoils")])).toEqual({ boss: null, via: "generic" });
+    expect(readWeeklyBonus([line("Weekly Bonus Spoils")])).toEqual({ boss: null, via: "available" });
+    // a claimed boss's tooltip may still name its reward: "claimed" wins
+    expect(readWeeklyBonus([line("Weekly Bonus Spoils"), line("Weekly bonus claimed")])).toEqual({ boss: null, via: "claimed" });
   });
 });
 
@@ -49,6 +51,19 @@ describe("remembering it per character and week", () => {
     expect(claimed()).toBe(false);
     noteWeeklyBonusFrame([line("Weekly bonus claimed")], AFTER_AVARICE + 2000);
     expect(claimed()).toBe(true);
+  });
+
+  // the map's event tooltip before a spawn: "World Boss / Wandering Death / REWARDS / Weekly Bonus Spoils / Begins in
+  // 51 Minutes" (2026-10-25). The reward is still on offer, so it never counts as claimed and undoes a claim.
+  it("a reward still on offer is never a claim, and clears one recorded by mistake", () => {
+    const profile = useProfiles.getState().activeId;
+    const frame = [line("World Boss"), line("Wandering Death"), line("REWARDS"), line("Weekly Bonus Spoils"), line("Begins in 51 Minutes 7 Seconds")];
+    noteWeeklyBonusFrame(frame, AFTER_AVARICE);
+    noteWeeklyBonusFrame(frame, AFTER_AVARICE + 2000);
+    expect(claimedIn(useWeeklyBonus.getState().claimed, profile, "Wandering Death", AFTER_AVARICE)).toBe(false);
+    useWeeklyBonus.getState().note(profile, "Wandering Death", weekOf(AFTER_AVARICE), AFTER_AVARICE);
+    noteWeeklyBonusFrame(frame, AFTER_AVARICE + 4000);
+    expect(claimedIn(useWeeklyBonus.getState().claimed, profile, "Wandering Death", AFTER_AVARICE)).toBe(false);
   });
 
   it("claims nothing when no spawn the frame could belong to is known", () => {

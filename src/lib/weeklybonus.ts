@@ -60,8 +60,12 @@ const says = (lineText: string, phrase: string) => {
 export interface BonusRead {
   /** the boss whose bonus it is, or null when only the general wording was on screen */
   boss: string | null;
-  /** `cache` is a boss's own cache (proof on its own); the other two need the spawn you're at */
-  via: "cache" | "claimed" | "generic";
+  /**
+   * `cache` is a boss's own cache (proof on its own); `claimed` the game's "Weekly bonus claimed", which needs the
+   * spawn you're at; `available` the map's event tooltip still listing "Weekly Bonus Spoils" under its rewards,
+   * which means the bonus is still to be had (2026-10-25: it was taken for a claim and marked one falsely)
+   */
+  via: "cache" | "claimed" | "available";
 }
 
 /** What one OCR'd frame says about the weekly bonus (an item tooltip, the map's event tooltip, the tracker). */
@@ -69,10 +73,9 @@ export function readWeeklyBonus(lines: { text: string }[]): BonusRead | null {
   for (const l of lines) for (const [boss, item] of Object.entries(BOSS_SPOILS)) if (says(l.text, item)) return { boss, via: "cache" };
   // the general wording ("Weekly bonus claimed") names no boss: take one off the same frame if it's there
   const named = lines.flatMap((l) => Object.keys(BOSS_SPOILS).filter((b) => says(l.text, b)))[0] ?? null;
-  for (const l of lines) {
-    if (says(l.text, "Weekly bonus claimed")) return { boss: named, via: "claimed" };
-    if (says(l.text, "Weekly Bonus Spoils")) return { boss: named, via: "generic" };
-  }
+  // "claimed" anywhere wins: a claimed boss's tooltip may still name the reward it gave
+  if (lines.some((l) => says(l.text, "Weekly bonus claimed"))) return { boss: named, via: "claimed" };
+  if (lines.some((l) => says(l.text, "Weekly Bonus Spoils"))) return { boss: named, via: "available" };
   return null;
 }
 
@@ -82,6 +85,7 @@ interface BonusState {
   /** character profile id → boss → the week its bonus was last seen claimed */
   claimed: Record<string, Record<string, { week: number; at: number }>>;
   note: (profile: string, boss: string, week: number, at: number) => void;
+  forget: (profile: string, boss: string) => void;
 }
 
 export const useWeeklyBonus = create<BonusState>()(
@@ -89,6 +93,12 @@ export const useWeeklyBonus = create<BonusState>()(
     (set) => ({
       claimed: {},
       note: (profile, boss, week, at) => set((s) => ({ claimed: { ...s.claimed, [profile]: { ...s.claimed[profile], [boss]: { week, at } } } })),
+      forget: (profile, boss) =>
+        set((s) => {
+          const mine = { ...s.claimed[profile] };
+          delete mine[boss];
+          return { claimed: { ...s.claimed, [profile]: mine } };
+        }),
     }),
     { name: "weekly-bonus", storage: persistStorage },
   ),
@@ -124,14 +134,21 @@ export function noteWeeklyBonusFrame(lines: { text: string }[], now = Date.now()
   if (!read) return;
   const boss = read.boss ?? currentWorldBoss(now);
   if (!boss) return void debugEvent("weeklybonus", "unattributed", { via: read.via, why: "no world boss spawn this frame could belong to" });
+  const profile = useProfiles.getState().activeId;
+  const known = claimedIn(useWeeklyBonus.getState().claimed, profile, boss, now);
+  // the game still offers the bonus: it isn't claimed, whatever was recorded
+  if (read.via === "available") {
+    if (!known) return;
+    useWeeklyBonus.getState().forget(profile, boss);
+    return void debugEvent("weeklybonus", "unclaimed", { boss, why: "the event still lists Weekly Bonus Spoils" });
+  }
+  if (known) return;
   if (read.via !== "cache" && !(pending && pending.boss === boss && now - pending.at <= 60_000)) {
     pending = { boss, at: now };
     return void debugEvent("weeklybonus", "pending", { boss, via: read.via, why: "waiting for a second read to agree" });
   }
   pending = null;
-  const profile = useProfiles.getState().activeId;
   const week = weekOf(now);
-  if (claimedIn(useWeeklyBonus.getState().claimed, profile, boss, now)) return;
   useWeeklyBonus.getState().note(profile, boss, week, now);
   debugEvent("weeklybonus", "claimed", { boss, via: read.via, week });
   overlayToast("Weekly bonus: got it", `${boss}: this week's bonus cache is yours.`, "#d4ad62", 8000);
