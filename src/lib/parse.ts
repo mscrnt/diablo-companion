@@ -214,7 +214,11 @@ export async function parseTooltipText(cfg: LlmConfig, tip: TooltipText, variant
   const rarity = /mythic/.test(tl) ? "mythic" : /unique/.test(tl) ? "unique" : /legendary/.test(tl) ? "legendary" : /\brare\b/.test(tl) ? "rare" : /magic/.test(tl) ? "magic" : raw.rarity;
 
   const targets = buildTargetNames(variant);
-  const affixes: ParsedAffix[] = stats.map((s) => ({ text: s.text, greater: s.greater, tempered: s.tempered, match: matchTarget(s.text, targets) }));
+  // a weapon's base lines (DPS, damage per hit, attacks per second) aren't affixes: the model sometimes lists them,
+  // and the judge then offered to enchant "4,573 Damage Per Second" away (2026-10-25)
+  const affixes: ParsedAffix[] = stats
+    .filter((s) => !/damage per second|damage per hit|attacks per second/i.test(s.text))
+    .map((s) => ({ text: s.text, greater: s.greater, tempered: s.tempered, match: matchTarget(s.text, targets) }));
   const legendaryName = /\bof\b/i.test(name) ? `Aspect ${name.slice(name.toLowerCase().lastIndexOf(" of ")).trim()}` : "";
   const tempers = ocr.join(" ").match(/tempers:\s*(\d)\s*\/\s*(\d)/i);
 
