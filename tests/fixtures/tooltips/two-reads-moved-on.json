@@ -1,0 +1,591 @@
+{
+ "source": "0.3.1 shared judgement at 1920x1080 (the crop showed the next item (Feud Style) while the scan read Gohr's); \"full\" is the crop read at 1.6x",
+ "scan": [
+  {
+   "text": "GOHR'S",
+   "bullet": "greater",
+   "h": 17,
+   "x": 641,
+   "y": 175,
+   "w": 85
+  },
+  {
+   "text": "DEVASTATING",
+   "bullet": "normal",
+   "h": 19,
+   "x": 641,
+   "y": 202,
+   "w": 169
+  },
+  {
+   "text": "GRIPS",
+   "bullet": "normal",
+   "h": 17,
+   "x": 641,
+   "y": 231,
+   "w": 66
+  },
+  {
+   "text": "Ancestral Unique Gloves",
+   "bullet": "normal",
+   "h": 19,
+   "x": 641,
+   "y": 263,
+   "w": 196
+  },
+  {
+   "text": "9(H) Item Power",
+   "bullet": "normal",
+   "h": 15,
+   "x": 641,
+   "y": 293,
+   "w": 124
+  },
+  {
+   "text": "801 Armor",
+   "bullet": "normal",
+   "h": 17,
+   "x": 641,
+   "y": 344,
+   "w": 96
+  },
+  {
+   "text": "• +180 Strength +1150-180]",
+   "bullet": "normal",
+   "h": 19,
+   "x": 645,
+   "y": 375,
+   "w": 232
+  },
+  {
+   "text": "+2,736 Shadow Resistance [2,275-",
+   "bullet": "normal",
+   "h": 20,
+   "x": 665,
+   "y": 402,
+   "w": 274
+  },
+  {
+   "text": "• 5.0% Cooldown Reduction [5.0-8.01%",
+   "bullet": "normal",
+   "h": 20,
+   "x": 645,
+   "y": 456,
+   "w": 322
+  },
+  {
+   "text": "+3 to Whirlwind [2-3]",
+   "bullet": "normal",
+   "h": 19,
+   "x": 665,
+   "y": 485,
+   "w": 175
+  },
+  {
+   "text": "+ Whirlwind deals 87% [75 - 901%",
+   "bullet": "normal",
+   "h": 19,
+   "x": 641,
+   "y": 514,
+   "w": 273
+  },
+  {
+   "text": "increased damage and pulls enemies",
+   "bullet": "none",
+   "h": 18,
+   "x": 665,
+   "y": 539,
+   "w": 289
+  },
+  {
+   "text": "to you every 2 seconds.",
+   "bullet": "none",
+   "h": 18,
+   "x": 665,
+   "y": 564,
+   "w": 183
+  },
+  {
+   "text": "\"The Inutish constmction of these gloves belies",
+   "bullet": "normal",
+   "h": 18,
+   "x": 639,
+   "y": 595,
+   "w": 330
+  },
+  {
+   "text": "the snength they bestow. Gohrwas clearly no",
+   "bullet": "normal",
+   "h": 18,
+   "x": 639,
+   "y": 619,
+   "w": 322
+  },
+  {
+   "text": "craftsman, but it would be foolish to igncne the",
+   "bullet": "normal",
+   "h": 18,
+   "x": 639,
+   "y": 643,
+   "w": 330
+  },
+  {
+   "text": "triumph of his work.\" -Banetts Book of",
+   "bullet": "normal",
+   "h": 18,
+   "x": 639,
+   "y": 667,
+   "w": 277
+  },
+  {
+   "text": "Implements",
+   "bullet": "normal",
+   "h": 18,
+   "x": 639,
+   "y": 691,
+   "w": 84
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 17,
+   "x": 852,
+   "y": 721,
+   "w": 126
+  },
+  {
+   "text": "Only",
+   "bullet": "normal",
+   "h": 17,
+   "x": 943,
+   "y": 744,
+   "w": 35
+  },
+  {
+   "text": "Unique EquiplHl",
+   "bullet": "none",
+   "h": 17,
+   "x": 853,
+   "y": 768,
+   "w": 124
+  },
+  {
+   "text": "Sell Value: 68,027 •",
+   "bullet": "none",
+   "h": 19,
+   "x": 819,
+   "y": 809,
+   "w": 158
+  },
+  {
+   "text": "Durability: 100/100",
+   "bullet": "none",
+   "h": 19,
+   "x": 821,
+   "y": 837,
+   "w": 157
+  },
+  {
+   "text": "Tempers: 3/3",
+   "bullet": "none",
+   "h": 18,
+   "x": 873,
+   "y": 863,
+   "w": 105
+  },
+  {
+   "text": "Take",
+   "bullet": "greater",
+   "h": 16,
+   "x": 656,
+   "y": 915,
+   "w": 37
+  }
+ ],
+ "full": [
+  {
+   "text": ":EUD STYLE * *",
+   "bullet": "none",
+   "h": 19.380419,
+   "x": 0,
+   "y": 36.885315,
+   "w": 200.6811
+  },
+  {
+   "text": "sxncestral Rare Two-Handed",
+   "bullet": "none",
+   "h": 15.62937,
+   "x": 0,
+   "y": 101.27832,
+   "w": 220.06152
+  },
+  {
+   "text": ";word",
+   "bullet": "none",
+   "h": 15.62937,
+   "x": 0,
+   "y": 126.28531,
+   "w": 44.38741
+  },
+  {
+   "text": "Item Power",
+   "bullet": "normal",
+   "h": 15.004195,
+   "x": 28.758041,
+   "y": 155.04335,
+   "w": 90.650345
+  },
+  {
+   "text": "+ Bia",
+   "bullet": "normal",
+   "h": 15.004195,
+   "x": 400.11188,
+   "y": 517.6447,
+   "w": 46.88811
+  },
+  {
+   "text": "ÉLEk",
+   "bullet": "normal",
+   "h": 24.381817,
+   "x": 400.11188,
+   "y": 32.50909,
+   "w": 46.88811
+  },
+  {
+   "text": "Ances",
+   "bullet": "normal",
+   "h": 14.379021,
+   "x": 400.11188,
+   "y": 74.3958,
+   "w": 46.88811
+  },
+  {
+   "text": "Sword",
+   "bullet": "normal",
+   "h": 15.004195,
+   "x": 400.11188,
+   "y": 98.77762,
+   "w": 46.88811
+  },
+  {
+   "text": "900 It",
+   "bullet": "normal",
+   "h": 15.004195,
+   "x": 400.11188,
+   "y": 126.910484,
+   "w": 45.63776
+  },
+  {
+   "text": "35 (35.",
+   "bullet": "normal",
+   "h": 18.13007,
+   "x": 400.11188,
+   "y": 152.54265,
+   "w": 41.261536
+  },
+  {
+   "text": "2,072",
+   "bullet": "normal",
+   "h": 20.005594,
+   "x": 398.8615,
+   "y": 231.93985,
+   "w": 48.13846
+  },
+  {
+   "text": "Damage Per Second (-390)",
+   "bullet": "tempered",
+   "h": 22.506292,
+   "x": 48.13846,
+   "y": 203.80699,
+   "w": 251.32027
+  },
+  {
+   "text": "1-• [3,194-4,576] Damage per Hit",
+   "bullet": "none",
+   "h": 25.632168,
+   "x": 6.8769226,
+   "y": 230.6895,
+   "w": 268.19998
+  },
+  {
+   "text": "1.00 Attacks per Second (-0. IO)",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 33.759438,
+   "y": 264.44894,
+   "w": 251.94545
+  },
+  {
+   "text": "+431 Weapon Damage (+322)",
+   "bullet": "greater",
+   "h": 18.13007,
+   "x": 18.755243,
+   "y": 293.83215,
+   "w": 234.44055
+  },
+  {
+   "text": "+450 Strength (9 Only)",
+   "bullet": "greater",
+   "h": 21.255943,
+   "x": 18.755243,
+   "y": 318.83914,
+   "w": 230.6895
+  },
+  {
+   "text": "+1,580 Life on Kill C')",
+   "bullet": "greater",
+   "h": 21.255943,
+   "x": 18.755243,
+   "y": 346.97202,
+   "w": 297.5832
+  },
+  {
+   "text": "Only)",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 78.772026,
+   "y": 375.73004,
+   "w": 44.38741
+  },
+  {
+   "text": "x25% Physical Damage Multiplier (",
+   "bullet": "greater",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 404.4881,
+   "w": 277.5776
+  },
+  {
+   "text": "+25%)",
+   "bullet": "none",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 429.4951,
+   "w": 50.013985
+  },
+  {
+   "text": "iroperties lost when equipped:",
+   "bullet": "none",
+   "h": 18.755243,
+   "x": 0,
+   "y": 473.25732,
+   "w": 241.31747
+  },
+  {
+   "text": "+10 Item Quality",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 499.51468,
+   "w": 136.2881
+  },
+  {
+   "text": "+4 to Blazing Scream",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 19.380419,
+   "y": 524.52167,
+   "w": 166.92168
+  },
+  {
+   "text": "+10.8% Attack Speed",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 549.5286,
+   "w": 167.54684
+  },
+  {
+   "text": "x96% Critical Strike Damage",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 574.53564,
+   "w": 226.93845
+  },
+  {
+   "text": "Multiplier",
+   "bullet": "none",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 599.54266,
+   "w": 79.3972
+  },
+  {
+   "text": "+18.1% Critical Strike Chance",
+   "bullet": "normal",
+   "h": 15.62937,
+   "x": 18.755243,
+   "y": 624.5496,
+   "w": 236.31607
+  },
+  {
+   "text": "+243 Willpower",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 18.13007,
+   "y": 649.55664,
+   "w": 125.66013
+  },
+  {
+   "text": "+2,970 Maximum Life",
+   "bullet": "normal",
+   "h": 18.13007,
+   "x": 18.755243,
+   "y": 673.9384,
+   "w": 174.42377
+  },
+  {
+   "text": "+3 to Demonology Skills",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 699.5706,
+   "w": 193.17902
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 18.755243,
+   "y": 724.5776,
+   "w": 110.03076
+  },
+  {
+   "text": "Unique Power",
+   "bullet": "normal",
+   "h": 18.755243,
+   "x": 18.13007,
+   "y": 749.5846,
+   "w": 110.65594
+  },
+  {
+   "text": "Socket Scroll Down",
+   "bullet": "none",
+   "h": 18.13007,
+   "x": 18.755243,
+   "y": 772.0909,
+   "w": 213.1846
+  },
+  {
+   "text": "Take",
+   "bullet": "none",
+   "h": 15.62937,
+   "x": 10.002797,
+   "y": 823.3552,
+   "w": 36.885315
+  },
+  {
+   "text": "+ Link",
+   "bullet": "normal",
+   "h": 15.004195,
+   "x": 23.131468,
+   "y": 852.1133,
+   "w": 80.64755
+  },
+  {
+   "text": "1",
+   "bullet": "normal",
+   "h": 13.753845,
+   "x": 438.8727,
+   "y": 293.20697,
+   "w": 6.251748
+  },
+  {
+   "text": "+2,",
+   "bullet": "normal",
+   "h": 14.379021,
+   "x": 423.86853,
+   "y": 320.71466,
+   "w": 23.131468
+  },
+  {
+   "text": "+2,",
+   "bullet": "none",
+   "h": 18.13007,
+   "x": 423.86853,
+   "y": 350.0979,
+   "w": 23.131468
+  },
+  {
+   "text": "+4",
+   "bullet": "normal",
+   "h": 14.379021,
+   "x": 423.86853,
+   "y": 431.9958,
+   "w": 19.380419
+  },
+  {
+   "text": "+11",
+   "bullet": "normal",
+   "h": 14.379021,
+   "x": 423.86853,
+   "y": 488.8867,
+   "w": 23.131468
+  },
+  {
+   "text": "Ski",
+   "bullet": "none",
+   "h": 15.004195,
+   "x": 423.86853,
+   "y": 542.65173,
+   "w": 23.131468
+  },
+  {
+   "text": "inc",
+   "bullet": "none",
+   "h": 15.004195,
+   "x": 423.86853,
+   "y": 567.6587,
+   "w": 23.131468
+  },
+  {
+   "text": "gai",
+   "bullet": "none",
+   "h": 18.755243,
+   "x": 423.86853,
+   "y": 592.6657,
+   "w": 23.131468
+  },
+  {
+   "text": "fre",
+   "bullet": "none",
+   "h": 15.62937,
+   "x": 423.86853,
+   "y": 617.04755,
+   "w": 23.131468
+  },
+  {
+   "text": "the",
+   "bullet": "none",
+   "h": 16.254545,
+   "x": 423.86853,
+   "y": 642.0545,
+   "w": 23.131468
+  },
+  {
+   "text": "Weave",
+   "bullet": "none",
+   "h": 13.753845,
+   "x": 398.8615,
+   "y": 728.9538,
+   "w": 45.012585
+  },
+  {
+   "text": "sorrow",
+   "bullet": "none",
+   "h": 10.002797,
+   "x": 397.61118,
+   "y": 756.4615,
+   "w": 49.38881
+  },
+  {
+   "text": "teats o,",
+   "bullet": "none",
+   "h": 15.004195,
+   "x": 397.61118,
+   "y": 778.9678,
+   "w": 49.38881
+  }
+ ]
+}

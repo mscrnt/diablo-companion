@@ -64,6 +64,8 @@ export interface TooltipText {
   equipped: boolean;
   /** OCR lines + bullet icon class (+ height and box), for the instant (no-LLM) parser */
   fast?: import("./fastparse").FastLine[];
+  /** the same tooltip read again from its full crop, fully drawn and enlarged to a readable text height (autojudge.ts) */
+  fastAlt?: import("./fastparse").FastLine[];
   /**
    * For shared judgements: the crop's and the tooltip's screen rects, and the text boxes to black out in
    * the crop (everything OCR read that isn't the tooltip: nameplates, chat). Null when the crop can't be

@@ -1,0 +1,161 @@
+{
+ "source": "0.3.1 test-mode scan 2026-11-02T16:44:44Z, a player at 1920x1080 (\"9(H) Item Power\")",
+ "equippedLabel": false,
+ "ocr": [
+  "Ancestral Rare Gloves",
+  "9(H) Item Power",
+  "801 Armor (+3.4% Toughness)",
+  "* +2,750 Maximum Life (+551)",
+  "* x25% All Damage Multiplier (+25%)",
+  "* +12.5% Attack Speed (+12.5%)",
+  "Properties lost when equipped :",
+  "+86% Critical Strike Damage",
+  "x63% Critical Strike Damage",
+  "Multiplier",
+  "x29% Vulnerable Damage Multiplier",
+  "+185 Willpower",
+  "Unique Power",
+  "Requires Level 70",
+  "Sell Value: 11,831 •",
+  "Durability: 1 (N)/m",
+  "Tempers: 6/6"
+ ],
+ "lines": [
+  {
+   "text": "Ancestral Rare Gloves",
+   "x": 213,
+   "y": 164,
+   "w": 175,
+   "h": 16,
+   "bullet": "normal"
+  },
+  {
+   "text": "9(H) Item Power",
+   "x": 213,
+   "y": 193,
+   "w": 124,
+   "h": 15,
+   "bullet": "normal"
+  },
+  {
+   "text": "801 Armor (+3.4% Toughness)",
+   "x": 213,
+   "y": 241,
+   "w": 277,
+   "h": 22,
+   "bullet": "normal"
+  },
+  {
+   "text": "* +2,750 Maximum Life (+551)",
+   "x": 214,
+   "y": 274,
+   "w": 253,
+   "h": 19,
+   "bullet": "normal"
+  },
+  {
+   "text": "* x25% All Damage Multiplier (+25%)",
+   "x": 214,
+   "y": 302,
+   "w": 308,
+   "h": 19,
+   "bullet": "none"
+  },
+  {
+   "text": "* +12.5% Attack Speed (+12.5%)",
+   "x": 214,
+   "y": 331,
+   "w": 266,
+   "h": 19,
+   "bullet": "none"
+  },
+  {
+   "text": "Properties lost when equipped :",
+   "x": 212,
+   "y": 375,
+   "w": 247,
+   "h": 19,
+   "bullet": "none"
+  },
+  {
+   "text": "+86% Critical Strike Damage",
+   "x": 237,
+   "y": 401,
+   "w": 227,
+   "h": 19,
+   "bullet": "normal"
+  },
+  {
+   "text": "x63% Critical Strike Damage",
+   "x": 237,
+   "y": 426,
+   "w": 226,
+   "h": 19,
+   "bullet": "normal"
+  },
+  {
+   "text": "Multiplier",
+   "x": 237,
+   "y": 451,
+   "w": 80,
+   "h": 19,
+   "bullet": "none"
+  },
+  {
+   "text": "x29% Vulnerable Damage Multiplier",
+   "x": 237,
+   "y": 476,
+   "w": 289,
+   "h": 19,
+   "bullet": "normal"
+  },
+  {
+   "text": "+185 Willpower",
+   "x": 237,
+   "y": 501,
+   "w": 125,
+   "h": 19,
+   "bullet": "normal"
+  },
+  {
+   "text": "Unique Power",
+   "x": 237,
+   "y": 528,
+   "w": 111,
+   "h": 18,
+   "bullet": "normal"
+  },
+  {
+   "text": "Requires Level 70",
+   "x": 423,
+   "y": 566,
+   "w": 126,
+   "h": 17,
+   "bullet": "none"
+  },
+  {
+   "text": "Sell Value: 11,831 •",
+   "x": 390,
+   "y": 607,
+   "w": 158,
+   "h": 19,
+   "bullet": "none"
+  },
+  {
+   "text": "Durability: 1 (N)/m",
+   "x": 392,
+   "y": 635,
+   "w": 157,
+   "h": 19,
+   "bullet": "none"
+  },
+  {
+   "text": "Tempers: 6/6",
+   "x": 444,
+   "y": 661,
+   "w": 105,
+   "h": 18,
+   "bullet": "none"
+  }
+ ]
+}

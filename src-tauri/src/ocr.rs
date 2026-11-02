@@ -212,10 +212,17 @@ mod probe {
     fn ocr_probe() {
         let path = std::env::var("OCR_PROBE").expect("set OCR_PROBE to an image path");
         let img = image::open(&path).unwrap().to_rgba8();
-        for mc in [true, false] {
-            let out = super::recognize_opts(&img, 1.3, mc).unwrap();
-            println!("== max_channel={mc}: {} lines", out.lines.len());
-            for l in out.lines.iter().take(12) {
+        // OCR_SCALE: one or more scales to compare ("1,1.7,2"), default 1.3
+        let scales: Vec<f32> = std::env::var("OCR_SCALE").unwrap_or_else(|_| "1.3".into()).split(',').filter_map(|s| s.trim().parse().ok()).collect();
+        let lines: usize = std::env::var("OCR_LINES").ok().and_then(|s| s.parse().ok()).unwrap_or(12);
+        for (mc, scale) in [true, false].into_iter().flat_map(|mc| scales.iter().map(move |&s| (mc, s))) {
+            let out = super::recognize_opts(&img, scale, mc).unwrap();
+            // OCR_JSON: also write the lines (text, box, bullet) to <OCR_JSON>-<mc>-<scale>.json for the parser
+            if let Ok(base) = std::env::var("OCR_JSON") {
+                let _ = std::fs::write(format!("{base}-{mc}-{scale}.json"), serde_json::to_string(&out.lines).unwrap());
+            }
+            println!("== max_channel={mc} scale={scale}: {} lines", out.lines.len());
+            for l in out.lines.iter().take(lines) {
                 println!("   {:>4},{:>4}  {:<9} {}", l.x as i32, l.y as i32, l.bullet, l.text);
             }
         }

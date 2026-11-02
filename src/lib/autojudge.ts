@@ -223,8 +223,17 @@ function signature(lines: OcrLine[]) {
  * the SAME frame as the text (a second capture can be off if the tooltip scrolls).
  * The crop image is only for the log / LLM fallback.
  */
+/** The text height the full read aims for: below it Windows OCR misreads the tooltip font ("9(H) Item Power"). */
+const READ_TEXT_H = 28;
+
 export async function tooltipText(col: TooltipColumn, cap: CaptureResult): Promise<TooltipText> {
-  const crop = await captureRegion(padBox(col.box), { maxEdge: 1100, quality: 92 }).catch(() => null);
+  // the scan frame can catch the tooltip still fading in, and at 1080p its text is small: the crop (taken anyway for
+  // the AI and shared judgements) is read again, enlarged so its text is ~28 px whatever the resolution, UI scale or
+  // window size (the line height is measured, not guessed from the screen). 2026-11-02 player report.
+  const hs = col.lines.map((l) => l.h).filter((h): h is number => !!h).sort((a, b) => a - b);
+  const textH = hs[Math.floor(hs.length / 2)] ?? 0;
+  const ocrScale = textH ? Math.min(2.5, Math.max(1, READ_TEXT_H / textH)) : 1.3;
+  const crop = await captureRegion(padBox(col.box), { maxEdge: 1100, quality: 92, ocr: true, ocrMaxChannel: true, ocrScale }).catch(() => null);
   // the mouse moved on since the OCR frame: the crop can show the next item's tooltip, and the AI read
   // labelled one item's lines from another's picture ("Strider's Crown" judged as magic boots, 2026-10-13
   // test). The scan frame is smaller but shows the tooltip those lines came from.
@@ -249,6 +258,16 @@ export async function tooltipText(col: TooltipColumn, cap: CaptureResult): Promi
     // opened from the Character panel, your own item has no EQUIPPED header but offers "Unequip"
     equipped: col.equipped || col.lines.some((l) => isUnequipLine(l.text)),
     fast: col.lines.map((l) => ({ text: l.text, bullet: l.bullet ?? "none", h: l.h, x: l.x, y: l.y, w: l.w })),
+    // this column's lines only (the crop's padding can reach the comparison next to it)
+    fastAlt:
+      crop && !moved
+        ? (crop.ocr?.lines ?? [])
+            .filter((l) => {
+              const cx = crop.region.x + l.x + l.w / 2;
+              return cx >= col.box.x - col.box.w * 0.05 && cx <= col.box.x + col.box.w * 1.05;
+            })
+            .map((l) => ({ text: l.text, bullet: l.bullet ?? "none", h: l.h, x: l.x, y: l.y, w: l.w }))
+        : undefined,
     share,
   };
 }

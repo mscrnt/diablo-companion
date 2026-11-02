@@ -355,6 +355,7 @@ function dispose(item: ParsedItem, gear: GearSlot[], why: string[], slot: GearSl
 export function decide(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ctx, compareTo?: ParsedItem | null): Out {
   const res = decideCore(item, variant, { ...ctx, prof: buildProfile(variant) }, compareTo);
   if (item.truncated) res.reasons = [...res.reasons, "Part of this tooltip is hidden: scroll it down to let me see everything."];
+  if (item.rough) res.reasons = [...res.reasons, "Read without an AI model and not all of it was clear: check the name and stats."];
   if (res.verdict === "WEAR" && variant && res.slot) {
     const slot = variant.gear.find((g) => g.slot === res.slot);
     if (slot) res.steps = ["Equip it.", ...upkeep(item, slot, quality(item, slot, buildProfile(variant).mainStat), { ...ctx.prog(slot.slot), masterwork: 0, tempered: false }, false, buildProfile(variant))];

@@ -1,7 +1,7 @@
 // Instant tooltip parser: OCR lines + bullet-icon colours + rules. No LLM.
 // Returns null (→ fall back to the LLM labeller) when it isn't confident.
 import { buildTargetNames, cleanStat, matchTarget } from "./parse";
-import { aspectFromItemName, canonicalUnique, identifyAspect, identifyUnique, similarity, table, trigramSim } from "./names";
+import { aspectFromItemName, canonicalUnique, identifyAspect, identifyUnique, normName, similarity, table, trigramSim } from "./names";
 import { confident, identifyUnique as identifyUniqueFrom } from "./identify";
 import { confusionKey, editDistance, knownStat, knownWord, ocrVocabReady, sheetLabel, snapLines } from "./ocrfix";
 import { socketedGem } from "./socketed";
@@ -78,6 +78,18 @@ function titleCase(n: string) {
   return lower.replace(/(^|[\s-])([a-z])/g, (_m, p, c) => p + c.toUpperCase()).replace(/(?!^)\b(Of|The|And|To)\b/g, (w) => w.toLowerCase());
 }
 
+/**
+ * The tooltip font's zeros as 1080p OCR reads them inside a number: "9(H) Item Power" (900), "+3,5()() Shadow
+ * Resistance" (3,500), "Durability: 1 (N)/m" (100/100), "2,94Ø". Without the item power a rare failed the sanity
+ * check and, with no AI model to fall back on, wasn't judged at all (2026-11-02 player report).
+ */
+export function zeros(t: string): string {
+  return t
+    .replace(/(\d[\d,]*)\s?\((?:H|N|HH|NN)\)/g, "$100")
+    .replace(/(\d[\d,]*)((?:\(\))+)/g, (_m, d: string, z: string) => d + "0".repeat(z.length / 2))
+    .replace(/(\d)Ø|Ø(\d)/g, (_m, a?: string, b?: string) => (a ? `${a}0` : `0${b}`));
+}
+
 function deltaOf(t: string): string | null {
   // "259 Armor (+7.4% Toughness)" is the swap's Toughness change (toughnessOf), not 7.4 less armor on yours
   return t.replace(/\([^)]*toughness[^)]*\)?/gi, "").match(/\(\s*([+\-]\s*[\d.,]+%?)/)?.[1]?.replace(/\s+/g, "") ?? null;
@@ -112,7 +124,7 @@ export function fastParse(
     /^\s*[*✸✷✹✺❋]\s*(?=[+x\-]?\s*\d)/.test(l.text) && (l.bullet === "normal" || l.bullet === "none") ? { ...l, bullet: "greater" as const } : l,
   );
   const L = (opts.snap === false ? starred : snapLines(starred))
-    .map((l) => ({ ...l, text: l.text.trim().replace(/^(?:[oO0•*◆◇¤✸✷·°]\s*)+(?=[+x\-]?\s*\d)/, "") }))
+    .map((l) => ({ ...l, text: zeros(l.text).trim().replace(/^(?:[oO0•*◆◇¤✸✷·°]\s*)+(?=[+x\-]?\s*\d)/, "") }))
     .filter((l) => l.text.length > 0);
   // a list of item names (a vendor's or the salvage screen's), not a tooltip: one line naming three kinds of item
   // ("Ring. Rare Seal Magic Charm Wanderer's Gloves Amulet (Ancestral) Seal" was judged a seal, 2026-11-02)
@@ -527,13 +539,27 @@ export function toughnessOf(text: string): number | undefined {
   return m[1] === "-" || m[1] === "−" ? -v : v;
 }
 
+/**
+ * Two reads of one tooltip: the scan frame's, and the full crop's read again enlarged (autojudge.ts). The full one
+ * wins when it makes sense, names the same item and reads at least as much: it has no half-drawn letters. Naming
+ * another item means the mouse moved on before the crop (a Gohr's judgement's crop showed a sword, 2026-11-02).
+ */
+export function fullReadWins(scan: ParsedItem | null, full: ParsedItem | null): boolean {
+  if (!full || !looksSane(full)) return false;
+  if (!scan) return true;
+  const same = normName(scan.name) === normName(full.name) || trigramSim(scan.name, full.name) >= 0.6;
+  if (!looksSane(scan)) return same;
+  return same && full.affixes.length >= scan.affixes.length && (!!full.itemPower || !scan.itemPower);
+}
+
 /** Quick check used by tests: how sure are we the parse makes sense? */
 export function looksSane(p: ParsedItem): boolean {
   if (p.category && p.category !== "gear") return p.name.length >= 3;
   // white, blue and yellow gear may have no stats, and a white item's title is its kind ("RING" / "Ancestral
   // Ring"): rejected here, they went to the AI read, which called them unique and scrapped them, or were
   // unreadable without one (2026-10-13 test). No power paragraph, so a legendary that lost its rarity word still goes on.
-  if (/^(common|magic|rare)$/.test(p.rarity) && !p.aspect) return p.name.length >= 3 && p.slot !== "other" && !!p.itemPower;
+  // (an item power the OCR mangled is fine when its stats were read: "9(H) Item Power", 2026-11-02)
+  if (/^(common|magic|rare)$/.test(p.rarity) && !p.aspect) return p.name.length >= 3 && p.slot !== "other" && (!!p.itemPower || p.affixes.length >= 2);
   return p.name.length >= 3 && p.affixes.length >= 2 && p.slot !== "other" && (!!p.untitled || similarity(p.name, p.itemType) < 0.8);
 }
 

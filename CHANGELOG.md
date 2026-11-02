@@ -5,6 +5,14 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-02
+
+### Changed
+- **Tooltips are read the same at any resolution:** each tooltip is read a second time from its fully drawn picture, enlarged until its text is a comfortable size for the reader (measured from the tooltip itself, so 1080p, 1440p, 4K, a UI scale or a window all come out alike). The better of the two reads is used; the second never replaces the first when it shows a different item.
+
+### Fixed
+- **Tooltips at 1080p without an AI model:** the tooltip font's zeros read as "9(H) Item Power", "+3,5()() Shadow Resistance" or "2,94Ø", so the item power went missing and a rare item wasn't judged at all. Those are read as zeros now, a rare whose stats were read is judged even when its item power wasn't, and with no AI model a read that's plainly gear is judged with a note to double-check it instead of not at all.
+
 ## [0.3.2] - 2026-11-02
 
 ### Added
@@ -252,7 +260,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/mscrnt/diablo-companion/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/mscrnt/diablo-companion/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mscrnt/diablo-companion/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mscrnt/diablo-companion/compare/v0.2.4...v0.3.0

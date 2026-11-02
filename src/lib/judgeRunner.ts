@@ -11,7 +11,7 @@ import { isTauri } from "./http";
 import { normName } from "./names";
 import { captureAtCursor, captureRegion, cursorPosition, ocrImage } from "./native";
 import { parseTooltipText, type ParseDebug, type TooltipText } from "./parse";
-import { fastParse, looksSane } from "./fastparse";
+import { fastParse, fullReadWins, looksSane } from "./fastparse";
 import { judgeEveryBuild } from "./everyBuild";
 import { otherBuilds } from "./profiles";
 import { iconScores, iconsReady } from "./icons/recognise";
@@ -126,10 +126,22 @@ export async function judgeTooltips(
     // instant path: OCR + icon colours + rules; the LLM only when the rules aren't confident
     const parse = async (t: TooltipText, allowAi = true, icon?: Record<string, number>): Promise<{ item: ParsedItem | null; debug: ParseDebug }> => {
       const f0 = performance.now();
+      let rough: ParsedItem | null = null;
       if (t.fast && !settings.autoJudge.alwaysUseAi) {
-        const item = fastParse(t.fast, t.equipped, variant, { icon, className });
-        if (item && looksSane(item)) return { item, debug: { ocr: t.lines, raw: { fast: true, lines: t.fast }, ms: Math.round(performance.now() - f0) } };
+        const scan = fastParse(t.fast, t.equipped, variant, { icon, className });
+        // the full, enlarged read (autojudge.ts) wins when it's the same item and reads at least as much: it has no
+        // half-drawn letters. A different item means the mouse moved on before the crop.
+        const full = t.fastAlt?.length ? fastParse(t.fastAlt, t.equipped, variant, { icon, className }) : null;
+        const fullBetter = fullReadWins(scan, full);
+        const item = fullBetter ? full : scan;
+        const lines = fullBetter ? t.fastAlt : t.fast;
+        if (item && looksSane(item)) return { item, debug: { ocr: t.lines, raw: { fast: true, read: fullBetter ? "full" : "scan", lines }, ms: Math.round(performance.now() - f0) } };
+        rough = item;
       }
+      // no AI model to ask: a read that's plainly gear (a slot, a rarity, a stat) is still judged, with a note, rather
+      // than not at all (17 tooltips went unjudged on a player's PC, 2026-11-02)
+      if (!settings.llm.baseUrl && rough && rough.slot !== "other" && rough.rarity !== "unknown" && rough.affixes.length >= 1)
+        return { item: { ...rough, rough: true }, debug: { ocr: t.lines, raw: { fast: true, rough: true, lines: t.fast }, ms: Math.round(performance.now() - f0) } };
       if (!settings.llm.baseUrl) return { item: null, debug: { ocr: t.lines, raw: { fast: false, note: "no AI model configured" }, ms: 0 } };
       if (!allowAi) return { item: null, debug: { ocr: t.lines, raw: { fast: false, note: "AI read deferred" }, ms: 0 } };
       return parseTooltipText(settings.llm, t, variant);

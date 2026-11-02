@@ -170,6 +170,8 @@ export interface ParsedItem {
   socketed?: string[];
   /** sockets yours has that this one doesn't: the comparison's "Socket (1)" */
   socketsLost?: number;
+  /** read by the quick parser alone though it wasn't sure of it (no AI model to ask): worth a second look */
+  rough?: boolean;
   rawText?: string;
   /** the hovered tooltip is an item the character is wearing */
   equipped?: boolean;
