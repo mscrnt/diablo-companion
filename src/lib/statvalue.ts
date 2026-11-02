@@ -21,7 +21,9 @@ const ELEMENTS = ["fire", "cold", "lightning", "poison", "shadow", "physical", "
 
 /** "+1,304 Maximum Life (+1,155)" / "Intelligence 17)" → "maximum life" / "intelligence". */
 export function statKey(text: string): string {
+  // OCR reads l as 1 inside a word ("+2FuryOnKi11"): fold it back before the numbers are dropped
   const t = text
+    .replace(/([a-z]{2})([01]+)(?![\d.,%])/gi, (_m, a: string, d: string) => a + d.replace(/1/g, "l").replace(/0/g, "o"))
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/\([^)]*\)?/g, " ")
     .replace(/[+x]?\s*-?\d[\d.,]*\s*%?\s*\)?/gi, " ")
@@ -52,6 +54,9 @@ export function canonicalStat(key: string): string {
   if (hit === undefined) {
     let best = 0.8;
     hit = k;
+    // words run together by OCR ("furyonkill")
+    const bare = k.replace(/ /g, "");
+    for (const n of gameNames) if (n.replace(/ /g, "") === bare) (best = 1), (hit = n);
     for (const n of gameNames) {
       const s = trigramSim(k, n);
       if (s > best) (best = s), (hit = n);

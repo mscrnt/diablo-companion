@@ -2,7 +2,7 @@
 // Diablo IV game-data extraction for diablo-companion, from the command line.
 //
 //   node tools/datamine/extract.mjs [--game "G:\Blizzard\Diablo IV"] [--out <dir>] [--raw <dir>]
-//                                   [--skip-casc] [--keep-raw] [--only-app]
+//                                   [--skip-casc] [--keep-raw] [--only-app] [--vendor <d4data dir>]
 //
 // This is only a host: the reading and parsing live in src/lib/gamedata/*.ts, which the app's Web
 // Worker runs too, so there is a single implementation. Here it writes data/gamedata/* (the shapes
@@ -27,7 +27,7 @@ const flag = (name) => argv.includes(name);
 const GAME = opt('--game', process.env.D4_GAME_DIR || 'G:\\Blizzard\\Diablo IV');
 const OUT = path.resolve(opt('--out', path.join(ROOT, 'data', 'gamedata')));
 const RAW = path.resolve(opt('--raw', path.join(OUT, 'raw')));
-const VENDOR = path.join(ROOT, 'src-tauri', 'resources', 'd4data');
+const VENDOR = path.resolve(opt('--vendor', path.join(ROOT, 'src-tauri', 'resources', 'd4data')));
 const CASCX = process.env.D4C_CASCX || path.join(ROOT, 'tools', 'datamine', 'bin', 'cascx.exe');
 
 async function main() {

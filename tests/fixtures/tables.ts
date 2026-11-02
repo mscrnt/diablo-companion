@@ -34,6 +34,15 @@ export const TABLES: TestTables = {
     insight: { n: "Insight", t: "2h Scythe" },
     "tal-rashas-iridescent-loop": { n: "Tal Rasha's Iridescent Loop", c: "sorcerer", t: "Ring" },
   },
+  // a few gems' lines in a socket (socketed.ts)
+  gemLines: {
+    "ruby-armor-120": { n: "Horadric Ruby", t: "armor", d: "120 Strength" },
+    "ruby-armor-90": { n: "Grand Ruby", t: "armor", d: "90 Strength" },
+    "ruby-weapon-28": { n: "Horadric Ruby", t: "weapon", d: "x28% Fire and Holy Damage Multiplier" },
+    "emerald-weapon-28": { n: "Horadric Emerald", t: "weapon", d: "x28% {VALUE1} Damage Multiplier" },
+    "ruby-jewelry-3500": { n: "Horadric Ruby", t: "jewelry", d: "+3500 {VALUE1} Resistance" },
+    "diamond-weapon-6": { n: "Crude Diamond", t: "weapon", d: "x6% All Damage Multiplier" },
+  },
   aspects: {
     "aspect-of-hewed-flesh": { n: "Aspect of Hewed Flesh", t: "Resource" },
     "aspect-of-hardened-bones": { n: "Aspect of Hardened Bones", c: "necromancer", t: "Defensive" },

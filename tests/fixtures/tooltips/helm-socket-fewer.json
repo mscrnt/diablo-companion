@@ -1,0 +1,251 @@
+{
+ "source": "0.3.1 judge log 2026-11-02T16-35-16-200Z, a Barbarian helm",
+ "equippedLabel": false,
+ "ocr": [
+  "SOVEREIGN HELm",
+  "OF TETTIPERING",
+  "BLOWS",
+  "Legendary Helm",
+  "850 Item Power",
+  "1,275 Armor (-2.7% Toughness)",
+  "+98 Strength (+38)",
+  "+933 Armor (+183)",
+  "+1,940 Fire Resistance (+1,940)",
+  "+2 to Weapon Mastery Skills (+2)",
+  "After swapping weapons 5 times,",
+  "gain 24% Damage Reduction for 10",
+  "seconds.",
+  "Empty Socket",
+  "Properties lost when equipped:",
+  "+239 Resistance to All Elements",
+  "+11.5% Barrier Generation",
+  "Socket (1)",
+  "Requires Level 70",
+  "Sell Value: 24,085 •",
+  "Durability: 100/100",
+  "Tempers: 3/3",
+  "Equip",
+  "S111vr",
+  "+ Drop",
+  "CTRL",
+  "Hide Comparison"
+ ],
+ "lines": [
+  {
+   "text": "SOVEREIGN HELm",
+   "bullet": "greater",
+   "h": 25,
+   "x": 2086,
+   "y": 136,
+   "w": 288
+  },
+  {
+   "text": "OF TETTIPERING",
+   "bullet": "normal",
+   "h": 25,
+   "x": 2086,
+   "y": 174,
+   "w": 245
+  },
+  {
+   "text": "BLOWS",
+   "bullet": "normal",
+   "h": 24,
+   "x": 2086,
+   "y": 213,
+   "w": 107
+  },
+  {
+   "text": "Legendary Helm",
+   "bullet": "normal",
+   "h": 25,
+   "x": 2085,
+   "y": 257,
+   "w": 178
+  },
+  {
+   "text": "850 Item Power",
+   "bullet": "normal",
+   "h": 20,
+   "x": 2085,
+   "y": 296,
+   "w": 169
+  },
+  {
+   "text": "1,275 Armor (-2.7% Toughness)",
+   "bullet": "greater",
+   "h": 29,
+   "x": 2087,
+   "y": 360,
+   "w": 394
+  },
+  {
+   "text": "+98 Strength (+38)",
+   "bullet": "normal",
+   "h": 25,
+   "x": 2118,
+   "y": 404,
+   "w": 200
+  },
+  {
+   "text": "+933 Armor (+183)",
+   "bullet": "normal",
+   "h": 23,
+   "x": 2118,
+   "y": 444,
+   "w": 201
+  },
+  {
+   "text": "+1,940 Fire Resistance (+1,940)",
+   "bullet": "normal",
+   "h": 24,
+   "x": 2118,
+   "y": 482,
+   "w": 333
+  },
+  {
+   "text": "+2 to Weapon Mastery Skills (+2)",
+   "bullet": "normal",
+   "h": 25,
+   "x": 2118,
+   "y": 520,
+   "w": 355
+  },
+  {
+   "text": "After swapping weapons 5 times,",
+   "bullet": "normal",
+   "h": 25,
+   "x": 2118,
+   "y": 559,
+   "w": 358
+  },
+  {
+   "text": "gain 24% Damage Reduction for 10",
+   "bullet": "none",
+   "h": 25,
+   "x": 2118,
+   "y": 592,
+   "w": 379
+  },
+  {
+   "text": "seconds.",
+   "bullet": "none",
+   "h": 20,
+   "x": 2118,
+   "y": 625,
+   "w": 93
+  },
+  {
+   "text": "Empty Socket",
+   "bullet": "greater",
+   "h": 25,
+   "x": 2118,
+   "y": 663,
+   "w": 147
+  },
+  {
+   "text": "Properties lost when equipped:",
+   "bullet": "none",
+   "h": 24,
+   "x": 2084,
+   "y": 724,
+   "w": 338
+  },
+  {
+   "text": "+239 Resistance to All Elements",
+   "bullet": "normal",
+   "h": 20,
+   "x": 2118,
+   "y": 759,
+   "w": 344
+  },
+  {
+   "text": "+11.5% Barrier Generation",
+   "bullet": "normal",
+   "h": 20,
+   "x": 2118,
+   "y": 793,
+   "w": 285
+  },
+  {
+   "text": "Socket (1)",
+   "bullet": "none",
+   "h": 25,
+   "x": 2118,
+   "y": 827,
+   "w": 105
+  },
+  {
+   "text": "Requires Level 70",
+   "bullet": "none",
+   "h": 22,
+   "x": 2364,
+   "y": 877,
+   "w": 170
+  },
+  {
+   "text": "Sell Value: 24,085 •",
+   "bullet": "none",
+   "h": 24,
+   "x": 2321,
+   "y": 933,
+   "w": 211
+  },
+  {
+   "text": "Durability: 100/100",
+   "bullet": "none",
+   "h": 25,
+   "x": 2325,
+   "y": 970,
+   "w": 208
+  },
+  {
+   "text": "Tempers: 3/3",
+   "bullet": "none",
+   "h": 23,
+   "x": 2391,
+   "y": 1004,
+   "w": 142
+  },
+  {
+   "text": "Equip",
+   "bullet": "greater",
+   "h": 24,
+   "x": 2106,
+   "y": 1073,
+   "w": 62
+  },
+  {
+   "text": "S111vr",
+   "bullet": "normal",
+   "h": 9,
+   "x": 2075,
+   "y": 1121,
+   "w": 36
+  },
+  {
+   "text": "+ Drop",
+   "bullet": "normal",
+   "h": 23,
+   "x": 2127,
+   "y": 1153,
+   "w": 114
+  },
+  {
+   "text": "CTRL",
+   "bullet": "normal",
+   "h": 13,
+   "x": 2067,
+   "y": 1155,
+   "w": 48
+  },
+  {
+   "text": "Hide Comparison",
+   "bullet": "normal",
+   "h": 24,
+   "x": 2129,
+   "y": 1192,
+   "w": 189
+  }
+ ]
+}

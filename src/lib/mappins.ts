@@ -67,7 +67,6 @@ export const ICON_POIS: Poi[] = [];
 export const ICON_UV: [number, number][] = [];
 
 /** The world map's places, and the anchors derived from them (in place, so every reference sees them). */
-onStaticData(() => setMapPois(generatedTable("mapPois")));
 export function setMapPois(d: { pois?: Poi[] } | null) {
   const fill = <T>(a: T[], v: T[]) => a.splice(0, a.length, ...v);
   fill(POIS, d?.pois ?? []);
@@ -75,6 +74,10 @@ export function setMapPois(d: { pois?: Poi[] } | null) {
   fill(WAYPOINT_UV, WAYPOINTS.map(toUv));
   fill(ICON_POIS, POIS.filter((p) => p.k === "dungeon" || p.k === "boss_dungeon"));
   fill(ICON_UV, ICON_POIS.map(toUv));
+  // what's derived from them goes with them: built once at load, before the game data was read, the pairs stayed
+  // empty and the icon neighbours too short ("reading 'length'" every map frame, 2026-11-02 player report)
+  buildPairs();
+  nearCache.clear();
 }
 
 // ---- frames and blobs -----------------------------------------------------------------
@@ -592,8 +595,10 @@ export const ZOOM_LADDER = [1.9396, 3.1458, 5.8958, 9.34, 14.1];
 export const ZOOM_MIN = 1.2;
 export const ZOOM_MAX = 17;
 
-/** Known pairs of waypoints, sorted by direction, for pair hypotheses. */
-const WP_PAIRS = (() => {
+/** Known pairs of waypoints, sorted by direction, for pair hypotheses: rebuilt with the map's places (setMapPois). */
+let WP_PAIRS: { a: number; b: number; ang: number; len: number }[] = [];
+let PAIR_ANG = new Float64Array(0);
+function buildPairs() {
   const out: { a: number; b: number; ang: number; len: number }[] = [];
   for (let a = 0; a < WAYPOINT_UV.length; a++)
     for (let b = 0; b < WAYPOINT_UV.length; b++) {
@@ -601,9 +606,9 @@ const WP_PAIRS = (() => {
       const du = WAYPOINT_UV[b][0] - WAYPOINT_UV[a][0], dv = WAYPOINT_UV[b][1] - WAYPOINT_UV[a][1];
       out.push({ a, b, ang: Math.atan2(dv, du), len: Math.hypot(du, dv) });
     }
-  return out.sort((x, y) => x.ang - y.ang);
-})();
-const PAIR_ANG = Float64Array.from(WP_PAIRS.map((p) => p.ang));
+  WP_PAIRS = out.sort((x, y) => x.ang - y.ang);
+  PAIR_ANG = Float64Array.from(WP_PAIRS.map((p) => p.ang));
+}
 
 function lowerBound(arr: Float64Array, v: number) {
   let lo = 0, hi = arr.length;
@@ -1709,3 +1714,7 @@ export function pinsFor(xf: Xf, area: Box & { hud?: Box[] }, H: number, filter: 
 
 /** "Dry Steppes" → "Dry_Steppes" (the POI region key). */
 export const regionKey = (zone: string) => zone.trim().replace(/\s+/g, "_");
+
+// at the end: the listener fires at once when the game data is already loaded, and setMapPois rebuilds tables
+// declared above
+onStaticData(() => setMapPois(generatedTable("mapPois")));

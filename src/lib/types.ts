@@ -166,6 +166,10 @@ export interface ParsedItem {
   /** imprinted = the power came from your Codex ("Imprinted: …"), so extracting it gains nothing */
   aspect?: { name: string; text: string; imprinted?: boolean } | null;
   sockets?: number;
+  /** the gems in its sockets (their lines aren't the item's stats) */
+  socketed?: string[];
+  /** sockets yours has that this one doesn't: the comparison's "Socket (1)" */
+  socketsLost?: number;
   rawText?: string;
   /** the hovered tooltip is an item the character is wearing */
   equipped?: boolean;
@@ -179,6 +183,8 @@ export interface ParsedItem {
   tempersUsed?: number;
   /** the game's own Toughness change if you swap ("216 All Resist (-11.5% Toughness)") */
   toughness?: number;
+  /** the game's Damage Per Second change if you swap, in percent ("3,885 Damage Per Second (+3840)") */
+  dpsChange?: number;
   /** equipped item reconstructed from the game's comparison view (deltas + "Properties lost when equipped") */
   compare?: ParsedItem | null;
   /** what kind of item the game is comparing against ("Unique Power" / "Legendary Power" listed as lost) */
@@ -228,6 +234,10 @@ export interface JudgeResult {
   flagged?: boolean;
   /** the character profile it was judged for (its id, see profiles.ts) */
   character?: string;
+  /** how a swap to it scored against yours, when there was something to compare: near 0 is a close call */
+  swap?: number;
+  /** shown as an earlier read's verdict for the same item (judgeRunner.ts), not judged on its own */
+  held?: boolean;
 }
 
 /** The seal and charms you were last seen wearing (talisman), for judging spares. */

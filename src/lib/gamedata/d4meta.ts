@@ -273,6 +273,9 @@ export class MetaReader {
       }
       case "DT_ENUM":
         return [file.readInt32LE(off), 4];
+      // 3.3: a content licence id
+      case "DT_LONGENUM":
+        return [Number(BigInt.asIntN(64, file.readBigUInt64LE(off))), 8];
       case "DT_INT": {
         const v = file.readInt32LE(off);
         return [bit1 ? !!v : v, 4];

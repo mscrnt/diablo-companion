@@ -5,6 +5,34 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-02
+
+### Added
+- **Echo of a Prime Evil warning:** when your Soul Splinter's banner says "Evil rises within your Splinter! The Echo of Mephisto will soon emerge!" (or Diablo, Baal, the Primes), a toast tells you it spawns in a few seconds, and "Splinter settled" when it doesn't. The fight is timed like any boss.
+
+### Changed
+- **Verdicts weigh what an item really does for you, not only your guide's stat list:**
+  - A weapon counts the game's own Damage Per Second change ("+28% DPS").
+  - A close call goes to the piece with more item power ("About the same as yours with more item power (900 vs 778): wear whichever you like").
+  - A unique that's your build's core piece says what it costs until it's tempered ("For now it costs you: Toughness 22% lower, …").
+- **Your build's later setups count:** a unique your Midgame, Endgame or Push setup wears is stashed while you follow an earlier one, instead of scrapped.
+- **Another copy of your core unique is never scrap:** "Keep it: a little better than your Tuskhelm" when it rolls as well or better.
+
+### Fixed
+- **Gems in sockets:** their lines ("120 Strength" from a Horadric Ruby) were read as the item's own stats, so your helm looked like it had 270 Strength. Now they're its gems: sockets are counted right, one socket fewer than yours counts against an item ("a gem won't fit") and more counts for it.
+- **The same item, the same verdict:**
+  - Hovering a ring again, or comparing it with your other ring, no longer flips between wear and sell.
+  - Something you were just told to keep is never "scrap it" a moment later.
+  - A ring or chest you took off is no longer remembered as worn, so the next one isn't weighed against it.
+- **Your core unique's slot:** with Gohr's Devastating Grips on, rare gloves say "Your Gloves should be Gohr's Devastating Grips" instead of "better, use it until you find Gohr's". Before you have it, Gohr's says "core piece, wear it" instead of being judged as a weaker copy of itself.
+- **Barbarian weapons go in their own arsenal slot:** "Legendary Axe (Slashing)" is weighed against your Slashing weapon, never your mace.
+- **Rings:** each ring you wear gets its own slot's aspect advice (Channeling on one, Crushing on the other), and the ring you wear is always recognised as yours.
+- **Enchant advice never gives up a weapon's Weapon Damage.**
+- **Your other characters:** a seal or gloves for a character you aren't playing is stashed for them only when it clearly fits, not for every seal you find.
+- **Map pins:** the waypoint pairs and dungeon-icon neighbours were built before the game data was read, so map pins fit worse than they should and could fail on every frame. They're rebuilt whenever the map's places load.
+- **Item names:** a Soul Splinter keeps its own name, "No Title Selected" from the Character panel isn't read into a helm's name, and a list of item names (a vendor's or the salvage screen) is no longer judged as an item.
+- **Installing an update while the app read your game files** failed with "Error opening file for writing: …cascx.exe". The game file reader now stops with the app, and the installer stops it if it's still running.
+
 ## [0.3.1] - 2026-11-02
 
 ### Fixed
@@ -224,7 +252,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/mscrnt/diablo-companion/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mscrnt/diablo-companion/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mscrnt/diablo-companion/compare/v0.2.4...v0.3.0
 [0.2.4]: https://github.com/mscrnt/diablo-companion/compare/v0.2.3...v0.2.4

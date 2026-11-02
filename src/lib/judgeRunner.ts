@@ -4,7 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { overlayToast, playTone } from "./alerts";
 import { emitOverlay } from "./bus";
-import { decide } from "./judge";
+import { decide, sameAsWorn as sameDrop } from "./judge";
 import { cubeHint } from "./farm";
 import { recordEquipped } from "./gearTrack";
 import { isTauri } from "./http";
@@ -160,6 +160,12 @@ export async function judgeTooltips(
       const wornR = decide(equipped, variant, { prog });
       recordEquipped({ ...wornR, id: "", at: 0, ms: 0 }, equipped);
     }
+    // the game compares this item with your gear, so it's in your bag: a slot remembered as wearing it is out of
+    // date (a ring taken off stayed "your Ring 1" and the next ring was weighed against it, 2026-11-02)
+    if (!hovered.equipped && (equipped || hovered.compare || hovered.compareRows?.length)) {
+      const stale = Object.entries(useBuilds.getState().worn).filter(([, w]) => !w.doubt && sameDrop(hovered, w)).map(([slot]) => slot);
+      if (stale.length) useBuilds.getState().doubtWorn(stale);
+    }
     const worn = (slot: string) => useBuilds.getState().worn[slot];
     const inCodex = (slug: string) => !!useBuilds.getState().owned[slug];
     const { talisman } = useBuilds.getState();
@@ -172,7 +178,18 @@ export async function judgeTooltips(
       at: Date.now(),
       ms: Math.round(performance.now() - t0),
       thumb: await thumbnail(hov.image.replace(/^data:[^,]+,/, "")).catch(() => undefined),
+      swap: scored.swap,
     };
+    // a close call read again (another frame, an OCR slip, the other ring compared) keeps the verdict it just got:
+    // the same ring was "wear", "wear" and "sell" in six seconds (2026-11-02). A clear verdict always stands.
+    // And an item you were told to keep is never "scrap it" a minute later: the safer verdict of the two stands
+    // (Paingorger's went "stash for your Necromancer", "scrap", "stash", "scrap" on one OCR'd stat, 2026-11-02).
+    const close = (r?: { swap?: number }) => r?.swap != null && Math.abs(r.swap) < 0.5;
+    const kept = (v: string) => v === "STASH" || v === "KEEP" || v === "EXTRACT" || v === "SOCKET" || v === "CUBE";
+    // (a verdict judged on its own, from the last 90 s: a held one never holds again, or it would last forever)
+    const before = useLoot.getState().history.find((x) => !x.held && Date.now() - x.at < 90_000 && sameDrop(x.item, hovered));
+    if (before && before.verdict !== result.verdict && ((close(result) && close(before)) || (kept(before.verdict) && (result.verdict === "SCRAP" || result.verdict === "SELL"))))
+      Object.assign(result, { verdict: before.verdict, action: before.action, reasons: before.reasons, steps: before.steps, slot: before.slot, swap: before.swap, held: true });
     logJudgment(id, hov, eq, dbg, result);
     // opt-in: off the verdict's path, never throws
     void shareJudgement({ result, hov, eq, debug: dbg, equipped, quiet: meta?.quiet, auto: !!meta?.sig });

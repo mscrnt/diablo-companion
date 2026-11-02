@@ -4,6 +4,7 @@ import { buildTargetNames, cleanStat, matchTarget } from "./parse";
 import { aspectFromItemName, canonicalUnique, identifyAspect, identifyUnique, similarity, table, trigramSim } from "./names";
 import { confident, identifyUnique as identifyUniqueFrom } from "./identify";
 import { confusionKey, editDistance, knownStat, knownWord, ocrVocabReady, sheetLabel, snapLines } from "./ocrfix";
+import { socketedGem } from "./socketed";
 import type { Bullet } from "./vision";
 import type { BuildVariant, CompareRow, ParsedAffix, ParsedItem } from "./types";
 
@@ -113,6 +114,10 @@ export function fastParse(
   const L = (opts.snap === false ? starred : snapLines(starred))
     .map((l) => ({ ...l, text: l.text.trim().replace(/^(?:[oO0•*◆◇¤✸✷·°]\s*)+(?=[+x\-]?\s*\d)/, "") }))
     .filter((l) => l.text.length > 0);
+  // a list of item names (a vendor's or the salvage screen's), not a tooltip: one line naming three kinds of item
+  // ("Ring. Rare Seal Magic Charm Wanderer's Gloves Amulet (Ancestral) Seal" was judged a seal, 2026-11-02)
+  const kinds = (t: string) => new Set(t.toLowerCase().match(/\b(ring|seal|charm|gloves|gauntlets|amulet|boots|helm|pants|chest|sword|axe|mace|shield|polearm|staff|wand|bow|dagger)\b/g) ?? []).size;
+  if (L.slice(0, 2).some((l) => kinds(l.text) >= 3)) return null;
   const hs = L.map((l) => l.h ?? 0).filter(Boolean).sort((a, b) => a - b);
   const bodyH = hs[Math.floor(hs.length / 2)] ?? 0;
   // 1) type line: has a rarity word (+ maybe the slot noun on the next line)
@@ -223,7 +228,9 @@ export function fastParse(
   for (let i = ti - 1; i >= 0 && nameParts.length < 3; i--) {
     // a speck of OCR junk between the title and the type line ("CRUDE HAmmER" / "s" / "Ancestral …")
     if (L[i].text.trim().length <= 2) continue;
-    if (JUNK.test(L[i].text) || /slot|transmog|equipped|character/i.test(L[i].text)) break;
+    // the Character panel's "No Title Selected" under the character's name sits just above some tooltips
+    // ("Uno Title Selected Embattled Archon Helm", 2026-11-02)
+    if (JUNK.test(L[i].text) || /slot|transmog|equipped|character|title[\s\-_]*select/i.test(L[i].text)) break;
     // a panel label between the two lines of a long title ("OCELOT'S EYE OF" / "Stats & Material" / "REANIMATION")
     if (panel.has(i)) continue;
     // a stack count under the title ("(2)") isn't part of the name
@@ -312,7 +319,7 @@ export function fastParse(
     closed = false;
   }
 
-  const stats: { text: string; bullet: Bullet; delta: string | null }[] = [];
+  const stats: { text: string; bullet: Bullet; delta: string | null; afterPower?: boolean }[] = [];
   const lost: string[] = [];
   const power: string[] = [];
   let imprinted = false;
@@ -320,9 +327,12 @@ export function fastParse(
     const t = e.text.replace(/\s+/g, " ").trim();
     const numStart = /^[+x\-]?\s*\d/i.test(t);
     if (e.lost) {
-      if (/[a-z]{3,}/i.test(t)) lost.push(cleanStat(t));
+      // "Requires Level 54" with its start cut off ("'lires Level 54") isn't a stat you'd lose
+      if (/[a-z]{3,}/i.test(t) && !/\blevel\s*\d+\s*$/i.test(t)) lost.push(cleanStat(t));
       continue;
     }
+    // a Barbarian weapon's type wraps onto its own line: "(Slashing)" is part of the type, not the power
+    if (/^\W*\((slashing|bludgeoning|dual[- ]?wield)\)\W*$/i.test(t)) continue;
     const sentence = /\b(deal|deals|grant|grants|gain|gains|your|when|while|chance to|increased|after|every)\b/i.test(t) && t.length > 45;
     // no game word at all: text of the panel behind the tooltip ("terials", "Acrurqed Abbot")
     if (vocab && !numStart && !(t.match(/[A-Za-z][A-Za-z'’\-]+/g) ?? []).some(knownWord)) continue;
@@ -340,7 +350,21 @@ export function fastParse(
       power.push(t);
       continue;
     }
-    stats.push({ text: cleanStat(t), bullet: e.bullet, delta: deltaOf(t) });
+    stats.push({ text: cleanStat(t), bullet: e.bullet, delta: deltaOf(t), afterPower: power.length > 0 });
+  }
+  // gems in the sockets close the stat list: they move to whatever you wear next, so they aren't this
+  // item's stats (at most two sockets, one on jewellery)
+  const socketed: string[] = [];
+  const gemSlot = slotOf(typeLine);
+  // On an item with a power they come after it: "x6% All Damage Multiplier" above a sword's power is its stat, a
+  // Diamond's line or not (2026-11-02)
+  const hasPower = power.length > 0;
+  while (stats.length > 1 && socketed.length < (gemSlot === "ring" || gemSlot === "amulet" ? 1 : 2)) {
+    if (hasPower && !stats[stats.length - 1].afterPower) break;
+    const gem = socketedGem(stats[stats.length - 1].text, gemSlot);
+    if (!gem) break;
+    socketed.unshift(gem);
+    stats.pop();
   }
   const category = categoryOf(typeLine, L.map((l) => l.text).join("\n"));
   // white, blue and yellow items carry few stats, often none we can read: still worth a "sell it" verdict
@@ -426,7 +450,9 @@ export function fastParse(
   // uniques: title, unique power and the stats it always rolls, together (identify.ts), so a mangled or
   // missing title, or one merged with the comparison column's ("DEATHGRIP F o c USED STRIDER'S"), still names
   // it; a clear winner only, else the title or power on its own as before
-  if (rarity === "unique" || rarity === "mythic") {
+  // (gear only: a "Unique Soul Splinter" is a socketable, and "Abyssal Splinter of the Mother" was named after a
+  // sceptre, 2026-11-02 player report)
+  if ((rarity === "unique" || rarity === "mythic") && category === "gear") {
     const pick = confident(
       identifyUniqueFrom({
         title: rawName.replace(/[*✸✹✺❋✷]/g, ""),
@@ -454,7 +480,11 @@ export function fastParse(
     ancestral: /ancestral/i.test(typeLine),
     affixes,
     aspect: power.length ? { name: legendaryName, text: powerText, imprinted } : nameAspect ? { name: nameAspect, text: "" } : null,
-    sockets: L.filter((l) => /socket/i.test(l.text)).length,
+    // "Empty Socket" lines and the gems in the others; below "Properties lost when equipped", "Socket (1)" is
+    // one you'd give up
+    sockets: L.filter((l, i) => (lostStart < 0 || i < lostStart) && /empty\s*socket/i.test(l.text)).length + socketed.length,
+    socketed: socketed.length ? socketed : undefined,
+    socketsLost: lostStart < 0 ? undefined : L.slice(lostStart).reduce((n, l) => n + Number(l.text.match(/^\W*sockets?\s*\(\s*(\d)\s*\)/i)?.[1] ?? 0), 0) || undefined,
     rawText: L.map((l) => l.text).join("\n"),
     // opened from the Character panel there's no EQUIPPED header, but the footer offers "Unequip";
     // a tooltip comparing itself with your gear ("Properties lost when equipped", "(+23%)") is never
@@ -465,10 +495,28 @@ export function fastParse(
     category,
     tempersUsed: tempers ? Number(tempers[1]) : undefined,
     toughness,
+    dpsChange: dpsChangeOf(L.map((l) => l.text)),
     compare,
     compareRows,
     compareKind: lostPowerKind,
   };
+}
+
+/**
+ * The game's Damage Per Second change for the swap, in percent: "3,885 Damage Per Second (+3840)" is yours at
+ * 45, so +8533%. A leveling weapon's real worth is mostly this number (a 900 power weapon was only "about the
+ * same" as a 370 one, its stats weighed one by one, 2026-11-02).
+ */
+export function dpsChangeOf(lines: string[]): number | undefined {
+  for (const t of lines) {
+    const m = t.replace(/(\d),(?=\d{3})/g, "$1").match(/^\W*(\d+(?:\.\d+)?)\s+damage per second\s*\(\s*([+\-−])\s*(\d+(?:\.\d+)?)\s*\)/i);
+    if (!m) continue;
+    const now = Number(m[1]);
+    const d = (m[2] === "+" ? 1 : -1) * Number(m[3]);
+    const yours = now - d;
+    if (yours > 0) return Math.round(((now - yours) / yours) * 1000) / 10;
+  }
+  return undefined;
 }
 
 /** The game's Toughness change for the swap: "(-11.5% Toughness)" on the armor / resist line. */

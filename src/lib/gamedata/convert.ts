@@ -414,6 +414,13 @@ export function convert(x: Extracted): Tables {
       .join("\n");
     out.gems ??= {};
     out.gems[slugOf(base)] = { n: base, d };
+    // every tier's line in a socket ("120 Strength" for a Horadric Ruby in armor), so a tooltip's socketed
+    // gem isn't read as one of the item's own stats; {VALUE1} is the damage or resistance type
+    for (const e of g.socketedEffects ?? [])
+      for (const a of e.attributes ?? []) {
+        const text = a.textResolved ?? attributeLine(a, param);
+        if (text) put(T("gemLines"), slugOf(`${g.id} ${e.target} ${text}`), { n: String(g.name), d: String(text), t: String(e.target) });
+      }
   }
   for (const i of x.items?.entries ?? []) {
     if (!/SeasonalSocketable/i.test(i.itemType ?? "") || !i.name) continue;

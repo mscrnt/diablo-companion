@@ -40,6 +40,7 @@ import {
 } from "./dungeon";
 import { readHordesTracker, stepHordes, type HordesAction, type HordesTracker } from "./hordes";
 import { trigramSim } from "./names";
+import { noteEchoText, noteSplinterTracker, splintersActive } from "./echo";
 
 export interface AdvisorState {
   title: string;
@@ -96,6 +97,7 @@ export function onFrame(lines: OcrLine[], region?: { x: number; y: number }) {
   // a glyph tooltip or the Pit's glyph upgrade panel: keep the glyph's level current
   watchGlyphs(lines);
   const text = lines.map((l) => l.text).join("\n");
+  noteEchoText(text, "frame");
   // stylised "OBELISK" can OCR as "0BELISK" — "Select Tier" under the dropdown is a second anchor
   // only the obelisk's own panel (not "Artificer's Pit" in a quest or another tier list), only between
   // runs, and only a tier the Pit has
@@ -698,6 +700,15 @@ async function readCenter(rect: Rect) {
   if (!lines.some((l) => /collection|cache/i.test(l.text))) pushAdvisor("", []);
 }
 
+/** The banner strip in the upper middle of the screen, where the Soul Splinter ambush announces its Echo (echo.ts). */
+let echoCheck = 0;
+async function readBanner(rect: Rect) {
+  const [gx, gy, gw, gh] = rect;
+  const r = { x: Math.round(gx + gw * 0.25), y: Math.round(gy + gh * 0.1), w: Math.round(gw * 0.5), h: Math.round(gh * 0.25) };
+  const cap = await captureRegion(r, { ocr: true, ocrMaxChannel: true, maxEdge: 64, quality: 50 });
+  noteEchoText(cap.ocr?.text ?? "", "banner");
+}
+
 async function tick(rect: Rect) {
   // between runs, glance at the obelisk panel every ~4 s to pick up the chosen tier; after a clear, at the
   // glyph upgrade panel (same side) to keep the upgraded glyphs' levels
@@ -706,6 +717,13 @@ async function tick(rect: Rect) {
     await readObelisk(rect).catch(() => {});
   }
   const t = await trackerText(rect);
+  noteSplinterTracker(t);
+  noteEchoText(t, "tracker");
+  // every 4 s while the season's Splinters are about, else every 10 s: the banner shows for a few seconds
+  if (Date.now() - echoCheck > (splintersActive() ? 4000 : 10_000)) {
+    echoCheck = Date.now();
+    await readBanner(rect).catch(() => {});
+  }
   // the tracker is read anyway: a world boss reward line on it costs nothing to notice
   noteWeeklyBonusFrame(trackerLines);
   await helltideTick();

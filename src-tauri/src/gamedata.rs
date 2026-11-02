@@ -494,6 +494,31 @@ pub async fn gamedata_casc(app: AppHandle, args: CascArgs) -> Result<CascOut, St
     tauri::async_runtime::spawn_blocking(move || run_cascx(&cascx, &args, &raw)).await.map_err(err)?
 }
 
+/// A job that ends cascx with the app: Windows closes the app's handle to it however the app exits, and
+/// closing it ends cascx. A reader left running kept an update from replacing cascx.exe (2026-11-02).
+#[cfg(windows)]
+fn reader_job() -> Option<windows::Win32::Foundation::HANDLE> {
+    use std::sync::OnceLock;
+    use windows::Win32::System::JobObjects::*;
+    static JOB: OnceLock<usize> = OnceLock::new();
+    let h = *JOB.get_or_init(|| unsafe {
+        let Ok(job) = CreateJobObjectW(None, windows::core::PCWSTR::null()) else { return 0 };
+        let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        let set = SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            &info as *const _ as *const std::ffi::c_void,
+            std::mem::size_of_val(&info) as u32,
+        );
+        if set.is_err() {
+            return 0;
+        }
+        job.0 as usize
+    });
+    (h != 0).then(|| windows::Win32::Foundation::HANDLE(h as *mut std::ffi::c_void))
+}
+
 fn run_cascx(cascx: &Path, args: &CascArgs, raw: &Path) -> Result<CascOut, String> {
     use std::process::Command;
     std::fs::create_dir_all(raw).map_err(err)?;
@@ -521,7 +546,14 @@ fn run_cascx(cascx: &Path, args: &CascArgs, raw: &Path) -> Result<CascOut, Strin
         const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
         cmd.creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS);
     }
-    let out = cmd.output().map_err(|e| format!("could not run cascx: {e}"))?;
+    let child = cmd.spawn().map_err(|e| format!("could not run cascx: {e}"))?;
+    #[cfg(windows)]
+    if let Some(job) = reader_job() {
+        use std::os::windows::io::AsRawHandle;
+        // best effort: without the job cascx still finishes, it just may outlive a closed app
+        let _ = unsafe { windows::Win32::System::JobObjects::AssignProcessToJobObject(job, windows::Win32::Foundation::HANDLE(child.as_raw_handle())) };
+    }
+    let out = child.wait_with_output().map_err(|e| format!("could not run cascx: {e}"))?;
     let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
     let stats = parse_casc_stats(&stderr);
     // exit code 3 means some files failed, which is normal: this build keeps some of them encrypted

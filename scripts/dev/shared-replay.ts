@@ -41,6 +41,6 @@ for (const it of items.filter((i) => i.kind === "judgement" && i.data?.build?.na
   if (diff) changed++;
   if (!diff && !process.env.ALL) continue;
   console.log(`${diff ? "≠" : " "}${wore.has(it.id) ? "✓" : " "} ${new Date(it.at).toISOString().slice(5, 19)} ${item.name}  ${d.verdict} → ${r.verdict}: ${r.action}`);
-  r.reasons.slice(0, 3).forEach((x) => console.log("      · " + x));
+  r.reasons.slice(0, Number(process.env.REASONS ?? 3)).forEach((x) => console.log("      · " + x));
 }
 console.log(`\n${changed} of ${n} verdicts changed (✓ = the player put it on)`);

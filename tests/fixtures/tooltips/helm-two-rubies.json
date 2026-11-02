@@ -1,0 +1,152 @@
+{
+ "source": "0.3.1 judge log 2026-11-02T16-35-32-626Z, a Barbarian helm",
+ "equippedLabel": false,
+ "ocr": [
+  "VAST PLATE",
+  "Rare Helm",
+  "778 Item Power",
+  "1,167 Armor",
+  "+60 Strength",
+  "+750 Armor",
+  "+11.5% Barrier Generation",
+  "+239 Resistance to All Elements",
+  "@+120 Strength",
+  "+90 Strength",
+  "Requires Level 64",
+  "Account Bound",
+  "Lord of Hatred Item 'Y",
+  "Sell Value: 1,709,169 •",
+  "Durability: 100/100",
+  "Tempers: 1/1"
+ ],
+ "lines": [
+  {
+   "text": "VAST PLATE",
+   "bullet": "normal",
+   "h": 25,
+   "x": 1543,
+   "y": 136,
+   "w": 198
+  },
+  {
+   "text": "Rare Helm",
+   "bullet": "normal",
+   "h": 20,
+   "x": 1545,
+   "y": 183,
+   "w": 113
+  },
+  {
+   "text": "778 Item Power",
+   "bullet": "normal",
+   "h": 19,
+   "x": 1545,
+   "y": 220,
+   "w": 169
+  },
+  {
+   "text": "1,167 Armor",
+   "bullet": "normal",
+   "h": 26,
+   "x": 1547,
+   "y": 285,
+   "w": 153
+  },
+  {
+   "text": "+60 Strength",
+   "bullet": "normal",
+   "h": 25,
+   "x": 1578,
+   "y": 328,
+   "w": 139
+  },
+  {
+   "text": "+750 Armor",
+   "bullet": "normal",
+   "h": 20,
+   "x": 1578,
+   "y": 367,
+   "w": 128
+  },
+  {
+   "text": "+11.5% Barrier Generation",
+   "bullet": "normal",
+   "h": 20,
+   "x": 1578,
+   "y": 405,
+   "w": 285
+  },
+  {
+   "text": "+239 Resistance to All Elements",
+   "bullet": "normal",
+   "h": 20,
+   "x": 1578,
+   "y": 444,
+   "w": 344
+  },
+  {
+   "text": "@+120 Strength",
+   "bullet": "tempered",
+   "h": 32,
+   "x": 1540,
+   "y": 480,
+   "w": 190
+  },
+  {
+   "text": "+90 Strength",
+   "bullet": "normal",
+   "h": 25,
+   "x": 1578,
+   "y": 523,
+   "w": 139
+  },
+  {
+   "text": "Requires Level 64",
+   "bullet": "none",
+   "h": 22,
+   "x": 1824,
+   "y": 576,
+   "w": 170
+  },
+  {
+   "text": "Account Bound",
+   "bullet": "none",
+   "h": 18,
+   "x": 1844,
+   "y": 606,
+   "w": 149
+  },
+  {
+   "text": "Lord of Hatred Item 'Y",
+   "bullet": "none",
+   "h": 20,
+   "x": 1771,
+   "y": 634,
+   "w": 220
+  },
+  {
+   "text": "Sell Value: 1,709,169 •",
+   "bullet": "none",
+   "h": 24,
+   "x": 1748,
+   "y": 692,
+   "w": 244
+  },
+  {
+   "text": "Durability: 100/100",
+   "bullet": "none",
+   "h": 25,
+   "x": 1785,
+   "y": 728,
+   "w": 208
+  },
+  {
+   "text": "Tempers: 1/1",
+   "bullet": "none",
+   "h": 23,
+   "x": 1851,
+   "y": 762,
+   "w": 140
+  }
+ ]
+}

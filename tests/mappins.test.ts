@@ -23,6 +23,7 @@ import {
   project,
   registerFrame,
   regionKey,
+  setMapPois,
   sameNav,
   sidePanel,
   stripMoved,
@@ -37,6 +38,7 @@ import {
   type Frame,
   type Xf,
 } from "../src/lib/mappins";
+import { generatedTable } from "../src/lib/names";
 import { MAP_PIN_PRESETS, defaultSettings, migrateMapPins, nextPreset, presetGroups, type Settings } from "../src/lib/store";
 
 const W = 2160, H = 720, K = H / 1440;
@@ -142,6 +144,22 @@ describe("registration", () => {
       }
     }
     expect(shown / total).toBeGreaterThan(0.8);
+  });
+
+  // the game data is read after the tracker starts: what's derived from the places has to follow them (an empty
+  // pair table and short icon neighbours threw "reading 'length'" every map frame, 2026-11-02 player report)
+  it("still fits after the map's places load late", () => {
+    const places = generatedTable("mapPois");
+    setMapPois(null);
+    const before = registerFrame(makeCtx(synth(viewAt(regionCentre("Scosglen"), ZOOM_LADDER[2]), 5), AREA, K), H, ZOOM_LADDER);
+    expect(before?.verdict ?? "none").not.toBe("strong");
+    setMapPois(places);
+    for (const z of [ZOOM_LADDER[0], ZOOM_LADDER[2]]) {
+      const truth = viewAt(regionCentre("Scosglen"), z);
+      const fit = registerFrame(makeCtx(synth(truth, 9), AREA, K), H, ZOOM_LADDER)!;
+      expect(fit.verdict, `z${z}`).toBe("strong");
+      expect(maxDev(fit.score.xf, truth)).toBeLessThan(4);
+    }
   });
 
   it("never accepts random blobs (no map open, cyan things in the world)", () => {

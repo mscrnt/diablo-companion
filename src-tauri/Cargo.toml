@@ -1,6 +1,6 @@
 [package]
 name = "d4c"
-version = "0.3.1"
+version = "0.3.2"
 description = "Sanctuary Toolkit, a Diablo IV companion"
 authors = ["Kenneth Blossom"]
 license = "PolyForm-Noncommercial-1.0.0"
@@ -45,6 +45,9 @@ windows = { version = "0.61", features = [
   "Storage_Streams",
   "Win32_Foundation",
   "Win32_System_Com",
+  "Win32_System_JobObjects",
+  "Win32_System_Threading",
+  "Win32_Security",
   "Win32_System_Registry",
   "Win32_Storage_FileSystem",
   "Win32_UI_Shell",

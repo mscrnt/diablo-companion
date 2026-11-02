@@ -192,7 +192,15 @@ export function otherBuilds(): OtherBuild[] {
     const character = { name: p.name, className: profileClass(p) };
     for (const b of Object.values(g.builds)) {
       const current = b.id === g.activeBuildId;
-      if (live && current) continue;
+      if (live && current) {
+        // the setups the guide moves on to (Midgame, Endgame): a unique one of them wears is worth keeping now
+        // (Gohr's Devastating Grips was scrapped while following the Leveling setup, 2026-11-02)
+        const at = b.variants.findIndex((v) => v.id === g.activeVariantId);
+        const now = b.variants[at];
+        for (const v of b.variants.slice(at + 1))
+          out.push({ build: b, variant: v, prog: (slot) => g.progress[`${b.id}:${v.id}:${slot}`] ?? emptyProgress, sameCharacter: true, setup: true, setupFrom: now, character });
+        continue;
+      }
       const variant = b.variants.find((v) => v.id === (current ? g.activeVariantId : g.variantOf[b.id])) ?? b.variants[b.variants.length - 1];
       if (!variant) continue;
       out.push({
