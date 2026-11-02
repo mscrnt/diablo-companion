@@ -78,7 +78,8 @@ function titleCase(n: string) {
 }
 
 function deltaOf(t: string): string | null {
-  return t.match(/\(\s*([+\-]\s*[\d.,]+%?)/)?.[1]?.replace(/\s+/g, "") ?? null;
+  // "259 Armor (+7.4% Toughness)" is the swap's Toughness change (toughnessOf), not 7.4 less armor on yours
+  return t.replace(/\([^)]*toughness[^)]*\)?/gi, "").match(/\(\s*([+\-]\s*[\d.,]+%?)/)?.[1]?.replace(/\s+/g, "") ?? null;
 }
 
 function sameMagnitude(text: string, delta: string): boolean {
@@ -385,7 +386,10 @@ export function fastParse(
 
   let compare: ParsedItem | null = null;
   let compareRows: CompareRow[] | undefined;
-  if (lostStart >= 0 || stats.some((s) => s.delta)) {
+  // only a Toughness change and no stat marked: yours has the same stats, this one more armor or resist
+  // (a blue amulet that gained 11% Toughness and lost nothing was sold, 2026-11-01 player report)
+  const toughness = toughnessOf(all);
+  if (lostStart >= 0 || stats.some((s) => s.delta) || toughness != null) {
     const lacks = (s: { text: string; delta: string | null }) => !!s.delta && !s.delta.startsWith("-") && sameMagnitude(s.text, s.delta);
     const shared = stats.filter((s) => s.delta && !lacks(s)).map((s) => s.text);
     const samePower = lostStart >= 0 && !lostPower && power.length > 0;
@@ -455,12 +459,12 @@ export function fastParse(
     // opened from the Character panel there's no EQUIPPED header, but the footer offers "Unequip";
     // a tooltip comparing itself with your gear ("Properties lost when equipped", "(+23%)") is never
     // the one you wear, whatever stray "Unequip" a neighbouring panel adds to the read
-    equipped: equippedLabel || (lostStart < 0 && !stats.some((s) => s.delta) && L.some((l, i) => i > ti && isUnequipLine(l.text))),
+    equipped: equippedLabel || (lostStart < 0 && !stats.some((s) => s.delta) && toughness == null && L.some((l, i) => i > ti && isUnequipLine(l.text))),
     truncated: L.some((l) => /scroll down/i.test(l.text)),
     untitled: !rawName.trim() || undefined,
     category,
     tempersUsed: tempers ? Number(tempers[1]) : undefined,
-    toughness: toughnessOf(all),
+    toughness,
     compare,
     compareRows,
     compareKind: lostPowerKind,

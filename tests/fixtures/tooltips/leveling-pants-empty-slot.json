@@ -1,0 +1,169 @@
+{
+ "source": "0.3.0 shared judgement 2026-11-01T19:31:15Z, Barbarian leveling",
+ "ocr": [
+  "ADVENTURER'S",
+  "PANTS OF THE",
+  "PROTECTOR",
+  "Legendary Pants",
+  "410 Item Power",
+  "769 Armor (+34.6% Toughness)",
+  "+21 Strength (+21)",
+  "+48 Maximum Life (+48)",
+  "+3 Life Regeneration (+3)",
+  "+827 Armor (+827)",
+  "* Damaging an Elite enemy grants you",
+  "a Barrier for 80% of your Maximum",
+  "Life for 10 seconds. This effect can",
+  "only happen once every 20 seconds.",
+  "Requires Level 35",
+  "Sell Value: 6,724 •",
+  "Durability: 100/100",
+  "Tempers: 3/3"
+ ],
+ "lines": [
+  {
+   "bullet": "greater",
+   "h": 25,
+   "text": "ADVENTURER'S",
+   "w": 254,
+   "x": 2093,
+   "y": 248
+  },
+  {
+   "bullet": "normal",
+   "h": 25,
+   "text": "PANTS OF THE",
+   "w": 234,
+   "x": 2096,
+   "y": 286
+  },
+  {
+   "bullet": "normal",
+   "h": 25,
+   "text": "PROTECTOR",
+   "w": 200,
+   "x": 2096,
+   "y": 324
+  },
+  {
+   "bullet": "normal",
+   "h": 25,
+   "text": "Legendary Pants",
+   "w": 180,
+   "x": 2095,
+   "y": 368
+  },
+  {
+   "bullet": "normal",
+   "h": 19,
+   "text": "410 Item Power",
+   "w": 169,
+   "x": 2095,
+   "y": 408
+  },
+  {
+   "bullet": "normal",
+   "h": 29,
+   "text": "769 Armor (+34.6% Toughness)",
+   "w": 391,
+   "x": 2095,
+   "y": 472
+  },
+  {
+   "bullet": "normal",
+   "h": 25,
+   "text": "+21 Strength (+21)",
+   "w": 200,
+   "x": 2127,
+   "y": 516
+  },
+  {
+   "bullet": "normal",
+   "h": 24,
+   "text": "+48 Maximum Life (+48)",
+   "w": 264,
+   "x": 2127,
+   "y": 555
+  },
+  {
+   "bullet": "normal",
+   "h": 25,
+   "text": "+3 Life Regeneration (+3)",
+   "w": 271,
+   "x": 2127,
+   "y": 593
+  },
+  {
+   "bullet": "normal",
+   "h": 24,
+   "text": "+827 Armor (+827)",
+   "w": 201,
+   "x": 2127,
+   "y": 633
+  },
+  {
+   "bullet": "none",
+   "h": 25,
+   "text": "* Damaging an Elite enemy grants you",
+   "w": 429,
+   "x": 2097,
+   "y": 670
+  },
+  {
+   "bullet": "none",
+   "h": 25,
+   "text": "a Barrier for 80% of your Maximum",
+   "w": 380,
+   "x": 2127,
+   "y": 703
+  },
+  {
+   "bullet": "none",
+   "h": 20,
+   "text": "Life for 10 seconds. This effect can",
+   "w": 373,
+   "x": 2127,
+   "y": 736
+  },
+  {
+   "bullet": "none",
+   "h": 25,
+   "text": "only happen once every 20 seconds.",
+   "w": 389,
+   "x": 2127,
+   "y": 769
+  },
+  {
+   "bullet": "none",
+   "h": 23,
+   "text": "Requires Level 35",
+   "w": 169,
+   "x": 2374,
+   "y": 818
+  },
+  {
+   "bullet": "none",
+   "h": 24,
+   "text": "Sell Value: 6,724 •",
+   "w": 198,
+   "x": 2344,
+   "y": 875
+  },
+  {
+   "bullet": "none",
+   "h": 25,
+   "text": "Durability: 100/100",
+   "w": 208,
+   "x": 2335,
+   "y": 911
+  },
+  {
+   "bullet": "none",
+   "h": 23,
+   "text": "Tempers: 3/3",
+   "w": 142,
+   "x": 2401,
+   "y": 945
+  }
+ ]
+}

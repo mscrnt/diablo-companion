@@ -1,0 +1,97 @@
+{
+ "source": "0.3.0 shared judgement 2026-11-01T19:23:11Z, Barbarian leveling",
+ "ocr": [
+  "RESOURCEFUL",
+  "AmULET OF",
+  "KEENNESS",
+  "Magic Amulet",
+  "315 Item Power",
+  "58 All Resist (+11% Toughness)",
+  "+3 Maximum Resource",
+  "+3.9% Attack Speed",
+  "Requires Level 30",
+  "Sell Value: 2,355 •"
+ ],
+ "lines": [
+  {
+   "bullet": "enchanted",
+   "h": 25,
+   "text": "RESOURCEFUL",
+   "w": 237,
+   "x": 2083,
+   "y": 657
+  },
+  {
+   "bullet": "none",
+   "h": 25,
+   "text": "AmULET OF",
+   "w": 198,
+   "x": 2080,
+   "y": 695
+  },
+  {
+   "bullet": "none",
+   "h": 25,
+   "text": "KEENNESS",
+   "w": 163,
+   "x": 2083,
+   "y": 733
+  },
+  {
+   "bullet": "none",
+   "h": 25,
+   "text": "Magic Amulet",
+   "w": 150,
+   "x": 2083,
+   "y": 778
+  },
+  {
+   "bullet": "none",
+   "h": 20,
+   "text": "315 Item Power",
+   "w": 169,
+   "x": 2083,
+   "y": 817
+  },
+  {
+   "bullet": "none",
+   "h": 29,
+   "text": "58 All Resist (+11% Toughness)",
+   "w": 387,
+   "x": 2083,
+   "y": 884
+  },
+  {
+   "bullet": "normal",
+   "h": 20,
+   "text": "+3 Maximum Resource",
+   "w": 247,
+   "x": 2115,
+   "y": 925
+  },
+  {
+   "bullet": "normal",
+   "h": 24,
+   "text": "+3.9% Attack Speed",
+   "w": 211,
+   "x": 2115,
+   "y": 964
+  },
+  {
+   "bullet": "none",
+   "h": 22,
+   "text": "Requires Level 30",
+   "w": 170,
+   "x": 2362,
+   "y": 1014
+  },
+  {
+   "bullet": "none",
+   "h": 24,
+   "text": "Sell Value: 2,355 •",
+   "w": 198,
+   "x": 2332,
+   "y": 1070
+  }
+ ]
+}

@@ -19,11 +19,18 @@ const isTitle = (t: string) => /^[A-Za-z][A-Za-z' ]{2,30}$/.test(t) && t.split(/
 /** Numbers and marks around a word ("232 BAZAQ", "Zorvak ·") */
 const trim = (t: string) => t.replace(/^[\W\d_]+|[\W\d_]+$/g, "");
 
+type Box = { text: string; x?: number; y?: number; w?: number; h?: number };
+/** a line with its place on screen */
+const placed = (l: Box) => l.x != null && l.y != null && l.w != null && l.h != null;
+const mid = (l: Box) => l.x! + l.w! / 2;
+
 /**
  * One line's name and what follows it on the same line: "BAZAQ Aged Boots" → BAZAQ (capitals, then
  * a title), "Zorvak" → Zorvak. null when the line isn't a name.
  */
 function nameIn(text: string): { name: string; rest: string } | null {
+  // a tooltip's "Tempers: 3/3" over the panel, above its "Unequip", made a character "Tempers" (2026-11-01)
+  if (/^[^:]*[A-Za-z]:/.test(text)) return null;
   const t = trim(text);
   if (NAME.test(t)) return UI_WORDS.has(t.toLowerCase()) ? null : { name: t, rest: "" };
   const m = t.match(/^([A-Z]{2,12})\s+([A-Z][a-z].*)$/);
@@ -36,9 +43,14 @@ function nameIn(text: string): { name: string; rest: string } | null {
  * in capitals is the name; any other word must have a title right after it, so a title read without
  * its name ("Aged Boots") or a stat label is never taken for one.
  */
-export function readCharacterName(lines: { text: string }[]): string | null {
-  const a = lines.findIndex((l) => ANCHOR.test(l.text));
-  if (a < 0) return null;
+export function readCharacterName(all: Box[]): string | null {
+  const ai = all.findIndex((l) => ANCHOR.test(l.text));
+  if (ai < 0) return null;
+  // the name is centred above the button: the clock's "TAB" hint on the far side of the screen came just
+  // before it in the read and made a character "Tab" (2026-11-02 player report)
+  const btn = all[ai];
+  const lines = all.filter((l, i) => i === ai || !placed(btn) || !placed(l) || (Math.abs(mid(l) - mid(btn)) <= btn.w! && l.y! < btn.y! && btn.y! - l.y! <= 15 * btn.h!));
+  const a = lines.indexOf(btn);
   let h = a - 1;
   while (h >= 0 && !HEADER.test(lines[h].text)) h--;
   const from = h >= 0 && a - h <= 8 ? h + 1 : Math.max(0, a - 4);

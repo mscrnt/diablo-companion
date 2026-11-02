@@ -84,7 +84,11 @@ function quality(item: ParsedItem, slot: GearSlot, main?: string | null): Qualit
       if (hit.greater) greater++;
     }
   }
+  // a leveling guide's "Legendary Gloves" names no aspect: any piece will do, nothing to imprint
+  // ('Imprint "Legendary 2 HMace" onto it', 2026-11-01 player report)
+  const anyPiece = slot.kind === "aspect" && !slot.itemSlug && /^legendary\b/i.test(slot.itemName);
   const isTarget =
+    anyPiece ||
     ((slot.kind === "unique" || slot.kind === "mythic") && sameItem(item.name, slot.itemName)) ||
     (slot.kind === "aspect" && !!item.aspect?.name && (sameItem(item.aspect.name, slot.itemName) || similarity(item.aspect.name, slot.itemName) > 0.75));
   return {
@@ -512,6 +516,12 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, comp
   return out(item, "KEEP", "Keep it: it isn't gear, nothing to judge here.", [], null);
 }
 
+/** A drop for a character still leveling: it needs a level below 60, or you follow the guide's leveling setup. */
+function leveling(item: ParsedItem, variant: BuildVariant): boolean {
+  const req = Number(item.rawText?.match(/requires\s+level\s*(\d{1,3})/i)?.[1]);
+  return (req > 0 && req < 60) || /\blevel(l)?ing\b/i.test(variant.name);
+}
+
 /** An item you wear in a build slot: how it measures up and its to-do list (never a scrap verdict). */
 function wearing(item: ParsedItem, slot: GearSlot, ctx: Ctx, lead?: string): Out {
   const q = quality(item, slot, ctx.prof?.mainStat);
@@ -659,23 +669,27 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   if (cmp) {
     const wornItem = ctx.worn?.(slot.slot) ?? w;
     const upgraded = !!wornItem?.affixes.some((a) => a.masterwork || a.tempered || a.enchanted) || p.masterwork > 0;
-    // yours is compared without its masterwork/temper, so redoing them is the only extra cost
-    const need = upgraded ? 0.8 : 0.5;
+    // yours is compared without its masterwork/temper, so redoing them is the only extra cost. While leveling
+    // gear lasts minutes and any gain is worth the swap; so is one that gives up nothing (2026-11-01: a new
+    // character's small upgrades were all sold)
+    const lvl = leveling(item, variant);
+    const need = lvl || (!upgraded && cmp.loss < 0.05) ? 0.15 : upgraded ? 0.8 : 0.5;
     // the biggest differences, and always the worst loss: a "better" with no downside shown hides the trade
     const top = cmp.lines.slice(0, 5);
     if (cmp.worstLoss && !top.includes(cmp.worstLoss)) top.splice(Math.min(4, top.length), 1, cmp.worstLoss);
     // a swap that gives up nearly as much as it gains isn't an upgrade, whatever the sum says
-    const clear = cmp.score >= need && cmp.score >= 0.5 * cmp.loss;
+    // (while leveling, coming out ahead is enough)
+    const clear = cmp.score >= need && (lvl || cmp.score >= 0.5 * cmp.loss);
     const yours = w && w.rarity !== "unknown" && !/^your equipped item$/i.test(w.name) ? ` (${itemLabel(w)})` : "";
     // rings / weapons: the game showed the other one; say which one this is weighed against
     const other = candidates.length > 1 && !gameCompares(slot) ? ` Weighed against your ${slot.slotLabel}, not the one the game compares it with.` : "";
-    const verdictLine = `For your build: ${cmp.score >= 1.5 && clear ? "clearly better" : clear ? "better" : cmp.score > 0.15 ? "slightly better" : cmp.score > -0.15 ? "about the same as" : cmp.score > -1 ? "a bit worse" : "worse"}${cmp.score > -0.15 && cmp.score <= 0.15 ? "" : " than"} yours${yours}.${other}`;
+    const verdictLine = `For your build: ${cmp.score >= 1.5 && clear ? "clearly better" : clear && cmp.score >= 0.5 ? "better" : cmp.score > 0.15 ? "slightly better" : cmp.score > -0.15 ? "about the same as" : cmp.score > -1 ? "a bit worse" : "worse"}${cmp.score > -0.15 && cmp.score <= 0.15 ? "" : " than"} yours${yours}.${other}`;
     if (clear) {
       const extra = slot.kind === "aspect" && !q.isTarget && !isUniqueItem(item) ? ` Then put "${slot.itemName}" on it at the Occultist.` : "";
       const stand = slotIsUnique && !q.isTarget ? ` Use it until you find ${slot.itemName}.` : "";
       const why = [verdictLine, ...(cmp.work ? [cmp.work] : []), ...top];
       if (upgraded) why.push("Masterwork and temper it like your old one: budget the materials.");
-      return out(item, "WEAR", `Wear this: it's better than yours.${extra}${stand}`, why, slot, q);
+      return out(item, "WEAR", `Wear this: it's ${cmp.score < 0.5 ? "a little " : ""}better than yours.${extra}${stand}`, why, slot, q);
     }
     const why = [verdictLine, ...(cmp.work ? [cmp.work] : []), ...top];
     if (cmp.score >= need) why.push("It gives up nearly as much as it gains: a trade, not an upgrade.");

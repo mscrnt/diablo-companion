@@ -5,6 +5,14 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-02
+
+### Fixed
+- **A new character's upgrades are worn, not sold.** While leveling (an item that needs a level below 60, or a leveling guide), any piece that comes out ahead of yours says "Wear this: it's a little better than yours." Before, a small upgrade had to be clearly better and was sold. At any level, a swap that gives up nothing on a piece you haven't upgraded is a wear too.
+- **A Toughness change is read as the game means it:** "259 Armor (+7.4% Toughness)" no longer counts as 7.4 less armor on yours, and an item whose only change is more Toughness is an upgrade.
+- **A leveling guide's "Legendary Gloves" takes any piece:** no more 'Imprint "Legendary Gloves" onto it' or "this is a stand-in".
+- **No more made-up characters:** the clock's TAB hint across the screen, or a tooltip's "Tempers: 3/3" over the Character panel, was taken for a character name and made a new profile ("Tab", "Tempers") that switched back and forth with the real one. Only the name above the panel's Stats & Materials button counts now. Remove any such profile on the Build page.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added
@@ -216,7 +224,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/mscrnt/diablo-companion/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mscrnt/diablo-companion/compare/v0.2.4...v0.3.0
 [0.2.4]: https://github.com/mscrnt/diablo-companion/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/mscrnt/diablo-companion/compare/v0.2.2...v0.2.3

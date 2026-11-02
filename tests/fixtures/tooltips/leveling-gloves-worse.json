@@ -1,0 +1,88 @@
+{
+ "source": "0.3.0 shared judgement 2026-11-01T19:26:24Z, Barbarian leveling",
+ "ocr": [
+  "HIDE GLOVES",
+  "Gloves",
+  "346 Item Power",
+  "259 Armor (-0.1% Toughness)",
+  "Properties lost when equipped:",
+  "1.5% Resource Cost Reduction",
+  "Requires Level 34",
+  "sell Value: 555 •",
+  "Durability: 100/100"
+ ],
+ "lines": [
+  {
+   "bullet": "none",
+   "h": 31,
+   "text": "HIDE GLOVES",
+   "w": 216,
+   "x": 2103,
+   "y": 648
+  },
+  {
+   "bullet": "none",
+   "h": 20,
+   "text": "Gloves",
+   "w": 71,
+   "x": 2104,
+   "y": 703
+  },
+  {
+   "bullet": "none",
+   "h": 23,
+   "text": "346 Item Power",
+   "w": 168,
+   "x": 2106,
+   "y": 736
+  },
+  {
+   "bullet": "none",
+   "h": 36,
+   "text": "259 Armor (-0.1% Toughness)",
+   "w": 372,
+   "x": 2109,
+   "y": 791
+  },
+  {
+   "bullet": "none",
+   "h": 36,
+   "text": "Properties lost when equipped:",
+   "w": 338,
+   "x": 2110,
+   "y": 855
+  },
+  {
+   "bullet": "normal",
+   "h": 31,
+   "text": "1.5% Resource Cost Reduction",
+   "w": 326,
+   "x": 2147,
+   "y": 891
+  },
+  {
+   "bullet": "normal",
+   "h": 28,
+   "text": "Requires Level 34",
+   "w": 171,
+   "x": 2393,
+   "y": 937
+  },
+  {
+   "bullet": "none",
+   "h": 27,
+   "text": "sell Value: 555 •",
+   "w": 178,
+   "x": 2386,
+   "y": 993
+  },
+  {
+   "bullet": "none",
+   "h": 28,
+   "text": "Durability: 100/100",
+   "w": 207,
+   "x": 2359,
+   "y": 1030
+  }
+ ]
+}

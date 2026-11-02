@@ -51,6 +51,14 @@ describe("reading the name off the Character panel", () => {
     expect(readCharacterName(["BAZAQ", "Aged Boots", "Weapon Damage"].map(L))).toBeNull();
   });
 
+  it("only text above the panel's button, not the clock's key hint across the screen", () => {
+    const box = (text: string, x: number, y: number, w: number, h: number) => ({ text, x, y, w, h });
+    const frame = [box("10:02 PM", 2604, 17, 98, 18), box("Temis", 2465, 18, 64, 18), box("TAB •", 2541, 19, 48, 13), box("ZORVAK", 1903, 142, 94, 17), box("Title Select", 1896, 189, 119, 18), box("Stats & Materia;", 1860, 345, 167, 23)];
+    expect(readCharacterName(frame)).toBe("Zorvak");
+    expect(readCharacterName(frame.filter((l) => l.text !== "ZORVAK"))).toBeNull();
+    expect(readCharacterName(["Durability: 100/100", "Tempers: 3/3", "Unequip", "Stats & Materials"].map(L))).toBeNull();
+  });
+
   it("OCR look-alikes are the same name, other names aren't", () => {
     expect(sameName("Bazaq", "Bazag")).toBe(true);
     expect(sameName("Zorvak", "Zorvax")).toBe(true);
