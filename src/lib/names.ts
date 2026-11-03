@@ -37,6 +37,7 @@ export type Category =
   | "mercSkills"
   | "mercOpp"
   | "gemLines"
+  | "wieldBy"
   | "bloodied"
   | "wpTrees"
   | "wpNodes"

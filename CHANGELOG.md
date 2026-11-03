@@ -5,6 +5,19 @@ The release workflow publishes each version's section as its GitHub release note
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-03
+
+### Fixed
+- **Two tooltips side by side:** glossary text under the tooltips could join your worn item's tooltip to the one you hover, and the worn item was judged as if you'd hovered it ("wear this" for the amulet you had on). The two are kept apart now, and the hovered one is judged.
+- **"Scroll Up":** the game's hint on a scrolled tooltip was read as an item's name, and later items were compared with an item called "Scroll Up".
+- **Weapons your class can't use:** a polearm on a Necromancer was called "great for your Necromancer". The weapon types each class can wield come from the game's own data now, and a weapon your class can't use is never a wear.
+- **Barbarian one-handed weapons:** a one-handed sword marked "(Slashing)" was filed as the two-handed slashing weapon, so a copy of the unique you hold kept saying "core piece, wear it". One-handed weapons always go in the dual-wield slots, and the game comparing with a weapon from another slot no longer counts as yours.
+- **Small upgrades:** an item a little better than yours, but not by enough to be worth the swap, says keep it instead of scrap.
+- **Masterwork and tempers:** your piece and the hovered one are compared on the same footing when only one of them was seen masterworked.
+- **Charms:** a charm from the set you wear says stash it (it's from that set), "Set Charm" counts as a rarity, and a charm whose title is scrolled off is named by its type instead of by its stats.
+- **Enchant advice** no longer suggests rerolling into weapon damage or your main stat.
+- **Names:** labels from the Character panel ("Weapon D", "Stats & Materials") behind a tooltip aren't read into an item's name, and a "Two-Handed" type split over two lines is read whole.
+
 ## [0.3.3] - 2026-11-02
 
 ### Changed
@@ -260,7 +273,8 @@ First release.
 - **Overlays and timers:** world boss, Helltide and Legion timers, panels docked into the black pillarbox bars, and controller chords.
 - Screen-reading only: no memory reading, no injection, no input sent to the game.
 
-[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/mscrnt/diablo-companion/compare/v0.3.4...HEAD
+[0.3.4]: https://github.com/mscrnt/diablo-companion/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/mscrnt/diablo-companion/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/mscrnt/diablo-companion/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mscrnt/diablo-companion/compare/v0.3.0...v0.3.1

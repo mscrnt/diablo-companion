@@ -13,7 +13,7 @@ export interface Extracted {
   gemsRunes?: { gems: any[]; runes: any[] };
   charms?: { charms: any[]; setBonuses: any[] };
   paragon?: { boards: any[]; nodes: any[]; glyphs: any[] };
-  items?: { entries: any[] };
+  items?: { entries: any[]; itemTypes?: Record<string, string> };
   monsters?: { actors: any[] };
   /** gbid.json: the GameBalance name tables an affix parameter can point into. */
   gbid?: { skillTags?: string[] };
@@ -422,6 +422,19 @@ export function convert(x: Extracted): Tables {
         if (text) put(T("gemLines"), slugOf(`${g.id} ${e.target} ${text}`), { n: String(g.name), d: String(text), t: String(e.target) });
       }
   }
+  // which classes can wield each kind of weapon, from the plain base items ("Polearm": Druid, Barbarian, Spiritborn),
+  // under the name its tooltip shows ("Two-Handed Sword"): a polearm was stashed "for your Necromancer" (2026-11-03)
+  const WEAPON_TYPES = /^(Sword2?H?|Axe2?H?|Mace2?H?|Scythe2?H?|Polearm|Staff|Wand|Dagger|Bow|Crossbow2H|Glaive|Quarterstaff|Flail|Focus|FocusBookOffHand|Shield|OffHandTotem)$/;
+  const wieldBy = new Map<string, Set<string>>();
+  for (const i of x.items?.entries ?? []) {
+    if (!WEAPON_TYPES.test(i.itemType ?? "") || !i.classes?.length || !/_(Normal|Generic)_/.test(i.id) || /^zz/i.test(i.id)) continue;
+    const n = x.items?.itemTypes?.[i.itemType];
+    if (!n) continue;
+    const s = wieldBy.get(n) ?? new Set<string>();
+    for (const c of i.classes) s.add(c);
+    wieldBy.set(n, s);
+  }
+  for (const [n, s] of wieldBy) put(T("wieldBy"), slugOf(n), { n, c: [...s].join(",") });
   for (const i of x.items?.entries ?? []) {
     if (!/SeasonalSocketable/i.test(i.itemType ?? "") || !i.name) continue;
     const base = String(i.name).replace(/^(Lesser|Greater|Grand)\s+/i, "");

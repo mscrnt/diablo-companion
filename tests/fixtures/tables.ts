@@ -34,6 +34,12 @@ export const TABLES: TestTables = {
     insight: { n: "Insight", t: "2h Scythe" },
     "tal-rashas-iridescent-loop": { n: "Tal Rasha's Iridescent Loop", c: "sorcerer", t: "Ring" },
   },
+  // which classes can wield a kind of weapon (judge.ts wieldedBy)
+  wieldBy: {
+    polearm: { n: "Polearm", c: "Druid,Barbarian,Spiritborn" },
+    "two-handed-sword": { n: "Two-Handed Sword", c: "Barbarian,Necromancer,Paladin,Warlock" },
+    sword: { n: "Sword", c: "Sorcerer,Druid,Barbarian,Rogue,Necromancer,Paladin,Warlock" },
+  },
   // a few gems' lines in a socket (socketed.ts)
   gemLines: {
     "ruby-armor-120": { n: "Horadric Ruby", t: "armor", d: "120 Strength" },

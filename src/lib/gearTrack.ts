@@ -1,6 +1,6 @@
 // Automatic gear tracking: whenever a parsed tooltip is an item you're wearing,
 // update the build progress for that slot (state, Greater affixes, matched stats).
-import { sameAsWorn } from "./judge";
+import { arsenalOf, sameAsWorn } from "./judge";
 import { normName, similarity } from "./names";
 import { getActiveVariant, useBuilds } from "./store";
 import { noteWorn } from "./share";
@@ -34,14 +34,20 @@ function wornIn(item: ParsedItem, slots: GearSlot[], worn: Worn): GearSlot | und
 
 export function slotForItem(item: ParsedItem, gear: GearSlot[], taken?: Set<string>, worn?: Worn): GearSlot | undefined {
   const keys = SLOT_KEYS[item.slot] ?? [];
-  const slots = gear.filter((g) => keys.includes(g.slot));
+  // a Barbarian weapon goes in its own arsenal slot only (a polearm was remembered as the mace, 2026-11-03)
+  const all = gear.filter((g) => keys.includes(g.slot));
+  const arsenal = arsenalOf(item);
+  const own = arsenal ? all.filter((g) => g.slot.startsWith(arsenal)) : [];
+  const slots = own.length ? own : all;
   // rings / weapons: a piece you were seen wearing before stays in its slot
   const again = worn && slots.length > 1 ? wornIn(item, slots, worn) : undefined;
   if (again) return again;
-  const byName = gear.find((g) => normName(g.itemName) === normName(item.name) || similarity(g.itemName, item.name) > 0.85);
+  // a build unique or aspect it carries names the slot, among the ones it can go in (a sword "of Channeling" isn't the
+  // ring the build puts Channeling on)
+  const byName = slots.find((g) => normName(g.itemName) === normName(item.name) || similarity(g.itemName, item.name) > 0.85);
   if (byName) return byName;
   if (item.aspect?.name) {
-    const byAspect = gear.find((g) => g.kind === "aspect" && similarity(item.aspect!.name, g.itemName) > 0.75);
+    const byAspect = slots.find((g) => g.kind === "aspect" && similarity(item.aspect!.name, g.itemName) > 0.75);
     if (byAspect) return byAspect;
   }
   const open = slots.filter((g) => !taken?.has(g.slot));

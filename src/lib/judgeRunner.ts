@@ -4,7 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { overlayToast, playTone } from "./alerts";
 import { emitOverlay } from "./bus";
-import { decide, sameAsWorn as sameDrop } from "./judge";
+import { arsenalOf, decide, sameAsWorn as sameDrop } from "./judge";
 import { cubeHint } from "./farm";
 import { recordEquipped } from "./gearTrack";
 import { isTauri } from "./http";
@@ -178,7 +178,13 @@ export async function judgeTooltips(
       const stale = Object.entries(useBuilds.getState().worn).filter(([, w]) => !w.doubt && sameDrop(hovered, w)).map(([slot]) => slot);
       if (stale.length) useBuilds.getState().doubtWorn(stale);
     }
-    const worn = (slot: string) => useBuilds.getState().worn[slot];
+    // a weapon remembered in another arsenal slot than its kind's was filed wrong before 0.3.4 (a polearm as the mace):
+    // it isn't that slot's, and the slot fills again the next time its weapon is seen
+    const worn = (slot: string) => {
+      const w = useBuilds.getState().worn[slot];
+      const a = w && /weapon/.test(slot) ? arsenalOf(w) : undefined;
+      return a && !slot.startsWith(a) ? undefined : w;
+    };
     const inCodex = (slug: string) => !!useBuilds.getState().owned[slug];
     const { talisman } = useBuilds.getState();
     const scored = decide(hovered, variant, { prog, worn, cubeHint, inCodex, talisman, className }, equipped ?? hovered.compare ?? null);

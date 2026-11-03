@@ -84,7 +84,7 @@ function bbox(lines: OcrLine[], cap: CaptureResult): TooltipBox {
  * cluster OCR lines into columns by horizontal overlap, keep columns that contain
  * tooltip markers, and pick the hovered one (not labelled EQUIPPED, nearest the cursor).
  */
-export function detectTooltips(cap: CaptureResult): Detected | null {
+export function detectTooltips(cap: CaptureResult, retry = true): Detected | null {
   const lines = (cap.ocr?.lines ?? []).filter((l) => l.text.trim().length > 0);
   if (lines.length < 4) return null;
   // never judge our own dashboard window
@@ -121,6 +121,33 @@ export function detectTooltips(cap: CaptureResult): Detected | null {
     c.x1 = Math.max(...best.map((l) => l.x + l.w));
   }
 
+  // 1c) a stray wide line (glossary text under the tooltips) can bridge two tooltips side by side into one column,
+  // and the worn item was judged as the hovered one ("Hunt Medal of the Disciple: wear this", 2026-11-03 report).
+  // A tooltip's lines all start at its left margin: lines starting at some x with a clear gap left of them, where
+  // both sides hold a tooltip's head (its item power or type line), are a second tooltip. The few lines crossing
+  // the gap (and any line running from the left one into it) are the bridge: drop them and look again.
+  const HEAD = /item power|\b(ancestral|sacred)\b|\b(common|magic|rare|legendary|unique|mythic)\s+\w/i;
+  for (const c of [...cols]) {
+    const ls = c.lines;
+    const hs = ls.map((l) => l.h).sort((a, b) => a - b);
+    const gapMin = 2 * (hs[Math.floor(hs.length / 2)] || 20);
+    for (const s of [...new Set(ls.map((l) => l.x))].sort((a, b) => a - b)) {
+      const right = ls.filter((l) => l.x >= s);
+      const left = ls.filter((l) => l.x + l.w <= s - gapMin);
+      const cross = ls.filter((l) => l.x < s && l.x + l.w > s - gapMin);
+      if (left.length < 4 || right.length < 2 || cross.length > 2 || !left.some((l) => HEAD.test(l.text)) || !right.some((l) => HEAD.test(l.text))) continue;
+      const edge = Math.max(...left.map((l) => l.x + l.w));
+      const bridge = new Set([...cross, ...lines.filter((l) => l.x < edge && l.x + l.w > edge + gapMin / 2)]);
+      if (retry && bridge.size) return detectTooltips({ ...cap, ocr: { ...cap.ocr!, lines: lines.filter((l) => !bridge.has(l)) } }, false);
+      if (right.length < 4) break;
+      c.lines = left;
+      c.x0 = Math.min(...left.map((l) => l.x));
+      c.x1 = edge;
+      cols.push({ x0: s, x1: Math.max(...right.map((l) => l.x + l.w)), lines: right });
+      break;
+    }
+  }
+
   // 2) keep columns that look like item tooltips
   const tips = cols
     .map((c) => {
@@ -140,7 +167,12 @@ export function detectTooltips(cap: CaptureResult): Detected | null {
   const other = notEq[0] ? eq[0] ?? null : null;
   const toCol = (c: (typeof tips)[number]): TooltipColumn => ({
     box: bbox(c.lines, cap),
-    lines: [...c.lines].sort((a, b) => a.y - b.y || a.x - b.x),
+    // the game's "Scroll Up" hint drawn over a scrolled tooltip's top line isn't the item's ("e Armory Scroll Up"
+    // named a worn sword "Scroll Up", and later items were compared with it, 2026-11-03 report)
+    lines: [...c.lines]
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .map((l) => (/\bscroll\s+up\b/i.test(l.text) ? { ...l, text: l.text.replace(/\s*\bscroll\s+up\b\s*/gi, " ").trim() } : l))
+      .filter((l) => l.text.length > 0),
     equipped: c.equipped,
   });
   return { hovered: toCol(hov), equipped: other ? toCol(other) : null, score: hov.score };

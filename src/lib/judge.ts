@@ -241,7 +241,12 @@ function upkeep(item: ParsedItem, slot: GearSlot, q: Quality, p: SlotProgress, w
     // give up the stat worth least to the build — never a ★ greater affix or the temper
     // nor a weapon's Weapon Damage: the base all of its damage scales from, listed in a guide or not ("change +303
     // Weapon Damage into Attack Speed", 2026-11-02)
-    const base = (a: ParsedItem["affixes"][number]) => /^weapon damage$/.test(statKey(a.match ?? a.text));
+    // nor your class's main stat ("change +225 Strength into Vulnerable Damage" on a Barbarian's gloves, 2026-11-03)
+    const main = prof?.mainStat ?? null;
+    const base = (a: ParsedItem["affixes"][number]) => {
+      const k = statKey(a.match ?? a.text);
+      return /^weapon damage$/.test(k) || (!!main && k === main);
+    };
     const pool = item.affixes.filter((a) => !a.tempered && !a.greater && !implicit(a) && !isTemperStat(a.text) && !base(a)).sort((x, y) => worth(x) - worth(y));
     const swap = pool[0];
     if (swap && worth(swap) < wantWorth)
@@ -513,10 +518,16 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, comp
   if (/horadric cube|cube material/i.test(keyText)) return out(item, "KEEP", "Keep it: it's for the Horadric Cube, not gear.", [], null);
   if (item.category === "talisman") {
     // "Peace of the Black Shroud": another piece of a set your build wears
-    const setOf = (n: string) => normName(n).match(/ of the (.+)$/)?.[1] ?? "";
+    // a set's pieces share its name after "of": "of the Black Shroud", "of Sescheron's Fury" (OCR can tack a stray
+    // letter on the end: "Ph Oba of Sescheron's Fury G", 2026-11-03)
+    const setOf = (n: string) => normName(n).replace(/\s+\w$/, "").match(/ of (?:the )?(.+)$/)?.[1] ?? "";
     const set = setOf(item.name);
-    const sameSet = set ? gear.find((g) => g.group === "talisman" && setOf(g.itemName) === set) : undefined;
-    if (sameSet) return out(item, "STASH", `Stash it: it's from the ${titleSet(set)} set your build uses.`, [`Your build wears ${gear.filter((g) => g.group === "talisman" && setOf(g.itemName) === set).map((g) => g.itemName).join(", ")}.`], null);
+    const same = (n: string) => !!set && !!setOf(n) && (setOf(n) === set || trigramSim(setOf(n), set) >= 0.8);
+    const sameSet = set ? gear.find((g) => g.group === "talisman" && same(g.itemName)) : undefined;
+    if (sameSet) return out(item, "STASH", `Stash it: it's from the ${titleSet(set)} set your build uses.`, [`Your build wears ${gear.filter((g) => g.group === "talisman" && same(g.itemName)).map((g) => g.itemName).join(", ")}.`], null);
+    // a set you wear though the guide doesn't list it: its pieces are still worth keeping
+    const worn = ctx?.talisman?.charms.find((c) => same(c.name));
+    if (worn) return out(item, "STASH", `Stash it: it's from the ${titleSet(set)} set you wear.`, [`You wear ${worn.name}.`], null);
     return out(item, "STASH", "Stash it: it isn't part of your build's talisman (or salvage it if you have spares).", [], null);
   }
   if (/amount of\s+experience|experience tome/i.test(keyText)) return out(item, "KEEP", "Keep it: use it from your bag, it grants experience. It isn't gear.", [], null);
@@ -531,9 +542,45 @@ function decideNonGear(item: ParsedItem, variant: BuildVariant | undefined, comp
  */
 function slotsFor(item: ParsedItem, gear: GearSlot[]): GearSlot[] {
   const fits = (SLOT_MAP[item.slot] ?? []).map((k) => gear.find((g) => g.slot === k)).filter(Boolean) as GearSlot[];
-  const arsenal = `${item.itemType ?? ""}\n${item.rawText ?? ""}`.match(/\((slashing|bludgeoning|dual[- ]?wield)\)/i)?.[1].toLowerCase().replace(/[- ]?wield/, "-wield");
+  const arsenal = arsenalOf(item);
   const own = arsenal ? fits.filter((g) => g.slot.startsWith(arsenal)) : fits;
   return own.length ? own : fits;
+}
+
+/**
+ * A Barbarian weapon's arsenal slot ("slashing", "bludgeoning", "dual-wield"): the label its type line carries
+ * ("Legendary Axe (Slashing)", which can wrap onto a second line), else its kind: a two-handed mace, hammer or flail
+ * bludgeons, a polearm or two-handed axe or sword slashes, a one-handed weapon is dual-wielded. Remembered gear keeps
+ * no tooltip text, and without this a polearm was filed as the mace (2026-11-03).
+ */
+export function arsenalOf(item: Pick<ParsedItem, "itemType" | "rawText" | "slot">): string | undefined {
+  if (item.slot !== "weapon") return undefined;
+  const t = (item.itemType ?? "").toLowerCase();
+  const two = /two[- ]?handed|\b2h\b|polearm|glaive|scythe|staff/.test(t);
+  // "(Slashing)" / "(Bludgeoning)" is the damage type, one-handed weapons carry it too: a one-handed weapon is
+  // dual-wielded whatever it says (Ramaladni's "Sword (Slashing)" was filed as the two-handed slot, 2026-11-03)
+  if (!two && /\b(axe|sword|mace|hammer|flail|club|dagger)\b/.test(t)) return "dual-wield";
+  const label = `${item.itemType ?? ""}\n${item.rawText ?? ""}`.match(/\((slashing|bludgeoning|dual[- ]?wield)\)/i)?.[1];
+  if (label) return label.toLowerCase().replace(/[- ]?wield/, "-wield");
+  if (/polearm|glaive/.test(t) || (two && /\b(axe|sword)\b/.test(t))) return "slashing";
+  if (two && /\b(mace|hammer|flail|club)\b/.test(t)) return "bludgeoning";
+  return undefined;
+}
+
+/**
+ * The classes that can wield this weapon's kind, from the game's base items (convert.ts "wieldBy"): its type line
+ * ends with the kind's name, the longest that fits ("Legendary Two-Handed Mace (Bludgeoning)" → Two-Handed Mace).
+ */
+function wieldedBy(item: ParsedItem): { type: string; classes: string[] } | null {
+  if (item.slot !== "weapon" && item.slot !== "offhand") return null;
+  const t = normName((item.itemType ?? "").replace(/\([^)]*\)/g, " "));
+  let best: { type: string; classes: string[] } | null = null;
+  for (const e of Object.values(table("wieldBy"))) {
+    const n = normName(e.n);
+    if (!n || !e.c || !(t === n || t.endsWith(` ${n}`)) || (best && best.type.length >= e.n.length)) continue;
+    best = { type: e.n, classes: e.c.toLowerCase().split(",") };
+  }
+  return best;
 }
 
 /** A drop for a character still leveling: it needs a level below 60, or you follow the guide's leveling setup. */
@@ -588,6 +635,9 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
   // another class's own unique or aspect: no use to this build, whatever its stats
   const only = ctx.className ? itemClasses(item) : null;
   if (only && !only.includes(ctx.className!.toLowerCase())) return dispose(item, gear, [`It's for a ${only.map(titleSet).join(" or ")}, not your ${ctx.className}.`], null, undefined, ctx);
+  // a kind of weapon the class can't wield at all (a polearm "great for your Necromancer", 2026-11-03)
+  const wield = ctx.className ? wieldedBy(item) : null;
+  if (wield && !wield.classes.includes(ctx.className!.toLowerCase())) return dispose(item, gear, [`A ${ctx.className} can't use a ${wield.type}.`], null, undefined, ctx);
 
   // ---- white base that the cube turns into a build unique ----
   if (isWhite) {
@@ -623,6 +673,11 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     compareTo && candidates.length > 1
       ? candidates.map((c) => (isUniq(c) && compareTo.rarity !== "unknown" && sameItem(compareTo.name, c.itemName)) || comparedIsWorn(compareTo, item.compareRows, ctx.worn?.(c.slot)))
       : [];
+  // a Barbarian's weapon is compared with the one in hand, often another arsenal slot's: a piece remembered in another
+  // weapon slot isn't this slot's (a polearm was weighed against the mace, 2026-11-03)
+  const elsewhere =
+    !!compareTo && item.slot === "weapon" && !named &&
+    (SLOT_MAP.weapon ?? []).some((s) => !candidates.some((c) => c.slot === s) && comparedIsWorn(compareTo, item.compareRows, ctx.worn?.(s)) === true);
   // it's none of the pieces you remember: you've replaced one since (a ring you took off stayed in Ring 1
   // and made a wrong "wear this"), and nothing says which, so the game's piece stands in for both
   const stale = seen.length > 0 && seen.every((m) => m === false);
@@ -653,7 +708,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     const remembered = ctx.worn;
     ctx = { ...ctx, worn: (s) => (forget.has(s) ? undefined : remembered?.(s)) };
   }
-  const gameCompares = (c: GearSlot) => !compared.length || compared.includes(c);
+  const gameCompares = (c: GearSlot) => !elsewhere && (!compared.length || compared.includes(c));
   if (!candidates.length) return dispose(item, gear, ["Your build doesn't use this kind of item."], null, undefined, ctx);
 
   // the same name/aspect and stat values as what you wear there: it IS your item, opened from the
@@ -726,7 +781,7 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     const clear = cmp.score >= need && (lvl || cmp.score >= 0.5 * cmp.loss);
     const yours = w && w.rarity !== "unknown" && !/^your equipped item$/i.test(w.name) ? ` (${itemLabel(w)})` : "";
     // rings / weapons: the game showed the other one; say which one this is weighed against
-    const other = candidates.length > 1 && !gameCompares(slot) ? ` Weighed against your ${slot.slotLabel}, not the one the game compares it with.` : "";
+    const other = (candidates.length > 1 || elsewhere) && !gameCompares(slot) ? ` Weighed against your ${slot.slotLabel}, not the one the game compares it with.` : "";
     const verdictLine = `For your build: ${cmp.score >= 1.5 && clear ? "clearly better" : clear && cmp.score >= 0.5 ? "better" : cmp.score > 0.15 ? "slightly better" : cmp.score > -0.15 ? "about the same as" : cmp.score > -1 ? "a bit worse" : "worse"}${cmp.score > -0.15 && cmp.score <= 0.15 ? "" : " than"} yours${yours}.${other}`;
     if (clear) {
       const extra = slot.kind === "aspect" && !q.isTarget && !isUniqueItem(item) ? ` Then put "${slot.itemName}" on it at the Occultist.` : "";
@@ -744,6 +799,13 @@ function decideCore(item: ParsedItem, variant: BuildVariant | undefined, ctx: Ct
     // Gohr's was, 2026-11-02)
     if (slotIsUnique && q.isTarget && cmp.score > -0.15)
       return { ...out(item, "KEEP", `Keep it: ${cmp.score > 0.15 ? "a little better than" : "about as good as"} your ${slot.itemName}. Swap when you can redo the temper and masterwork.`, [verdictLine, ...top], slot, q), swap: cmp.score };
+    // better than yours, only not by enough to be worth the swap: never scrap it (your masterworked amulet, slightly
+    // better than the one you'd just put on, was "scrap it", 2026-11-03)
+    if (cmp.score > 0.15)
+      return {
+        ...out(item, "KEEP", `Keep it: a little better than yours, though not by enough to be worth the swap.`, [verdictLine, ...(cmp.work ? [cmp.work] : []), ...top], slot, q),
+        swap: cmp.score,
+      };
     const why = [verdictLine, ...(cmp.work ? [cmp.work] : []), ...top];
     if (cmp.score >= need) why.push("It gives up nearly as much as it gains: a trade, not an upgrade.");
     else if (cmp.score > 0.15 && upgraded) why.push("Not enough to be worth redoing the masterwork/temper.");
@@ -779,9 +841,14 @@ function workOn(slot: GearSlot, w: ParsedItem | null, ctx: Ctx): Work | null {
   const tempered = new Set(src.filter((a) => a.tempered).map(key));
   const enchanted = new Set(src.filter((a) => a.enchanted).map(key));
   const p = ctx.prog(slot.slot);
-  if (p.tempered) for (const t of slot.tempers) tempered.add(normName(t.name.replace(/\s*\(.*\)\s*$/, "")));
-  // a crit lands every 4th rank: seeing one means at least rank 4
-  const rank = Math.max(p.masterwork ?? 0, 4 * Math.min(3, crit.size));
+  // the slot's "tempered" is the piece it was tracked on too: one seen without a tempered line isn't it (2026-11-03)
+  const seenPlain = !!remembered && remembered.rarity !== "unknown" && !remembered.affixes.some((a) => a.tempered);
+  if (p.tempered && !seenPlain) for (const t of slot.tempers) tempered.add(normName(t.name.replace(/\s*\(.*\)\s*$/, "")));
+  // a crit lands every 4th rank: seeing one means at least rank 4. The slot's tracked rank is the piece it was tracked
+  // on: a piece you're seen wearing without a crit isn't that one (a plain Tuskhelm put on in place of a masterworked
+  // one was scaled down as "+4", and the old one looked better, 2026-11-03)
+  const known = !!remembered && remembered.rarity !== "unknown";
+  const rank = crit.size ? Math.max(p.masterwork ?? 0, 4 * Math.min(3, crit.size)) : known ? 0 : p.masterwork ?? 0;
   return rank || tempered.size || enchanted.size ? { rank, tempered, crit, enchanted } : null;
 }
 
@@ -900,12 +967,27 @@ function swapValue(
         shown.set(adj, r.yours);
         return [adj];
       });
+  // this one's own masterwork, from its crit icons: compared before its work as well, or a masterworked spare looks
+  // better than the plain one you just put on, and that one better than it (2026-11-03)
+  const mineCrit = new Set(item.affixes.filter((a) => a.masterwork).map((a) => statKey(a.match ?? a.text)));
+  const mineRank = 4 * Math.min(3, mineCrit.size);
+  const shownMine = new WeakMap<CompareRow, number | null>(); // this one's number as its tooltip shows it
+  const rowsBefore = !mineRank
+    ? rows
+    : rows.map((r) => {
+        const key = statKey(r.match ?? r.label);
+        if (r.mine == null || /^ranks? (to|of) /.test(key)) return r;
+        const adj = { ...r, mine: Math.round((r.mine / masterworkFactor(mineRank, mineCrit.has(key))) * 10) / 10 };
+        if (shown.has(r)) shown.set(adj, shown.get(r)!);
+        shownMine.set(adj, r.mine);
+        return adj;
+      });
   const workNote = work
     ? `Yours is ${[work.rank ? `masterworked +${work.rank}` : "", work.tempered.size ? "tempered" : "", work.enchanted.size ? "enchanted" : ""].filter(Boolean).join(" and ")}: compared as if this one gets the same work${work.rank ? " (masterwork bonus estimated)" : ""}.`
     : undefined;
   // a cut-off tooltip hides "Properties lost when equipped": its "yours has none" stats are only half the story
-  const oneSided = !!gameRows?.length && !!item.truncated && !rows.some((r) => r.mine == null);
-  const used = oneSided ? rows.filter((r) => r.yours != null) : rows;
+  const oneSided = !!gameRows?.length && !!item.truncated && !rowsBefore.some((r) => r.mine == null);
+  const used = oneSided ? rowsBefore.filter((r) => r.yours != null) : rowsBefore;
   const { score: stats, deltas } = compareValue(used, slot, prof);
   let score = stats;
   const notes: { v: number; text: string }[] = [];
@@ -990,16 +1072,17 @@ function swapValue(
   for (const [i, d] of deltas.entries()) {
     if (Math.abs(d.value) < 0.05) continue;
     const yours = shown.has(used[i]) ? shown.get(used[i])! : d.yours;
+    const mine = shownMine.has(used[i]) ? shownMine.get(used[i])! : d.mine;
     // yours was compared without its masterwork: say which number that was, or "+ 461 vs yours 476" reads backwards
     const est = yours != null && d.yours != null && Math.abs(yours - d.yours) > Math.abs(yours) * 0.03 ? ` (about ${fmt(d.yours, d.unit)} before its masterwork)` : "";
     const name = shortStat(d.label.replace(/\s*\(.*$/, "").replace(/^to /i, "Ranks to ").replace(/\b\w/g, (c) => c.toUpperCase()).replace(/ (To|Of) /g, (m) => m.toLowerCase()));
     const minor = d.weight <= 0.1 ? " (minor for your build)" : "";
     const text =
       d.mine != null && d.yours == null
-        ? `+ ${name} ${fmt(d.mine, d.unit)} (yours has none)${minor}`
+        ? `+ ${name} ${fmt(mine, d.unit)} (yours has none)${minor}`
         : d.mine == null
           ? `− ${name}: yours has ${fmt(yours, d.unit)}, this has none${minor}`
-          : `${d.value > 0 ? "+" : "−"} ${name} ${fmt(d.mine, d.unit)} vs yours ${fmt(yours, d.unit)}${est}${minor}`;
+          : `${d.value > 0 ? "+" : "−"} ${name} ${fmt(mine, d.unit)} vs yours ${fmt(yours, d.unit)}${est}${minor}`;
     notes.push({ v: d.value, text });
   }
   notes.sort((a, b) => Math.abs(b.v) - Math.abs(a.v));

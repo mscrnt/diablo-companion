@@ -19,7 +19,7 @@ export interface FastLine {
   w?: number;
 }
 
-const JUNK = /^(equipped|slot transmog.*|n slot|character|scroll down|.{0,2})$/i;
+const JUNK = /^(equipped|slot transmog.*|n slot|character|scroll down|scroll up|.{0,2})$/i;
 const FOOTER =
   /item power|^\d+\s*\(.*\)\s*quality|quality$|requires level|account bound|sell value|durability|tempers:|^equip$|^drop$|^\+?\s*drop$|^\+?\s*link$|^\W*link$|^\W*unequip$|^\W*unmark\b|ctrl|shift|hide comparison|mark as|scroll down|lord of hatred item|^legendary power$|^unique power$|^\W*legendary power|^\W*unique power|^socket|empty socket|^!?\s*[\d,]{6,}$/i;
 /** The bottom of the tooltip: nothing after these is part of the item (key hints, glossary popups). */
@@ -39,7 +39,8 @@ export function isUnequipLine(text: string): boolean {
   return editDistance(confusionKey(t.replace(/\s+/g, "")), UNEQUIP_KEY, 1) <= 1;
 }
 // the rarity word, OCR slips included ("Ancestrah1ya1ic Nique" = Ancestral Mythic Unique at 1080p)
-const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b|myth|[1il]?ya[1il]ic\b|uniq|\bn[il1]que\b/i;
+// ("Set Charm": a set piece's charm names its set, not a rarity, 2026-11-03)
+const RARITY = /\b(mythic|unique|legendary|rare|magic|common)\b|myth|[1il]?ya[1il]ic\b|uniq|\bn[il1]que\b|\bset\s+charm\b/i;
 const SLOT_NOUN =
   /\b(helm|headgear|head|chest armor|chest|gloves|pants|boots|amulet|ring|scythe|sword|axe|mace|dagger|wand|staff|bow|crossbow|polearm|glaive|quarterstaff|flail|focus|shield|totem|charm|seal|two-handed|one-handed)\b/i;
 export const STAT_START = /^[+x\-]?\s*[\d][\d.,\s]*%?\s+\S/i;
@@ -133,7 +134,11 @@ export function fastParse(
   const hs = L.map((l) => l.h ?? 0).filter(Boolean).sort((a, b) => a - b);
   const bodyH = hs[Math.floor(hs.length / 2)] ?? 0;
   // 1) type line: has a rarity word (+ maybe the slot noun on the next line)
-  const typeLike = (l: FastLine, i: number) => i < 8 && RARITY.test(l.text) && (SLOT_NOUN.test(l.text) || SLOT_NOUN.test(L[i + 1]?.text ?? "") || NONGEAR.test(l.text));
+  // the type line is near the top of the tooltip, which starts at its EQUIPPED header when there is one: opened over
+  // the Character panel, the panel's level, name, title and slot came first and pushed it out of reach (2026-11-03)
+  const eqAt = L.findIndex((l, i) => i < 8 && /^\W*equipped\W*$/i.test(l.text));
+  const top = eqAt >= 0 ? eqAt : 0;
+  const typeLike = (l: FastLine, i: number) => i < top + 8 && RARITY.test(l.text) && (SLOT_NOUN.test(l.text) || SLOT_NOUN.test(L[i + 1]?.text ?? "") || NONGEAR.test(l.text));
   // the title can look like a type line too ("MYTHIC TRIBUTE"): prefer one with a name above it
   let ti = L.findIndex((l, i) => i > 0 && typeLike(l, i));
   if (ti < 0) ti = L.findIndex(typeLike);
@@ -212,7 +217,9 @@ export function fastParse(
   let after = ti + 1;
   // the type wraps: "Ancestral Magic Two-" / "Handed Mace (Bludgeoning)"
   const wrapped = /\b(two|one)\s*-\s*$/i.test(typeLine);
-  if (!SLOT_NOUN.test(typeLine) && L[ti + 1] && SLOT_NOUN.test(L[ti + 1].text) && (L[ti + 1].text.length < 24 || (wrapped && L[ti + 1].text.length < 40))) {
+  // ("Legendary Two-Handed" / "Mace (Bludgeoning)" too: "Two-Handed" alone names no weapon, 2026-11-03)
+  const handedOnly = /\b(two|one)\s*-?\s*handed\s*$/i.test(typeLine);
+  if ((!SLOT_NOUN.test(typeLine) || handedOnly) && L[ti + 1] && SLOT_NOUN.test(L[ti + 1].text) && (L[ti + 1].text.length < 24 || (wrapped && L[ti + 1].text.length < 40))) {
     typeLine += " " + L[ti + 1].text;
     after = ti + 2;
   }
@@ -245,8 +252,13 @@ export function fastParse(
     if (JUNK.test(L[i].text) || /slot|transmog|equipped|character|title[\s\-_]*select/i.test(L[i].text)) break;
     // a panel label between the two lines of a long title ("OCELOT'S EYE OF" / "Stats & Material" / "REANIMATION")
     if (panel.has(i)) continue;
+    // a panel label cut off by the tooltip's edge ("Weapon D" of "Weapon Damage") isn't part of the name
+    if (/^(weapon\s+d\w{0,3}|stats\s*&?\s*mat\w*|toughn\w*|intellig\w*|willpo\w*|dexter\w*)\W*$/i.test(L[i].text.trim())) continue;
     // a stack count under the title ("(2)") isn't part of the name
     if (/^\(\d+\)$/.test(L[i].text.trim())) continue;
+    // a stat line is never a name: the title is cut off above it ("+16.0% All Stats +4 to All Skills" named
+    // a charm, 2026-11-03), and the type line names it instead
+    if (STAT_START.test(L[i].text.trim())) break;
     // the title font is clearly bigger than body text; small lines above it are UI (character name…)
     // all-caps title lines measure about body height; small UI text (character name) is clearly shorter
     if (bodyH && L[i].h && L[i].h! < bodyH * 0.85) break;
@@ -264,7 +276,8 @@ export function fastParse(
   const starMarks = (rawName.match(/[*✸✹✺❋✷]/g) ?? []).length;
   // the title scrolled or cut off above the capture: the type line names it ("Legendary Sword") — judging
   // its stats here beats a slow AI read that can't see the name either
-  const name = titleCase(rawName.replace(/[*✸✹✺❋✷]/g, "")) || (ti === 0 ? titleCase(typeLine.replace(/^(ancestral|sacred)\s+/i, "")) : "");
+  // (or only panel text sat above it: "Stats & Materials" named a sigil, 2026-11-03)
+  const name = titleCase(rawName.replace(/[*✸✹✺❋✷]/g, "")) || (ti === 0 || !nameParts.length ? titleCase(typeLine.replace(/^(ancestral|sacred)\s+/i, "")) : "");
   if (!name || name.length < 3) return null;
 
   // 3) walk the body. A line WITH a bullet icon starts a new entry; lines without one
